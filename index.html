@@ -212,6 +212,17 @@
       color: var(--muted);
       margin-top: 8px;
     }
+    .qr-dl {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--accent2);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .qr-dl:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -294,6 +305,7 @@
         <div class="qr-wrap" id="qrWrap">
           <img id="qrImg" alt="UPI QR code" />
           <div class="qr-label">Or scan to pay with any UPI app</div>
+          <a class="qr-dl" id="qrDl" download="badminton-payment-qr.png">Download QR</a>
         </div>
 
         <div class="btns">
@@ -332,6 +344,7 @@
     const backBtn = document.getElementById('backBtn');
     const errorBox = document.getElementById('errorBox');
     const qrImg = document.getElementById('qrImg');
+    const qrDl = document.getElementById('qrDl');
 
     upiText.textContent = UPI;
 
@@ -382,8 +395,10 @@
       playerNameText.textContent = name;
       playerPhoneText.textContent = phone;
       noteText.textContent = note;
-      qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' +
-                  encodeURIComponent(buildUpiUrl(total, note));
+      const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' +
+                    encodeURIComponent(buildUpiUrl(total, note));
+      qrImg.src = qrUrl;
+      qrDl.href = qrUrl;
       screenBooking.classList.remove('active');
       screenPayment.classList.add('active');
       errorBox.style.display = 'none';
