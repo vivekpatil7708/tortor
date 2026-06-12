@@ -156,10 +156,6 @@
       text-align: center;
       display: inline-block;
     }
-    .pay {
-      background: linear-gradient(135deg, var(--accent), #16a34a);
-      color: #08110b;
-    }
     .primary {
       background: linear-gradient(135deg, var(--accent2), #1d4ed8);
       color: #fff;
@@ -309,13 +305,12 @@
         </div>
 
         <div class="btns">
-          <button class="pay" id="payBtn">Pay with Google Pay / UPI</button>
           <button class="copy" id="copyBtn">Copy UPI ID</button>
           <button class="ghost" id="backBtn">&larr; Change number of people</button>
         </div>
 
         <div class="error" id="errorBox"></div>
-        <p class="help">If Google Pay does not open, scan the QR code or copy the UPI ID to pay manually.</p>
+        <p class="help">Scan the QR code with any UPI app, or copy the UPI ID to pay manually.</p>
       </div>
 
     </section>
@@ -339,7 +334,6 @@
     const playerPhoneText = document.getElementById('playerPhoneText');
     const upiText = document.getElementById('upiText');
     const noteText = document.getElementById('noteText');
-    const payBtn = document.getElementById('payBtn');
     const copyBtn = document.getElementById('copyBtn');
     const backBtn = document.getElementById('backBtn');
     const errorBox = document.getElementById('errorBox');
@@ -410,23 +404,6 @@
       screenBooking.classList.add('active');
       errorBox.style.display = 'none';
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    function showError(msg) {
-      errorBox.style.display = 'block';
-      errorBox.textContent = msg;
-    }
-
-    payBtn.addEventListener('click', () => {
-      const upiUrl = buildUpiUrl(getTotal(), getNote());
-      try {
-        window.location.href = upiUrl;
-        setTimeout(() => {
-          showError('If no UPI app opened, use the Copy UPI ID button and pay manually. Some browsers block direct app opening.');
-        }, 1500);
-      } catch (e) {
-        showError('Could not open the UPI app automatically. Please copy the UPI ID and pay manually.');
-      }
     });
 
     copyBtn.addEventListener('click', async () => {
