@@ -414,14 +414,24 @@
 
     payBtn.addEventListener('click', () => {
       const upiUrl = buildUpiUrl(getTotal(), getNote());
-      const link = document.createElement('a');
-      link.href = upiUrl;
-      link.style.position = 'absolute';
-      link.style.left = '-9999px';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.location.href = upiUrl;
+      const isAndroid = /android/i.test(navigator.userAgent);
+      const isChrome = /chrome/i.test(navigator.userAgent);
+      if (isAndroid && isChrome) {
+        window.location.href = 'intent://pay?pa=' + encodeURIComponent(UPI) +
+          '&pn=' + encodeURIComponent(PAYEE_NAME) +
+          '&am=' + encodeURIComponent(getTotal()) +
+          '&cu=INR&tn=' + encodeURIComponent(getNote()) +
+          '#Intent;scheme=upi;end';
+      } else {
+        const link = document.createElement('a');
+        link.href = upiUrl;
+        link.style.position = 'absolute';
+        link.style.left = '-9999px';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.location.href = upiUrl;
+      }
       setTimeout(() => {
         showError('If the UPI app did not open, scan the QR code below or copy the UPI ID.');
       }, 2000);
