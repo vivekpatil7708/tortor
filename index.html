@@ -156,6 +156,10 @@
       text-align: center;
       display: inline-block;
     }
+    .pay {
+      background: linear-gradient(135deg, var(--accent), #16a34a);
+      color: #08110b;
+    }
     .primary {
       background: linear-gradient(135deg, var(--accent2), #1d4ed8);
       color: #fff;
@@ -305,12 +309,13 @@
         </div>
 
         <div class="btns">
+          <button class="pay" id="payBtn">Pay with Google Pay / UPI</button>
           <button class="copy" id="copyBtn">Copy UPI ID</button>
           <button class="ghost" id="backBtn">&larr; Change number of people</button>
         </div>
 
         <div class="error" id="errorBox"></div>
-        <p class="help">Scan the QR code with any UPI app, or copy the UPI ID to pay manually.</p>
+        <p class="help">Tap the button to open your UPI app, or scan the QR code below with any UPI app.</p>
       </div>
 
     </section>
@@ -334,6 +339,7 @@
     const playerPhoneText = document.getElementById('playerPhoneText');
     const upiText = document.getElementById('upiText');
     const noteText = document.getElementById('noteText');
+    const payBtn = document.getElementById('payBtn');
     const copyBtn = document.getElementById('copyBtn');
     const backBtn = document.getElementById('backBtn');
     const errorBox = document.getElementById('errorBox');
@@ -404,6 +410,21 @@
       screenBooking.classList.add('active');
       errorBox.style.display = 'none';
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    payBtn.addEventListener('click', () => {
+      const upiUrl = buildUpiUrl(getTotal(), getNote());
+      const link = document.createElement('a');
+      link.href = upiUrl;
+      link.style.position = 'absolute';
+      link.style.left = '-9999px';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.location.href = upiUrl;
+      setTimeout(() => {
+        showError('If the UPI app did not open, scan the QR code below or copy the UPI ID.');
+      }, 2000);
     });
 
     copyBtn.addEventListener('click', async () => {
