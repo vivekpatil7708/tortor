@@ -196,6 +196,22 @@
       padding: 12px 14px;
       font-size: 14px;
     }
+    .qr-wrap {
+      margin-top: 16px;
+      text-align: center;
+    }
+    .qr-wrap img {
+      width: 180px;
+      height: 180px;
+      border-radius: 14px;
+      background: #fff;
+      padding: 8px;
+    }
+    .qr-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -275,6 +291,11 @@
           </div>
         </div>
 
+        <div class="qr-wrap" id="qrWrap">
+          <img id="qrImg" alt="UPI QR code" />
+          <div class="qr-label">Or scan to pay with any UPI app</div>
+        </div>
+
         <div class="btns">
           <button class="pay" id="payBtn">Pay with Google Pay / UPI</button>
           <button class="copy" id="copyBtn">Copy UPI ID</button>
@@ -282,7 +303,7 @@
         </div>
 
         <div class="error" id="errorBox"></div>
-        <p class="help">If Google Pay does not open, copy the UPI ID and pay manually in any UPI app.</p>
+        <p class="help">If Google Pay does not open, scan the QR code or copy the UPI ID to pay manually.</p>
       </div>
 
     </section>
@@ -310,6 +331,7 @@
     const copyBtn = document.getElementById('copyBtn');
     const backBtn = document.getElementById('backBtn');
     const errorBox = document.getElementById('errorBox');
+    const qrImg = document.getElementById('qrImg');
 
     upiText.textContent = UPI;
 
@@ -343,15 +365,25 @@
       return name ? NOTE_PREFIX + ' - ' + name : NOTE_PREFIX;
     }
 
+    function buildUpiUrl(amount, note) {
+      return 'upi://pay?pa=' + encodeURIComponent(UPI) +
+             '&pn=' + encodeURIComponent(PAYEE_NAME) +
+             '&am=' + encodeURIComponent(amount) +
+             '&cu=INR&tn=' + encodeURIComponent(note);
+    }
+
     proceedBtn.addEventListener('click', () => {
       const name = getPlayerName();
       const phone = getPhone();
       if (!name || !phone) return;
       const total = getTotal();
+      const note = getNote();
       amountText.textContent = total;
       playerNameText.textContent = name;
       playerPhoneText.textContent = phone;
-      noteText.textContent = getNote();
+      noteText.textContent = note;
+      qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' +
+                  encodeURIComponent(buildUpiUrl(total, note));
       screenBooking.classList.remove('active');
       screenPayment.classList.add('active');
       errorBox.style.display = 'none';
@@ -371,11 +403,7 @@
     }
 
     payBtn.addEventListener('click', () => {
-      const total = getTotal();
-      const upiUrl = 'upi://pay?pa=' + encodeURIComponent(UPI) +
-                     '&pn=' + encodeURIComponent(PAYEE_NAME) +
-                     '&am=' + encodeURIComponent(total) +
-                     '&cu=INR&tn=' + encodeURIComponent(getNote());
+      const upiUrl = buildUpiUrl(getTotal(), getNote());
       try {
         window.location.href = upiUrl;
         setTimeout(() => {
