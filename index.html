@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Vivek Sports — Badminton Booking</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #171a21;
+      --muted: #9aa4b2;
+      --text: #f4f7fb;
+      --accent: #22c55e;
+      --accent2: #2563eb;
+      --border: #2a3140;
+      --danger: #ef4444;
+      --shadow: 0 20px 50px rgba(0,0,0,.35);
+      --radius: 20px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(circle at top, #1c2333 0%, var(--bg) 45%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+    .wrap { width: 100%; max-width: 420px; }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      backdrop-filter: blur(10px);
+    }
+    .badge {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(37,99,235,.14);
+      color: #bfdbfe;
+      font-size: 12px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h1 { margin: 0 0 8px; font-size: 30px; line-height: 1.1; }
+    p { margin: 0; color: var(--muted); line-height: 1.5; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    .rate-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 14px;
+      padding: 10px 16px;
+      border-radius: 14px;
+      background: rgba(34,197,94,.1);
+      border: 1px solid rgba(34,197,94,.2);
+      color: var(--accent);
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .rate-badge small {
+      font-weight: 400;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .form-group {
+      margin-top: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    select {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 600;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      outline: none;
+    }
+    select:focus {
+      border-color: var(--accent2);
+    }
+    select option {
+      background: var(--card);
+      color: var(--text);
+    }
+
+    .subtotal-wrap {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .subtotal-label {
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .subtotal-value {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .amount {
+      margin: 22px 0 10px;
+      font-size: 46px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .meta {
+      margin-top: 16px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .row { margin-bottom: 12px; }
+    .row:last-child { margin-bottom: 0; }
+    .label { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+    .value { font-size: 15px; word-break: break-word; }
+    .btns { display: grid; gap: 12px; margin-top: 22px; }
+    button, a.copy {
+      width: 100%;
+      border: 0;
+      border-radius: 16px;
+      padding: 16px 18px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      display: inline-block;
+    }
+    .pay {
+      background: linear-gradient(135deg, var(--accent), #16a34a);
+      color: #08110b;
+    }
+    .primary {
+      background: linear-gradient(135deg, var(--accent2), #1d4ed8);
+      color: #fff;
+    }
+    .primary[disabled] {
+      opacity: .4;
+      cursor: default;
+    }
+    .copy {
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 0;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 400;
+    }
+    .help {
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .error {
+      display: none;
+      margin-top: 14px;
+      color: #fecaca;
+      background: rgba(239,68,68,.12);
+      border: 1px solid rgba(239,68,68,.25);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+
+      <!-- ====== SCREEN 1: BOOKING ====== -->
+      <div class="screen active" id="screenBooking">
+        <div class="badge">Vivek Sports</div>
+        <h1>Badminton booking</h1>
+        <p>Sunday event &middot; ₹249 per person</p>
+
+        <div class="rate-badge">
+          ₹249 <small>per person</small>
+        </div>
+
+        <div class="form-group">
+          <label for="peopleSelect">Number of people</label>
+          <select id="peopleSelect">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+
+        <div class="subtotal-wrap">
+          <span class="subtotal-label">Subtotal</span>
+          <span class="subtotal-value" id="subtotalDisplay">₹249</span>
+        </div>
+
+        <div class="btns">
+          <button class="primary" id="proceedBtn">Proceed to Pay</button>
+        </div>
+      </div>
+
+      <!-- ====== SCREEN 2: PAYMENT ====== -->
+      <div class="screen" id="screenPayment">
+        <div class="badge">Vivek Sports</div>
+        <h1>Badminton payment</h1>
+        <p>Tap the button below to open Google Pay or another UPI app.</p>
+
+        <div class="amount">₹<span id="amountText">249</span></div>
+
+        <div class="meta">
+          <div class="row">
+            <div class="label">UPI ID</div>
+            <div class="value" id="upiText">vivekpatil2020770088-1@okicici</div>
+          </div>
+          <div class="row">
+            <div class="label">Payment note</div>
+            <div class="value" id="noteText">Badminton booking</div>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="pay" id="payBtn">Pay with Google Pay / UPI</button>
+          <button class="copy" id="copyBtn">Copy UPI ID</button>
+          <button class="ghost" id="backBtn">&larr; Change number of people</button>
+        </div>
+
+        <div class="error" id="errorBox"></div>
+        <p class="help">If Google Pay does not open, copy the UPI ID and pay manually in any UPI app.</p>
+      </div>
+
+    </section>
+  </main>
+
+  <script>
+    const UPI = 'vivekpatil2020770088-1@okicici';
+    const NAME = 'Vivek Sports';
+    const NOTE = 'Badminton booking';
+    const RATE = 249;
+
+    const peopleSelect = document.getElementById('peopleSelect');
+    const subtotalDisplay = document.getElementById('subtotalDisplay');
+    const proceedBtn = document.getElementById('proceedBtn');
+    const screenBooking = document.getElementById('screenBooking');
+    const screenPayment = document.getElementById('screenPayment');
+    const amountText = document.getElementById('amountText');
+    const upiText = document.getElementById('upiText');
+    const noteText = document.getElementById('noteText');
+    const payBtn = document.getElementById('payBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const backBtn = document.getElementById('backBtn');
+    const errorBox = document.getElementById('errorBox');
+
+    upiText.textContent = UPI;
+    noteText.textContent = NOTE;
+
+    function updateSubtotal() {
+      const count = parseInt(peopleSelect.value, 10);
+      const total = RATE * count;
+      subtotalDisplay.textContent = '₹' + total;
+      proceedBtn.disabled = false;
+    }
+
+    peopleSelect.addEventListener('change', updateSubtotal);
+
+    function getTotal() {
+      return RATE * parseInt(peopleSelect.value, 10);
+    }
+
+    proceedBtn.addEventListener('click', () => {
+      const total = getTotal();
+      amountText.textContent = total;
+      screenBooking.classList.remove('active');
+      screenPayment.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    backBtn.addEventListener('click', () => {
+      screenPayment.classList.remove('active');
+      screenBooking.classList.add('active');
+      errorBox.style.display = 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    function showError(msg) {
+      errorBox.style.display = 'block';
+      errorBox.textContent = msg;
+    }
+
+    payBtn.addEventListener('click', () => {
+      const total = getTotal();
+      const upiUrl = 'upi://pay?pa=' + encodeURIComponent(UPI) +
+                     '&pn=' + encodeURIComponent(NAME) +
+                     '&am=' + encodeURIComponent(total) +
+                     '&cu=INR&tn=' + encodeURIComponent(NOTE);
+      try {
+        window.location.href = upiUrl;
+        setTimeout(() => {
+          showError('If no UPI app opened, use the Copy UPI ID button and pay manually. Some browsers block direct app opening.');
+        }, 1500);
+      } catch (e) {
+        showError('Could not open the UPI app automatically. Please copy the UPI ID and pay manually.');
+      }
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(UPI);
+        const old = copyBtn.textContent;
+        copyBtn.textContent = 'UPI ID Copied';
+        setTimeout(() => copyBtn.textContent = old, 1800);
+      } catch (e) {
+        showError('Clipboard access failed. Please copy the UPI ID manually: ' + UPI);
+      }
+    });
+
+    updateSubtotal();
+  </script>
+</body>
+</html>
