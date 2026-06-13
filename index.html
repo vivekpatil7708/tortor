@@ -3,151 +3,198 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Vivek Sports — Badminton Booking</title>
+  <title>Toro Toro — Badminton Booking</title>
   <style>
+    * { box-sizing: border-box; margin: 0; }
     :root {
-      --bg: #0f1115;
-      --card: #171a21;
-      --muted: #9aa4b2;
-      --text: #f4f7fb;
-      --accent: #22c55e;
-      --accent2: #2563eb;
-      --border: #2a3140;
-      --danger: #ef4444;
-      --shadow: 0 20px 50px rgba(0,0,0,.35);
+      --cream: #fdf8f0;
+      --beige: #f5ede3;
+      --glass: rgba(255,255,255,.55);
+      --glass-border: rgba(255,255,255,.8);
+      --glass-shadow: 0 8px 32px rgba(0,0,0,.06);
+      --charcoal: #2c2c2c;
+      --muted: #8a8580;
+      --green: #7bb86c;
+      --green-dark: #5c9a4e;
+      --orange: #e8844a;
+      --orange-light: #fdf0e8;
       --radius: 20px;
+      --radius-sm: 14px;
     }
-    * { box-sizing: border-box; }
     body {
-      margin: 0;
       min-height: 100vh;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      background: radial-gradient(circle at top, #1c2333 0%, var(--bg) 45%);
-      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: linear-gradient(160deg, var(--cream) 0%, var(--beige) 100%);
+      color: var(--charcoal);
       display: grid;
       place-items: center;
       padding: 20px;
     }
     .wrap { width: 100%; max-width: 420px; }
-    .card {
-      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 24px;
-      backdrop-filter: blur(10px);
+
+    .logo {
+      text-align: center;
+      margin-bottom: 18px;
     }
+    .logo svg {
+      width: 56px;
+      height: 56px;
+    }
+    .logo-tagline {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .glass {
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      box-shadow: var(--glass-shadow);
+      padding: 24px;
+    }
+    .glass-sm {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--glass-shadow);
+      padding: 16px;
+    }
+
     .badge {
-      display: inline-block;
-      padding: 8px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
       border-radius: 999px;
-      background: rgba(37,99,235,.14);
-      color: #bfdbfe;
+      background: var(--orange-light);
+      color: var(--orange);
       font-size: 12px;
+      font-weight: 600;
       letter-spacing: .04em;
       text-transform: uppercase;
-      margin-bottom: 16px;
     }
-    h1 { margin: 0 0 8px; font-size: 30px; line-height: 1.1; }
-    p { margin: 0; color: var(--muted); line-height: 1.5; }
+
+    h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 10px 0 4px; }
+    .sub { color: var(--muted); font-size: 15px; line-height: 1.4; }
+
     .screen { display: none; }
     .screen.active { display: block; }
 
-    .rate-badge {
+    .rate-chip {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       margin-top: 14px;
-      padding: 10px 16px;
-      border-radius: 14px;
-      background: rgba(34,197,94,.1);
-      border: 1px solid rgba(34,197,94,.2);
-      color: var(--accent);
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(123,184,108,.12);
+      color: var(--green-dark);
       font-size: 18px;
       font-weight: 700;
     }
-    .rate-badge small {
+    .rate-chip small {
       font-weight: 400;
       font-size: 13px;
       color: var(--muted);
     }
 
     .form-group {
-      margin-top: 20px;
+      margin-top: 18px;
     }
     .form-group label {
       display: block;
-      font-size: 14px;
+      font-size: 13px;
+      font-weight: 600;
       color: var(--muted);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     select, input {
       width: 100%;
       padding: 14px 16px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-      font-size: 18px;
-      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(0,0,0,.06);
+      background: rgba(255,255,255,.7);
+      color: var(--charcoal);
+      font-size: 16px;
+      font-weight: 500;
       appearance: none;
       -webkit-appearance: none;
       cursor: pointer;
       outline: none;
+      transition: border-color .15s;
     }
-    input {
-      cursor: text;
-    }
-    select:focus, input:focus {
-      border-color: var(--accent2);
-    }
-    select option {
-      background: var(--card);
-      color: var(--text);
-    }
+    input { cursor: text; }
+    select:focus, input:focus { border-color: var(--green); }
+    select option { background: #fff; color: var(--charcoal); }
 
-    .subtotal-wrap {
-      margin-top: 20px;
-      padding: 16px;
-      border-radius: 14px;
-      background: rgba(255,255,255,.03);
-      border: 1px solid var(--border);
+    .subtotal-row {
+      margin-top: 18px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .subtotal-label {
-      font-size: 14px;
-      color: var(--muted);
-    }
-    .subtotal-value {
-      font-size: 24px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-    }
+    .subtotal-label { font-size: 14px; color: var(--muted); font-weight: 500; }
+    .subtotal-value { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
 
-    .amount {
-      margin: 22px 0 10px;
-      font-size: 46px;
+    .amount-big {
+      text-align: center;
+      margin: 14px 0 4px;
+      font-size: 48px;
       font-weight: 800;
       letter-spacing: -0.03em;
+      color: var(--charcoal);
     }
-    .meta {
+
+    .meta-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .meta-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .meta-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .meta-value { font-size: 15px; font-weight: 600; word-break: break-word; }
+
+    .qr-tile {
       margin-top: 16px;
-      background: rgba(255,255,255,.03);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px;
+      text-align: center;
+      padding: 16px;
     }
-    .row { margin-bottom: 12px; }
-    .row:last-child { margin-bottom: 0; }
-    .label { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
-    .value { font-size: 15px; word-break: break-word; }
-    .btns { display: grid; gap: 12px; margin-top: 22px; }
-    button, a.copy {
+    .qr-tile img {
+      width: 170px;
+      height: 170px;
+      border-radius: 12px;
+      background: #fff;
+      padding: 6px;
+    }
+    .qr-label { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .qr-dl {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green-dark);
+      text-decoration: none;
+      cursor: pointer;
+      background: none;
+      border: 0;
+    }
+    .qr-dl:hover { text-decoration: underline; }
+
+    .btns { display: grid; gap: 10px; margin-top: 18px; }
+    button, a.btn {
       width: 100%;
       border: 0;
-      border-radius: 16px;
+      border-radius: var(--radius-sm);
       padding: 16px 18px;
       font-size: 16px;
       font-weight: 700;
@@ -155,107 +202,105 @@
       text-decoration: none;
       text-align: center;
       display: inline-block;
+      transition: transform .1s, box-shadow .1s;
     }
-    .pay {
-      background: linear-gradient(135deg, var(--accent), #16a34a);
-      color: #08110b;
-    }
-    .primary {
-      background: linear-gradient(135deg, var(--accent2), #1d4ed8);
+    button:active { transform: scale(.97); }
+    .btn-primary {
+      background: var(--green);
       color: #fff;
+      box-shadow: 0 4px 16px rgba(123,184,108,.3);
     }
-    .primary[disabled] {
+    .btn-primary[disabled] {
       opacity: .4;
       cursor: default;
+      box-shadow: none;
     }
-    .copy {
-      background: rgba(255,255,255,.05);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-    .ghost {
-      background: transparent;
-      color: var(--muted);
-      border: 0;
-      padding: 10px;
-      font-size: 14px;
-      font-weight: 400;
-    }
-    .help {
-      margin-top: 18px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .error {
-      display: none;
-      margin-top: 14px;
-      color: #fecaca;
-      background: rgba(239,68,68,.12);
-      border: 1px solid rgba(239,68,68,.25);
-      border-radius: 14px;
-      padding: 12px 14px;
-      font-size: 14px;
-    }
-    .qr-wrap {
-      margin-top: 16px;
-      text-align: center;
-    }
-    .qr-wrap img {
-      width: 180px;
-      height: 180px;
-      border-radius: 14px;
-      background: #fff;
-      padding: 8px;
-    }
-    .qr-label {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 8px;
-    }
-    .qr-dl {
-      display: inline-block;
-      margin-top: 10px;
-      font-size: 13px;
-      color: var(--accent2);
-      text-decoration: none;
-      cursor: pointer;
-    }
-    .qr-dl:hover {
-      text-decoration: underline;
-    }
-    .whatsapp {
+    .btn-primary[disabled]:active { transform: none; }
+    .btn-wa {
       background: #25d366;
       color: #fff;
+      box-shadow: 0 4px 16px rgba(37,211,102,.25);
     }
+    .btn-ghost {
+      background: rgba(0,0,0,.03);
+      color: var(--charcoal);
+      border: 1px solid rgba(0,0,0,.06);
+    }
+    .btn-soft {
+      background: var(--glass);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--glass-border);
+      color: var(--charcoal);
+      font-weight: 600;
+    }
+    .btn-back {
+      background: none;
+      color: var(--muted);
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .help {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+      text-align: center;
+    }
+
     .toast {
       display: none;
       margin-top: 12px;
       padding: 10px 14px;
-      border-radius: 12px;
+      border-radius: var(--radius-sm);
       font-size: 14px;
       text-align: center;
-      color: #bbf7d0;
-      background: rgba(34,197,94,.12);
-      border: 1px solid rgba(34,197,94,.25);
+      font-weight: 500;
+      background: rgba(123,184,108,.12);
+      color: var(--green-dark);
+      border: 1px solid rgba(123,184,108,.2);
     }
     .toast.error-toast {
-      color: #fecaca;
-      background: rgba(239,68,68,.12);
-      border: 1px solid rgba(239,68,68,.25);
+      background: rgba(232,132,74,.1);
+      color: var(--orange);
+      border: 1px solid rgba(232,132,74,.2);
+    }
+    .error {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      background: rgba(232,132,74,.1);
+      color: var(--orange);
+      border: 1px solid rgba(232,132,74,.2);
     }
   </style>
 </head>
 <body>
   <main class="wrap">
-    <section class="card">
+
+    <!-- LOGO -->
+    <div class="logo">
+      <svg viewBox="0 0 56 56" fill="none">
+        <circle cx="28" cy="28" r="26" fill="#7bb86c" opacity=".15"/>
+        <circle cx="28" cy="28" r="20" fill="#7bb86c" opacity=".25"/>
+        <text x="28" y="34" text-anchor="middle" font-size="22" font-weight="800" fill="#5c9a4e" font-family="system-ui">🐂</text>
+      </svg>
+      <div class="logo-tagline">Toro Toro Movement Club</div>
+    </div>
+
+    <section class="glass">
 
       <!-- ====== SCREEN 1: BOOKING ====== -->
       <div class="screen active" id="screenBooking">
-        <div class="badge">Vivek Sports</div>
-        <h1>Badminton booking</h1>
-        <p>Sunday event &middot; ₹249 per person</p>
+        <div class="badge">🏸 Badminton</div>
+        <h1>Sunday session</h1>
+        <p class="sub">Pick how many players &amp; hit proceed</p>
 
-        <div class="rate-badge">
+        <div class="rate-chip">
           ₹249 <small>per person</small>
         </div>
 
@@ -270,7 +315,7 @@
         </div>
 
         <div class="form-group">
-          <label for="peopleSelect">Number of people</label>
+          <label for="peopleSelect">Number of players</label>
           <select id="peopleSelect">
             <option value="1">1</option>
             <option value="2">2</option>
@@ -285,59 +330,61 @@
           </select>
         </div>
 
-        <div class="subtotal-wrap">
+        <div class="subtotal-row">
           <span class="subtotal-label">Subtotal</span>
           <span class="subtotal-value" id="subtotalDisplay">₹249</span>
         </div>
 
         <div class="btns">
-          <button class="primary" id="proceedBtn" disabled>Proceed to Pay</button>
+          <button class="btn-primary" id="proceedBtn" disabled>Proceed to Pay</button>
         </div>
       </div>
 
       <!-- ====== SCREEN 2: PAYMENT ====== -->
       <div class="screen" id="screenPayment">
-        <div class="badge">Vivek Sports</div>
-        <h1>Badminton payment</h1>
-        <p>Tap the button below to open Google Pay or another UPI app.</p>
+        <div class="badge">🏸 Badminton</div>
+        <h1>Almost there!</h1>
+        <p class="sub">Pay via UPI or scan the QR below</p>
 
-        <div class="amount">₹<span id="amountText">249</span></div>
+        <div class="amount-big">₹<span id="amountText">249</span></div>
 
-        <div class="meta">
-          <div class="row">
-            <div class="label">Player</div>
-            <div class="value" id="playerNameText">—</div>
-          </div>
-          <div class="row">
-            <div class="label">Phone</div>
-            <div class="value" id="playerPhoneText">—</div>
-          </div>
-          <div class="row">
-            <div class="label">UPI ID</div>
-            <div class="value" id="upiText">9172632189@kotakbank</div>
-          </div>
-          <div class="row">
-            <div class="label">Payment note</div>
-            <div class="value" id="noteText">Badminton booking</div>
+        <div class="glass-sm" style="margin-top:14px">
+          <div class="meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Player</span>
+              <span class="meta-value" id="playerNameText">—</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Phone</span>
+              <span class="meta-value" id="playerPhoneText">—</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">UPI ID</span>
+              <span class="meta-value" id="upiText">9172632189@kotakbank</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Note</span>
+              <span class="meta-value" id="noteText">Badminton booking</span>
+            </div>
           </div>
         </div>
 
-        <div class="qr-wrap" id="qrWrap">
+        <div class="qr-tile glass-sm">
           <img id="qrImg" alt="UPI QR code" />
-          <div class="qr-label">Or scan to pay with any UPI app</div>
-          <a class="qr-dl" id="qrDl" download="badminton-payment-qr.png">Download QR</a>
+          <div class="qr-label">Scan with any UPI app</div>
+          <button class="qr-dl" id="qrDl">Download QR</button>
         </div>
 
         <div class="btns">
-          <button class="pay" id="payBtn">Pay with Google Pay / UPI</button>
-          <button class="whatsapp" id="waBtn">✓ Paid — Send screenshot on WhatsApp</button>
-          <button class="copy" id="copyBtn">Copy UPI ID</button>
-          <button class="ghost" id="backBtn">&larr; Change number of people</button>
+          <button class="btn-primary" id="payBtn">Pay with Google Pay / UPI</button>
+          <button class="btn-wa" id="waBtn">✓ Paid — Send screenshot on WhatsApp</button>
+          <button class="btn-soft" id="copyBtn">Copy UPI ID</button>
+          <button class="btn-back" id="backBtn">&larr; Change details</button>
         </div>
 
         <div class="toast" id="toast"></div>
         <div class="error" id="errorBox"></div>
-        <p class="help">Pay with the button or QR, then tap the WhatsApp button to send your payment screenshot.</p>
+        <p class="help">Pay via the button or QR, then tap the WhatsApp button to send your payment screenshot.</p>
       </div>
 
     </section>
@@ -345,7 +392,7 @@
 
   <script>
     const UPI = '9172632189@kotakbank';
-    const PAYEE_NAME = 'Vivek Sports';
+    const PAYEE_NAME = 'Toro Toro Club';
     const NOTE_PREFIX = 'Badminton booking';
     const RATE = 249;
     const WEBHOOK_URL = 'REPLACE_WITH_YOUR_GOOGLE_SCRIPT_URL';
@@ -375,8 +422,7 @@
 
     function updateForm() {
       const count = parseInt(peopleSelect.value, 10);
-      const total = RATE * count;
-      subtotalDisplay.textContent = '₹' + total;
+      subtotalDisplay.textContent = '\u20B9' + (RATE * count);
       const nameFilled = nameInput.value.trim().length > 0;
       const phoneFilled = phoneInput.value.trim().length > 0;
       proceedBtn.disabled = !(nameFilled && phoneFilled);
@@ -386,50 +432,21 @@
     phoneInput.addEventListener('input', updateForm);
     peopleSelect.addEventListener('change', updateForm);
 
-    function getPlayerName() {
-      return nameInput.value.trim();
-    }
-
-    function getPhone() {
-      return phoneInput.value.trim();
-    }
-
-    function getTotal() {
-      return RATE * parseInt(peopleSelect.value, 10);
-    }
-
+    function getPlayerName() { return nameInput.value.trim(); }
+    function getPhone() { return phoneInput.value.trim(); }
+    function getTotal() { return RATE * parseInt(peopleSelect.value, 10); }
     function getNote() {
       const name = getPlayerName();
       return name ? NOTE_PREFIX + ' ' + name : NOTE_PREFIX;
     }
-
-    function fmtAmount(n) {
-      return Number(n).toFixed(2);
-    }
-
-    function buildUpiUrlEncoded(amount, note, tr) {
-      return 'upi://pay?pa=' + UPI +
-             '&am=' + fmtAmount(amount) +
-             '&cu=INR&mode=01&tn=' + encodeURIComponent(note) +
-             '&tr=' + tr;
-    }
-
-    function buildUpiUrlRaw(amount, note, tr) {
-      return 'upi://pay?pa=' + UPI +
-             '&am=' + fmtAmount(amount) +
-             '&cu=INR&mode=01&tn=' + note +
-             '&tr=' + tr;
-    }
-
-    function uniqueTr() {
-      return 'TXN' + Date.now();
-    }
+    function fmtAmount(n) { return Number(n).toFixed(2); }
+    function uniqueTr() { return 'TXN' + Date.now(); }
 
     function showToast(msg, isError) {
       toast.textContent = msg;
       toast.className = 'toast' + (isError ? ' error-toast' : '');
       toast.style.display = 'block';
-      setTimeout(() => toast.style.display = 'none', 4000);
+      setTimeout(function() { toast.style.display = 'none'; }, 4000);
     }
 
     function logPayment(name, phone, people, amount, status) {
@@ -449,7 +466,14 @@
       }).catch(function() {});
     }
 
-    proceedBtn.addEventListener('click', () => {
+    function buildUpiUrlEncoded(amount, note, tr) {
+      return 'upi://pay?pa=' + UPI + '&am=' + fmtAmount(amount) + '&cu=INR&mode=01&tn=' + encodeURIComponent(note) + '&tr=' + tr;
+    }
+    function buildUpiUrlRaw(amount, note, tr) {
+      return 'upi://pay?pa=' + UPI + '&am=' + fmtAmount(amount) + '&cu=INR&mode=01&tn=' + note + '&tr=' + tr;
+    }
+
+    proceedBtn.addEventListener('click', function() {
       const name = getPlayerName();
       const phone = getPhone();
       if (!name || !phone) return;
@@ -459,41 +483,35 @@
       playerNameText.textContent = name;
       playerPhoneText.textContent = phone;
       noteText.textContent = note;
-      const tr = uniqueTr();
-      const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' +
-                    encodeURIComponent(buildUpiUrlRaw(total, note, tr));
+      var tr = uniqueTr();
+      var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(buildUpiUrlRaw(total, note, tr));
       qrImg.src = qrUrl;
       qrDl.href = qrUrl;
       logPayment(name, phone, peopleSelect.value, total, 'Payment Initiated');
-      waBtn.href = 'https://wa.me/9172632189?text=' +
-        encodeURIComponent('Hi Vivek, I have paid \u20B9' + total + ' for Badminton booking.\nName: ' + name + '\nPhone: ' + phone + '\nPeople: ' + peopleSelect.value + '\n\nSending payment screenshot below:');
       screenBooking.classList.remove('active');
       screenPayment.classList.add('active');
       errorBox.style.display = 'none';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    backBtn.addEventListener('click', () => {
+    backBtn.addEventListener('click', function() {
       screenPayment.classList.remove('active');
       screenBooking.classList.add('active');
       errorBox.style.display = 'none';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    payBtn.addEventListener('click', () => {
-      const total = getTotal();
-      const note = getNote();
-      const tr = uniqueTr();
-      const upiUrl = buildUpiUrlEncoded(total, note, tr);
-      const isAndroid = /android/i.test(navigator.userAgent);
-      const isChrome = /chrome/i.test(navigator.userAgent);
+    payBtn.addEventListener('click', function() {
+      var total = getTotal();
+      var note = getNote();
+      var tr = uniqueTr();
+      var upiUrl = buildUpiUrlEncoded(total, note, tr);
+      var isAndroid = /android/i.test(navigator.userAgent);
+      var isChrome = /chrome/i.test(navigator.userAgent);
       if (isAndroid && isChrome) {
-        window.location.href = 'intent://pay?pa=' + UPI +
-          '&am=' + fmtAmount(total) + '&mode=01' +
-          '&cu=INR&tn=' + encodeURIComponent(note) + '&tr=' + tr +
-          '#Intent;scheme=upi;end';
+        window.location.href = 'intent://pay?pa=' + UPI + '&am=' + fmtAmount(total) + '&mode=01&cu=INR&tn=' + encodeURIComponent(note) + '&tr=' + tr + '#Intent;scheme=upi;end';
       } else {
-        const link = document.createElement('a');
+        var link = document.createElement('a');
         link.href = upiUrl;
         link.style.position = 'absolute';
         link.style.left = '-9999px';
@@ -502,29 +520,29 @@
         document.body.removeChild(link);
         window.location.href = upiUrl;
       }
-      setTimeout(() => {
-        showError('If the UPI app did not open, scan the QR code below or copy the UPI ID.');
+      setTimeout(function() {
+        errorBox.style.display = 'block';
+        errorBox.textContent = 'If the UPI app did not open, scan the QR code below or copy the UPI ID.';
       }, 2000);
     });
 
-    waBtn.addEventListener('click', () => {
-      const name = getPlayerName();
-      const phone = getPhone();
-      const total = getTotal();
+    waBtn.addEventListener('click', function() {
+      var name = getPlayerName();
+      var phone = getPhone();
+      var total = getTotal();
       logPayment(name, phone, peopleSelect.value, total, 'Payment Completed');
-      window.open('https://wa.me/9172632189?text=' +
-        encodeURIComponent('Hi Vivek, I have paid \u20B9' + total + ' for Badminton booking.\nName: ' + name + '\nPhone: ' + phone + '\nPeople: ' + peopleSelect.value + '\n\nSending payment screenshot below:'), '_blank');
+      window.open('https://wa.me/9172632189?text=' + encodeURIComponent('Hi Vivek, I have paid \u20B9' + total + ' for Badminton booking.\nName: ' + name + '\nPhone: ' + phone + '\nPeople: ' + peopleSelect.value + '\n\nSending payment screenshot below:'), '_blank');
       showToast('Payment recorded. Open WhatsApp to send screenshot.');
     });
 
-    copyBtn.addEventListener('click', async () => {
+    copyBtn.addEventListener('click', async function() {
       try {
         await navigator.clipboard.writeText(UPI);
-        const old = copyBtn.textContent;
-        copyBtn.textContent = 'UPI ID Copied';
-        setTimeout(() => copyBtn.textContent = old, 1800);
+        var old = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        setTimeout(function() { copyBtn.textContent = old; }, 1800);
       } catch (e) {
-        showError('Clipboard access failed. Please copy the UPI ID manually: ' + UPI);
+        showToast('Clipboard access failed. Copy manually: ' + UPI, true);
       }
     });
 
