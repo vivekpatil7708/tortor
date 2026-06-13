@@ -32,7 +32,25 @@
     }
     .wrap { width: 100%; max-width: 420px; }
 
-    .logo {
+    .doodles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .doodles span {
+      position: absolute;
+      font-size: 72px;
+      opacity: .08;
+      user-select: none;
+    }
+    .doodles span:nth-child(1) { top: 6%; left: 4%; transform: rotate(-15deg); }
+    .doodles span:nth-child(2) { top: 12%; right: 6%; transform: rotate(10deg); }
+    .doodles span:nth-child(3) { top: 38%; left: 2%; transform: rotate(-8deg); font-size: 56px; }
+    .doodles span:nth-child(4) { top: 55%; right: 3%; transform: rotate(20deg); font-size: 64px; }
+    .doodles span:nth-child(5) { bottom: 10%; left: 5%; transform: rotate(-25deg); font-size: 80px; }
+    .doodles span:nth-child(6) { bottom: 18%; right: 8%; transform: rotate(5deg); font-size: 54px; }
       text-align: center;
       margin-bottom: 18px;
     }
@@ -281,6 +299,16 @@
 </head>
 <body>
   <main class="wrap">
+
+    <!-- SPORT DOODLES -->
+    <div class="doodles">
+      <span>⚽</span>
+      <span>🏏</span>
+      <span>🏸</span>
+      <span>⚽</span>
+      <span>🏏</span>
+      <span>🏸</span>
+    </div>
 
     <!-- LOGO -->
     <div class="logo">
