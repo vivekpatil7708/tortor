@@ -227,6 +227,10 @@
       background: linear-gradient(135deg, var(--accent), #16a34a);
       color: #08110b;
     }
+    .whatsapp {
+      background: #25d366;
+      color: #fff;
+    }
     .toast {
       display: none;
       margin-top: 12px;
@@ -331,13 +335,14 @@
         <div class="btns">
           <button class="pay" id="payBtn">Pay with Google Pay / UPI</button>
           <button class="done" id="paidBtn">I have paid ✓</button>
+          <a class="whatsapp" id="waBtn" target="_blank" rel="noopener">Send screenshot on WhatsApp</a>
           <button class="copy" id="copyBtn">Copy UPI ID</button>
           <button class="ghost" id="backBtn">&larr; Change number of people</button>
         </div>
 
         <div class="toast" id="toast"></div>
         <div class="error" id="errorBox"></div>
-        <p class="help">Tap the button to open your UPI app, or scan the QR code below with any UPI app.</p>
+        <p class="help">1. Pay with the button or QR &nbsp; 2. Tap "I have paid" &nbsp; 3. Send screenshot on WhatsApp</p>
       </div>
 
     </section>
@@ -370,6 +375,7 @@
     const toast = document.getElementById('toast');
     const qrImg = document.getElementById('qrImg');
     const qrDl = document.getElementById('qrDl');
+    const waBtn = document.getElementById('waBtn');
 
     upiText.textContent = UPI;
 
@@ -465,6 +471,8 @@
       qrImg.src = qrUrl;
       qrDl.href = qrUrl;
       logPayment(name, phone, peopleSelect.value, total, 'Payment Initiated');
+      waBtn.href = 'https://wa.me/9172632189?text=' +
+        encodeURIComponent('Hi Vivek, I have paid \u20B9' + total + ' for Badminton booking.\nName: ' + name + '\nPhone: ' + phone + '\nPeople: ' + peopleSelect.value + '\n\nSending payment screenshot below:');
       screenBooking.classList.remove('active');
       screenPayment.classList.add('active');
       errorBox.style.display = 'none';
