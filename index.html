@@ -375,7 +375,7 @@
 
     function getNote() {
       const name = getPlayerName();
-      return name ? NOTE_PREFIX + ' - ' + name : NOTE_PREFIX;
+      return name ? NOTE_PREFIX + ' ' + name : NOTE_PREFIX;
     }
 
     function fmtAmount(n) {
@@ -384,16 +384,14 @@
 
     function buildUpiUrlEncoded(amount, note) {
       return 'upi://pay?pa=' + UPI +
-             '&pn=' + encodeURIComponent(PAYEE_NAME) +
              '&am=' + fmtAmount(amount) +
-             '&cu=INR&tn=' + encodeURIComponent(note);
+             '&cu=INR&mode=01&tn=' + encodeURIComponent(note);
     }
 
     function buildUpiUrlRaw(amount, note) {
       return 'upi://pay?pa=' + UPI +
-             '&pn=' + PAYEE_NAME +
              '&am=' + fmtAmount(amount) +
-             '&cu=INR&tn=' + note;
+             '&cu=INR&mode=01&tn=' + note;
     }
 
     proceedBtn.addEventListener('click', () => {
@@ -429,8 +427,7 @@
       const isChrome = /chrome/i.test(navigator.userAgent);
       if (isAndroid && isChrome) {
         window.location.href = 'intent://pay?pa=' + UPI +
-          '&pn=' + encodeURIComponent(PAYEE_NAME) +
-          '&am=' + fmtAmount(getTotal()) +
+          '&am=' + fmtAmount(getTotal()) + '&mode=01' +
           '&cu=INR&tn=' + encodeURIComponent(getNote()) +
           '#Intent;scheme=upi;end';
       } else {
