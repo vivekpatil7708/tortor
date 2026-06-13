@@ -223,10 +223,6 @@
     .qr-dl:hover {
       text-decoration: underline;
     }
-    .done {
-      background: linear-gradient(135deg, var(--accent), #16a34a);
-      color: #08110b;
-    }
     .whatsapp {
       background: #25d366;
       color: #fff;
@@ -334,15 +330,14 @@
 
         <div class="btns">
           <button class="pay" id="payBtn">Pay with Google Pay / UPI</button>
-          <button class="done" id="paidBtn">I have paid ✓</button>
-          <a class="whatsapp" id="waBtn" target="_blank" rel="noopener">Send screenshot on WhatsApp</a>
+          <button class="whatsapp" id="waBtn">✓ Paid — Send screenshot on WhatsApp</button>
           <button class="copy" id="copyBtn">Copy UPI ID</button>
           <button class="ghost" id="backBtn">&larr; Change number of people</button>
         </div>
 
         <div class="toast" id="toast"></div>
         <div class="error" id="errorBox"></div>
-        <p class="help">1. Pay with the button or QR &nbsp; 2. Tap "I have paid" &nbsp; 3. Send screenshot on WhatsApp</p>
+        <p class="help">Pay with the button or QR, then tap the WhatsApp button to send your payment screenshot.</p>
       </div>
 
     </section>
@@ -368,14 +363,13 @@
     const upiText = document.getElementById('upiText');
     const noteText = document.getElementById('noteText');
     const payBtn = document.getElementById('payBtn');
-    const paidBtn = document.getElementById('paidBtn');
+    const waBtn = document.getElementById('waBtn');
     const copyBtn = document.getElementById('copyBtn');
     const backBtn = document.getElementById('backBtn');
     const errorBox = document.getElementById('errorBox');
     const toast = document.getElementById('toast');
     const qrImg = document.getElementById('qrImg');
     const qrDl = document.getElementById('qrDl');
-    const waBtn = document.getElementById('waBtn');
 
     upiText.textContent = UPI;
 
@@ -513,12 +507,14 @@
       }, 2000);
     });
 
-    paidBtn.addEventListener('click', () => {
+    waBtn.addEventListener('click', () => {
       const name = getPlayerName();
       const phone = getPhone();
       const total = getTotal();
       logPayment(name, phone, peopleSelect.value, total, 'Payment Completed');
-      showToast('Payment recorded. Thank you!');
+      window.open('https://wa.me/9172632189?text=' +
+        encodeURIComponent('Hi Vivek, I have paid \u20B9' + total + ' for Badminton booking.\nName: ' + name + '\nPhone: ' + phone + '\nPeople: ' + peopleSelect.value + '\n\nSending payment screenshot below:'), '_blank');
+      showToast('Payment recorded. Open WhatsApp to send screenshot.');
     });
 
     copyBtn.addEventListener('click', async () => {
