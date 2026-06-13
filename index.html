@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Toro Toro — Badminton Booking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; }
     :root {
@@ -55,14 +58,34 @@
 
     .logo {
       text-align: center;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
-    .logo-tagline {
-      font-size: 13px;
+    .logo h1 {
+      font-family: 'Chewy', cursive;
+      font-size: 38px;
+      font-weight: 400;
+      color: var(--charcoal);
+      line-height: 1;
+      letter-spacing: .02em;
+      margin: 0;
+    }
+    .logo-sub {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
       color: var(--muted);
-      letter-spacing: .06em;
+      letter-spacing: .28em;
       text-transform: uppercase;
       margin-top: 2px;
+    }
+    .logo-tagline {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      font-weight: 300;
+      color: var(--muted);
+      letter-spacing: .35em;
+      text-transform: uppercase;
+      margin-top: 6px;
     }
 
     .glass {
@@ -311,7 +334,9 @@
 
     <!-- LOGO -->
     <div class="logo">
-      <div class="logo-tagline">Toro Toro Movement Club</div>
+      <h1>Toro Toro</h1>
+      <div class="logo-sub">Movement Club</div>
+      <div class="logo-tagline">Play · Move · Connect · Fun</div>
     </div>
 
     <section class="glass">
