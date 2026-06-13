@@ -498,19 +498,27 @@
 
     function logPayment(name, phone, people, amount, status) {
       if (WEBHOOK_URL.indexOf('script.google.com') === -1) return;
-      fetch(WEBHOOK_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          name: name,
-          phone: phone,
-          people: String(people),
-          amount: String(amount),
-          status: status,
-          note: NOTE_PREFIX
-        })
-      }).catch(function() {});
+      var iframe = document.createElement('iframe');
+      iframe.name = 'frame-' + Date.now();
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = WEBHOOK_URL;
+      form.target = iframe.name;
+      form.style.display = 'none';
+      var fields = {name: name, phone: phone, people: people, amount: amount, status: status, note: NOTE_PREFIX};
+      for (var k in fields) {
+        var inp = document.createElement('input');
+        inp.name = k; inp.value = String(fields[k]);
+        form.appendChild(inp);
+      }
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(function() {
+        document.body.removeChild(form);
+        document.body.removeChild(iframe);
+      }, 5000);
     }
 
     function buildUpiUrlEncoded(amount, note, tr) {
