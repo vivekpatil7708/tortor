@@ -223,6 +223,26 @@
     .qr-dl:hover {
       text-decoration: underline;
     }
+    .done {
+      background: linear-gradient(135deg, var(--accent), #16a34a);
+      color: #08110b;
+    }
+    .toast {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      text-align: center;
+      color: #bbf7d0;
+      background: rgba(34,197,94,.12);
+      border: 1px solid rgba(34,197,94,.25);
+    }
+    .toast.error-toast {
+      color: #fecaca;
+      background: rgba(239,68,68,.12);
+      border: 1px solid rgba(239,68,68,.25);
+    }
   </style>
 </head>
 <body>
@@ -310,10 +330,12 @@
 
         <div class="btns">
           <button class="pay" id="payBtn">Pay with Google Pay / UPI</button>
+          <button class="done" id="paidBtn">I have paid ✓</button>
           <button class="copy" id="copyBtn">Copy UPI ID</button>
           <button class="ghost" id="backBtn">&larr; Change number of people</button>
         </div>
 
+        <div class="toast" id="toast"></div>
         <div class="error" id="errorBox"></div>
         <p class="help">Tap the button to open your UPI app, or scan the QR code below with any UPI app.</p>
       </div>
@@ -326,6 +348,7 @@
     const PAYEE_NAME = 'Vivek Sports';
     const NOTE_PREFIX = 'Badminton booking';
     const RATE = 249;
+    const WEBHOOK_URL = 'REPLACE_WITH_YOUR_GOOGLE_SCRIPT_URL';
 
     const nameInput = document.getElementById('nameInput');
     const phoneInput = document.getElementById('phoneInput');
@@ -340,9 +363,11 @@
     const upiText = document.getElementById('upiText');
     const noteText = document.getElementById('noteText');
     const payBtn = document.getElementById('payBtn');
+    const paidBtn = document.getElementById('paidBtn');
     const copyBtn = document.getElementById('copyBtn');
     const backBtn = document.getElementById('backBtn');
     const errorBox = document.getElementById('errorBox');
+    const toast = document.getElementById('toast');
     const qrImg = document.getElementById('qrImg');
     const qrDl = document.getElementById('qrDl');
 
@@ -400,6 +425,30 @@
       return 'TXN' + Date.now();
     }
 
+    function showToast(msg, isError) {
+      toast.textContent = msg;
+      toast.className = 'toast' + (isError ? ' error-toast' : '');
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 4000);
+    }
+
+    function logPayment(name, phone, people, amount, status) {
+      if (WEBHOOK_URL === 'REPLACE_WITH_YOUR_GOOGLE_SCRIPT_URL') return;
+      fetch(WEBHOOK_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          name: name,
+          phone: phone,
+          people: String(people),
+          amount: String(amount),
+          status: status,
+          note: NOTE_PREFIX
+        })
+      }).catch(function() {});
+    }
+
     proceedBtn.addEventListener('click', () => {
       const name = getPlayerName();
       const phone = getPhone();
@@ -415,6 +464,7 @@
                     encodeURIComponent(buildUpiUrlRaw(total, note, tr));
       qrImg.src = qrUrl;
       qrDl.href = qrUrl;
+      logPayment(name, phone, peopleSelect.value, total, 'Payment Initiated');
       screenBooking.classList.remove('active');
       screenPayment.classList.add('active');
       errorBox.style.display = 'none';
@@ -453,6 +503,14 @@
       setTimeout(() => {
         showError('If the UPI app did not open, scan the QR code below or copy the UPI ID.');
       }, 2000);
+    });
+
+    paidBtn.addEventListener('click', () => {
+      const name = getPlayerName();
+      const phone = getPhone();
+      const total = getTotal();
+      logPayment(name, phone, peopleSelect.value, total, 'Payment Completed');
+      showToast('Payment recorded. Thank you!');
     });
 
     copyBtn.addEventListener('click', async () => {
