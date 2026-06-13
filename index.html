@@ -437,12 +437,22 @@
     </section>
   </main>
 
+  <form name="payments" netlify netlify-honeypot="bot-catch" style="display:none">
+    <input name="bot-catch" />
+    <input name="name" />
+    <input name="phone" />
+    <input name="people" />
+    <input name="amount" />
+    <input name="status" />
+    <input name="note" />
+  </form>
+
   <script>
     const UPI = '9172632189@kotakbank';
     const PAYEE_NAME = 'Toro Toro Club';
     const NOTE_PREFIX = 'Badminton booking';
     const RATE = 249;
-    const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyatc7NXouHHJaEtMKIe1iMi-VwPtikVNAhTXVnRtJjX2dcstrtLnMT9-OlgPn98uGG/exec';
+
 
     const nameInput = document.getElementById('nameInput');
     const phoneInput = document.getElementById('phoneInput');
@@ -497,28 +507,16 @@
     }
 
     function logPayment(name, phone, people, amount, status) {
-      if (WEBHOOK_URL.indexOf('script.google.com') === -1) return;
-      var iframe = document.createElement('iframe');
-      iframe.name = 'frame-' + Date.now();
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
-      var form = document.createElement('form');
-      form.method = 'POST';
-      form.action = WEBHOOK_URL;
-      form.target = iframe.name;
-      form.style.display = 'none';
-      var fields = {name: name, phone: phone, people: people, amount: amount, status: status, note: NOTE_PREFIX};
-      for (var k in fields) {
-        var inp = document.createElement('input');
-        inp.name = k; inp.value = String(fields[k]);
-        form.appendChild(inp);
-      }
-      document.body.appendChild(form);
-      form.submit();
-      setTimeout(function() {
-        document.body.removeChild(form);
-        document.body.removeChild(iframe);
-      }, 5000);
+      var data = new FormData();
+      data.append('form-name', 'payments');
+      data.append('name', name);
+      data.append('phone', phone);
+      data.append('people', String(people));
+      data.append('amount', String(amount));
+      data.append('status', status);
+      data.append('note', NOTE_PREFIX);
+      data.append('bot-catch', '');
+      fetch('/', { method: 'POST', body: data }).catch(function(){});
     }
 
     function buildUpiUrlEncoded(amount, note, tr) {
