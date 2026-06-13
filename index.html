@@ -382,16 +382,22 @@
       return Number(n).toFixed(2);
     }
 
-    function buildUpiUrlEncoded(amount, note) {
+    function buildUpiUrlEncoded(amount, note, tr) {
       return 'upi://pay?pa=' + UPI +
              '&am=' + fmtAmount(amount) +
-             '&cu=INR&mode=01&tn=' + encodeURIComponent(note);
+             '&cu=INR&mode=01&tn=' + encodeURIComponent(note) +
+             '&tr=' + tr;
     }
 
-    function buildUpiUrlRaw(amount, note) {
+    function buildUpiUrlRaw(amount, note, tr) {
       return 'upi://pay?pa=' + UPI +
              '&am=' + fmtAmount(amount) +
-             '&cu=INR&mode=01&tn=' + note;
+             '&cu=INR&mode=01&tn=' + note +
+             '&tr=' + tr;
+    }
+
+    function uniqueTr() {
+      return 'TXN' + Date.now();
     }
 
     proceedBtn.addEventListener('click', () => {
@@ -404,8 +410,9 @@
       playerNameText.textContent = name;
       playerPhoneText.textContent = phone;
       noteText.textContent = note;
+      const tr = uniqueTr();
       const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' +
-                    encodeURIComponent(buildUpiUrlRaw(total, note));
+                    encodeURIComponent(buildUpiUrlRaw(total, note, tr));
       qrImg.src = qrUrl;
       qrDl.href = qrUrl;
       screenBooking.classList.remove('active');
@@ -422,13 +429,16 @@
     });
 
     payBtn.addEventListener('click', () => {
-      const upiUrl = buildUpiUrlEncoded(getTotal(), getNote());
+      const total = getTotal();
+      const note = getNote();
+      const tr = uniqueTr();
+      const upiUrl = buildUpiUrlEncoded(total, note, tr);
       const isAndroid = /android/i.test(navigator.userAgent);
       const isChrome = /chrome/i.test(navigator.userAgent);
       if (isAndroid && isChrome) {
         window.location.href = 'intent://pay?pa=' + UPI +
-          '&am=' + fmtAmount(getTotal()) + '&mode=01' +
-          '&cu=INR&tn=' + encodeURIComponent(getNote()) +
+          '&am=' + fmtAmount(total) + '&mode=01' +
+          '&cu=INR&tn=' + encodeURIComponent(note) + '&tr=' + tr +
           '#Intent;scheme=upi;end';
       } else {
         const link = document.createElement('a');
