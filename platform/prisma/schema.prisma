@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Merchant {
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  phone                String   @unique
+  passwordHash         String   @map("password_hash")
+  businessName         String   @default("") @map("business_name")
+  businessLogoUrl      String?  @map("business_logo_url")
+  brandColorPrimary    String   @default("#7bb86c") @map("brand_color_primary")
+  brandColorSecondary  String   @default("#2c2c2c") @map("brand_color_secondary")
+  brandFont            String   @default("Inter") @map("brand_font")
+  buttonStyle          String   @default("rounded") @map("button_style")
+  pageTheme            String   @default("cream") @map("page_theme")
+  customDomain         String?  @map("custom_domain")
+  plan                 String   @default("free")
+  status               String   @default("active")
+  onboardingComplete   Boolean  @default(false) @map("onboarding_complete")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  upiIds        UpiId[]
+  paymentLinks  PaymentLink[]
+  transactions  Transaction[]
+  templates     Template[]
+  apiKeys       ApiKey[]
+  settings      MerchantSettings?
+  webhookLogs   WebhookLog[]
+
+  @@map("merchants")
+}
+
+model UpiId {
+  id         String    @id @default(uuid())
+  merchantId String    @map("merchant_id")
+  vpa        String
+  isPrimary  Boolean   @default(false) @map("is_primary")
+  verifiedAt DateTime? @map("verified_at")
+  status     String    @default("active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, vpa])
+  @@map("upi_ids")
+}
+
+model PaymentLink {
+  id             String    @id @default(uuid())
+  merchantId     String    @map("merchant_id")
+  upiId          String    @map("upi_id")
+  title          String
+  description    String?
+  amount         Float?
+  amountFlexible Boolean   @default(false) @map("amount_flexible")
+  minAmount      Float?    @map("min_amount")
+  maxAmount      Float?    @map("max_amount")
+  customFields   String    @default("[]") @map("custom_fields")
+  expiryAt       DateTime? @map("expiry_at")
+  maxUses        Int?      @map("max_uses")
+  useCount       Int       @default(0) @map("use_count")
+  redirectUrl    String?   @map("redirect_url")
+  webhookUrl     String?   @map("webhook_url")
+  slug           String    @unique
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  merchant     Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("payment_links")
+}
+
+model Template {
+  id         String   @id @default(uuid())
+  merchantId String   @map("merchant_id")
+  name       String
+  config     String   @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("templates")
+}
+
+model Transaction {
+  id                String    @id @default(uuid())
+  merchantId        String    @map("merchant_id")
+  paymentLinkId     String?   @map("payment_link_id")
+  txnId             String    @unique @map("txn_id")
+  upiTxnId          String?   @map("upi_txn_id")
+  amount            Float
+  customerName      String?   @map("customer_name")
+  customerPhone     String?   @map("customer_phone")
+  customerEmail     String?   @map("customer_email")
+  customerNote      String?   @map("customer_note")
+  customFieldValues String    @default("{}") @map("custom_field_values")
+  status            String    @default("initiated")
+  settlementStatus  String    @default("pending") @map("settlement_status")
+  settlementAmount  Float?    @map("settlement_amount")
+  settlementDate    DateTime? @map("settlement_date")
+  paymentApp        String?   @map("payment_app")
+  payerVpa          String?   @map("payer_vpa")
+  upiPaymentRef     String?   @map("upi_payment_ref")
+  errorMessage      String?   @map("error_message")
+  ipAddress         String?   @map("ip_address")
+  userAgent         String?   @map("user_agent")
+  confirmedAt       DateTime? @map("confirmed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  merchant     Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  paymentLink  PaymentLink?  @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
+  webhookLogs  WebhookLog[]
+
+  @@map("transactions")
+}
+
+model WebhookLog {
+  id            String    @id @default(uuid())
+  merchantId    String    @map("merchant_id")
+  transactionId String?   @map("transaction_id")
+  url           String
+  payload       String    @default("{}")
+  responseCode  Int?      @map("response_code")
+  responseBody  String?   @map("response_body")
+  deliveredAt   DateTime? @map("delivered_at")
+  nextRetryAt   DateTime? @map("next_retry_at")
+  retryCount    Int       @default(0) @map("retry_count")
+  status        String    @default("pending")
+
+  merchant    Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_logs")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  merchantId String    @map("merchant_id")
+  name       String
+  keyHash    String    @map("key_hash")
+  keyPrefix  String    @map("key_prefix")
+  scopes     String    @default("[\"read\"]")
+  expiresAt  DateTime? @map("expires_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+model MerchantSettings {
+  merchantId           String   @id @map("merchant_id")
+  smsEnabled           Boolean  @default(false) @map("sms_enabled")
+  emailEnabled         Boolean  @default(false) @map("email_enabled")
+  autoSettlement       Boolean  @default(true) @map("auto_settlement")
+  settlementFrequency  String   @default("daily") @map("settlement_frequency")
+  notificationEmail    String?  @map("notification_email")
+  notificationPhone    String?  @map("notification_phone")
+  webhookSecret        String?  @map("webhook_secret")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("merchant_settings")
+}

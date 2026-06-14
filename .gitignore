@@ -1,0 +1,31 @@
+# Next.js build and dependencies
+platform/node_modules/
+platform/.next/
+platform/out/
+platform/build/
+
+# Local databases and SQLite files
+platform/prisma/dev.db
+platform/prisma/dev.db-journal
+
+# Environment variables / secrets
+platform/.env
+platform/.env.local
+platform/.env.development.local
+platform/.env.test.local
+platform/.env.production.local
+
+# TypeScript build info
+platform/tsconfig.tsbuildinfo
+platform/next-env.d.ts
+
+# VS Code / OS files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Python virtual environment (if any)
+venv/
+.venv/
+__pycache__/
+*.pyc
