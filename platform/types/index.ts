@@ -10,7 +10,7 @@ export interface Merchant {
   button_style: string
   page_theme: string
   custom_domain: string | null
-  status: 'active' | 'suspended' | 'kyc_pending'
+  status: 'active' | 'suspended'
   created_at: string
 }
 
@@ -37,6 +37,7 @@ export interface PaymentLink {
   expiry_at: string | null
   max_uses: number | null
   use_count: number
+  button_text: string | null
   redirect_url: string | null
   webhook_url: string | null
   slug: string

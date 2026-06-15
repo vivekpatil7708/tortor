@@ -49,9 +49,6 @@ export default function LoginPage() {
           {loading ? 'Logging in...' : 'Log in'}
         </button>
       </form>
-      <p className="mt-4 rounded-lg bg-primary-50 px-3 py-2 text-center text-xs text-primary-700">
-        Demo: demo@toropay.in / demo123
-      </p>
       <p className="mt-4 text-center text-sm text-gray-500">
         Don&apos;t have an account? <Link href="/signup" className="font-semibold text-primary-600 hover:underline">Sign up</Link>
       </p>

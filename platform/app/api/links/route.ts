@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { RATE_LIMITS } from '@/lib/constants'
 import { serializeLink } from '@/lib/serializers'
 import { generateSlug } from '@/lib/utils'
 
@@ -23,11 +22,6 @@ export async function POST(req: NextRequest) {
     const session = await requireSession()
     const body = await req.json()
 
-    const count = await prisma.paymentLink.count({ where: { merchantId: session.id } })
-    if (session.plan === 'free' && count >= RATE_LIMITS.MAX_LINKS_FREE) {
-      return NextResponse.json({ error: 'Free plan limit: 10 payment links. Upgrade to Pro.' }, { status: 403 })
-    }
-
     if (!body.title || !body.upi_id) {
       return NextResponse.json({ error: 'Title and UPI ID are required' }, { status: 400 })
     }
@@ -46,6 +40,7 @@ export async function POST(req: NextRequest) {
         customFields: JSON.stringify(body.custom_fields || []),
         expiryAt: body.expiry_at ? new Date(body.expiry_at) : null,
         maxUses: body.max_uses != null ? Number(body.max_uses) : null,
+        buttonText: body.button_text || null,
         redirectUrl: body.redirect_url || null,
         webhookUrl: body.webhook_url || null,
         slug,

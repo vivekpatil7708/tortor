@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { RATE_LIMITS } from '@/lib/constants'
 import { serializeTransaction } from '@/lib/serializers'
 
 export async function POST(req: NextRequest) {
@@ -13,18 +12,6 @@ export async function POST(req: NextRequest) {
 
     const merchant = await prisma.merchant.findUnique({ where: { id: body.merchant_id } })
     if (!merchant) return NextResponse.json({ error: 'Merchant not found' }, { status: 404 })
-
-    if (merchant.plan === 'free') {
-      const startOfMonth = new Date()
-      startOfMonth.setDate(1)
-      startOfMonth.setHours(0, 0, 0, 0)
-      const txnCount = await prisma.transaction.count({
-        where: { merchantId: merchant.id, createdAt: { gte: startOfMonth } },
-      })
-      if (txnCount >= RATE_LIMITS.MAX_TXNS_FREE) {
-        return NextResponse.json({ error: 'Free plan monthly transaction limit reached' }, { status: 403 })
-      }
-    }
 
     let link = null
     if (body.payment_link_id) {

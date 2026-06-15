@@ -33,6 +33,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         description: body.description ?? existing.description,
         status: body.status ?? existing.status,
         amount: body.amount != null ? Number(body.amount) : existing.amount,
+        buttonText: body.button_text ?? existing.buttonText,
         webhookUrl: body.webhook_url ?? existing.webhookUrl,
         redirectUrl: body.redirect_url ?? existing.redirectUrl,
       },

@@ -15,7 +15,8 @@ create table merchants (
   button_style text not null default 'rounded',
   page_theme text not null default 'cream',
   custom_domain text,
-  status text not null default 'active' check (status in ('active','suspended','kyc_pending')),
+  onboarding_complete boolean not null default false,
+  status text not null default 'active' check (status in ('active','suspended')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -43,6 +44,7 @@ create table payment_links (
   amount_flexible boolean not null default false,
   min_amount numeric(10,2),
   max_amount numeric(10,2),
+  button_text text,
   custom_fields jsonb not null default '[]'::jsonb,
   expiry_at timestamptz,
   max_uses integer,
@@ -87,6 +89,7 @@ create table transactions (
   error_message text,
   ip_address text,
   user_agent text,
+  confirmed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -128,6 +131,7 @@ create table merchant_settings (
   settlement_frequency text not null default 'daily' check (settlement_frequency in ('daily','weekly','monthly')),
   notification_email text,
   notification_phone text,
+  webhook_secret text,
   updated_at timestamptz not null default now()
 );
 
@@ -140,25 +144,6 @@ create index idx_transactions_txn on transactions(txn_id);
 create index idx_transactions_status on transactions(status);
 create index idx_transactions_created on transactions(created_at desc);
 create index idx_upi_ids_merchant on upi_ids(merchant_id);
-
--- Row Level Security
-alter table merchants enable row level security;
-alter table upi_ids enable row level security;
-alter table payment_links enable row level security;
-alter table transactions enable row level security;
-alter table templates enable row level security;
-alter table api_keys enable row level security;
-alter table merchant_settings enable row level security;
-alter table webhook_logs enable row level security;
-
--- RLS Policies
-create policy "merchant select own" on merchants for select using (id = auth.uid());
-create policy "merchant update own" on merchants for update using (id = auth.uid());
-create policy "upi select own" on upi_ids for select using (merchant_id = auth.uid());
-create policy "upi manage own" on upi_ids for all using (merchant_id = auth.uid());
-create policy "links select own" on payment_links for select using (merchant_id = auth.uid());
-create policy "links manage own" on payment_links for all using (merchant_id = auth.uid());
-create policy "txns select own" on transactions for select using (merchant_id = auth.uid());
 
 -- Functions
 create or replace function update_updated_at()

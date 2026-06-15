@@ -3,10 +3,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { PRICING } from '@/lib/constants'
 
 export default function SettingsPage() {
-  const [merchant, setMerchant] = useState<Record<string, unknown> | null>(null)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [newApiKeyName, setNewApiKeyName] = useState('')
@@ -16,12 +14,10 @@ export default function SettingsPage() {
   const [form, setForm] = useState({
     notification_email: '', notification_phone: '',
     sms_enabled: false, email_enabled: false,
-    auto_settlement: true, settlement_frequency: 'daily',
     webhook_secret: '',
   })
 
   useEffect(() => {
-    api.me().then(({ merchant: m }) => setMerchant(m)).catch(() => {})
     api.getSettings().then(s => setForm(f => ({ ...f, ...s }))).catch(() => {})
     api.getApiKeys().then(setApiKeys).catch(() => {})
   }, [])
@@ -58,12 +54,6 @@ export default function SettingsPage() {
 
       {msg && <div className="mb-4 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-600">{msg}</div>}
 
-      <div className="mb-6 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
-        <h2 className="mb-2 font-bold">Current Plan</h2>
-        <p className="text-sm capitalize text-gray-600">{(merchant?.plan as string) || 'free'} plan</p>
-        <a href="/pricing" className="mt-2 inline-block text-sm font-semibold text-primary-600 hover:underline">View plans</a>
-      </div>
-
       <form onSubmit={saveSettings} className="mb-6 space-y-5">
         <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
           <h2 className="mb-4 font-bold">Notifications</h2>
@@ -96,7 +86,7 @@ export default function SettingsPage() {
 
       <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
         <h2 className="mb-4 font-bold">API Keys</h2>
-        <p className="mb-4 text-xs text-gray-500">Available on Pro ({PRICING.pro.price}/mo) and Growth plans.</p>
+        <p className="mb-4 text-xs text-gray-500">Create API keys for programmatic access.</p>
         <div className="mb-4 flex gap-2">
           <input value={newApiKeyName} onChange={e => setNewApiKeyName(e.target.value)} placeholder="Key name"
             className="flex-1 rounded-xl border border-gray-200 bg-white/70 px-4 py-2 text-sm outline-none" />

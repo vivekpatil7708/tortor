@@ -62,7 +62,6 @@ export async function getSession() {
         buttonStyle: true,
         pageTheme: true,
         customDomain: true,
-        plan: true,
         status: true,
         onboardingComplete: true,
         createdAt: true,
@@ -94,7 +93,6 @@ export function merchantToJson(m: {
   buttonStyle: string
   pageTheme: string
   customDomain: string | null
-  plan: string
   status: string
   onboardingComplete: boolean
   createdAt: Date
@@ -111,7 +109,6 @@ export function merchantToJson(m: {
     button_style: m.buttonStyle,
     page_theme: m.pageTheme,
     custom_domain: m.customDomain,
-    plan: m.plan,
     status: m.status,
     onboarding_complete: m.onboardingComplete,
     created_at: m.createdAt.toISOString(),

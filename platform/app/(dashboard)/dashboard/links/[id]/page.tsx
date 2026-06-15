@@ -69,6 +69,7 @@ export default function LinkDetailPage() {
         <h2 className="mb-3 font-bold">Details</h2>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-semibold">{link.amount ? formatAmount(Number(link.amount)) : 'Flexible'}</span></div>
+          <div className="flex justify-between"><span className="text-gray-500">Button Text</span><span className="font-semibold">{(link.button_text as string) || 'Continue to Pay'}</span></div>
           <div className="flex justify-between"><span className="text-gray-500">UPI ID</span><span className="font-semibold">{link.upi_id as string}</span></div>
           <div className="flex justify-between"><span className="text-gray-500">Uses</span><span className="font-semibold">{link.use_count as number}{link.max_uses ? ` / ${link.max_uses}` : ''}</span></div>
           <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="font-semibold">{formatDate(link.created_at as string)}</span></div>

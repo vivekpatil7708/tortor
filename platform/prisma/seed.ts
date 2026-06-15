@@ -18,7 +18,6 @@ async function main() {
       brandColorPrimary: '#7bb86c',
       brandColorSecondary: '#2c2c2c',
       onboardingComplete: true,
-      plan: 'pro',
       settings: {
         create: {
           notificationEmail: 'demo@toropay.in',

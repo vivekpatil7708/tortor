@@ -36,9 +36,6 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await requireSession()
-    if (session.plan === 'free') {
-      return NextResponse.json({ error: 'API keys require Pro or Growth plan' }, { status: 403 })
-    }
 
     const { name } = await req.json()
     const rawKey = generateApiKey()

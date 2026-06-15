@@ -20,7 +20,6 @@ model Merchant {
   buttonStyle          String   @default("rounded") @map("button_style")
   pageTheme            String   @default("cream") @map("page_theme")
   customDomain         String?  @map("custom_domain")
-  plan                 String   @default("free")
   status               String   @default("active")
   onboardingComplete   Boolean  @default(false) @map("onboarding_complete")
   createdAt            DateTime @default(now()) @map("created_at")
@@ -67,6 +66,7 @@ model PaymentLink {
   maxUses        Int?      @map("max_uses")
   useCount       Int       @default(0) @map("use_count")
   redirectUrl    String?   @map("redirect_url")
+  buttonText     String?   @map("button_text")
   webhookUrl     String?   @map("webhook_url")
   slug           String    @unique
   status         String    @default("active")

@@ -17,6 +17,7 @@ interface CheckoutData {
     amount_flexible: boolean
     min_amount?: number | null
     max_amount?: number | null
+    button_text?: string | null
     custom_fields?: Array<{ name: string; label: string; type: string; required: boolean }>
     redirect_url?: string | null
     slug: string
@@ -57,6 +58,7 @@ export default function CheckoutClient({ data }: Props) {
   const isDark = merchant.page_theme === 'dark'
   const bg = isDark ? 'bg-gray-900 text-white' : 'bg-cream text-charcoal'
   const cardBg = isDark ? 'bg-white/10 border-white/20' : 'bg-white/60 border-white/80'
+  const ctaText = link.button_text || 'Continue to Pay'
 
   useEffect(() => {
     if (!txnId || step !== 'pay') return
@@ -188,7 +190,7 @@ export default function CheckoutClient({ data }: Props) {
               <button onClick={() => openUpi()}
                 className={`mb-3 w-full py-3.5 text-base font-bold text-white ${btnRadius}`}
                 style={{ backgroundColor: primaryColor }}>
-                Pay {formatAmount(amount)}
+                {ctaText} — {formatAmount(amount)}
               </button>
 
               <div className="mb-4 grid grid-cols-3 gap-2">
@@ -287,7 +289,7 @@ export default function CheckoutClient({ data }: Props) {
         <button onClick={handleProceed}
           className={`mt-6 w-full py-3.5 text-base font-bold text-white ${btnRadius}`}
           style={{ backgroundColor: primaryColor }}>
-          Continue to Pay
+          {ctaText}
         </button>
 
         <p className="mt-4 text-center text-xs opacity-40">Powered by ToroPay</p>

@@ -15,6 +15,7 @@ export function serializeLink(link: PaymentLink) {
     expiry_at: link.expiryAt?.toISOString() ?? null,
     max_uses: link.maxUses,
     use_count: link.useCount,
+    button_text: link.buttonText,
     redirect_url: link.redirectUrl,
     webhook_url: link.webhookUrl,
     slug: link.slug,
