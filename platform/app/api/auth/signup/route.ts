@@ -31,6 +31,16 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    await prisma.auditLog.create({
+      data: {
+        merchantId: merchant.id,
+        email: merchant.email,
+        action: 'signup',
+        ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+        userAgent: req.headers.get('user-agent'),
+      },
+    })
+
     await createSession(merchant.id, merchant.email)
     return NextResponse.json({ success: true, merchant: merchantToJson(merchant) })
   } catch (err: unknown) {

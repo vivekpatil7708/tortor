@@ -163,3 +163,14 @@ create trigger update_payment_links_updated_at
 
 create trigger update_transactions_updated_at
   before update on transactions for each row execute function update_updated_at();
+
+-- Audit Logs
+create table audit_logs (
+  id uuid primary key default uuid_generate_v4(),
+  merchant_id uuid references merchants(id) on delete set null,
+  email text not null,
+  action text not null check (action in ('signup','login','logout')),
+  ip_address text,
+  user_agent text,
+  created_at timestamptz not null default now()
+);

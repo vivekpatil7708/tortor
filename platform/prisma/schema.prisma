@@ -175,3 +175,15 @@ model MerchantSettings {
 
   @@map("merchant_settings")
 }
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  merchantId String?  @map("merchant_id")
+  email      String
+  action     String   // signup, login, logout
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}
