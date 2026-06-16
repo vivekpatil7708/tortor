@@ -1,4 +1,5 @@
 import { Sidebar } from '@/components/dashboard/sidebar'
+import { DonationPrompt } from '@/components/dashboard/donation-prompt'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,6 +8,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex-1 overflow-auto pt-16 lg:pt-0">
         <div className="mx-auto max-w-6xl px-4 py-4 sm:px-8 sm:py-8">{children}</div>
       </main>
+      <DonationPrompt />
     </div>
   )
 }
