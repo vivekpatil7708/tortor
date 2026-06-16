@@ -67,8 +67,47 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-4xl px-6 pb-32">
+        <div className="rounded-3xl border border-white/60 bg-white/40 p-8 text-center backdrop-blur-xl sm:p-12">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-50 text-2xl">
+            {'❤️'}
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Support ToroPay</h2>
+          <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-gray-500">
+            ToroPay is and will always be <strong>completely free</strong> to use. If this platform helps you,
+            consider donating to help cover hosting, maintenance, and future improvements.
+            Every contribution, no matter how small, makes a difference.
+          </p>
+          <div className="mt-6 rounded-2xl border border-white/60 bg-white/50 p-6 backdrop-blur-sm">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Donate via UPI</p>
+            <p className="mt-1 font-mono text-lg font-bold text-charcoal">9172632189@kotakbank</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-3">
+              {[10, 50, 100].map(amt => (
+                <a key={amt}
+                  href={`upi://pay?pa=9172632189@kotakbank&pn=ToroPay&am=${amt}&cu=INR`}
+                  className="rounded-xl bg-charcoal px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+                  {'\u20B9'}{amt}
+                </a>
+              ))}
+            </div>
+            <div className="mt-3">
+              <a href={`upi://pay?pa=9172632189@kotakbank&pn=ToroPay&cu=INR`}
+                className="inline-block rounded-xl border border-gray-200 bg-white/60 px-6 py-2.5 text-sm font-semibold text-charcoal transition-colors hover:bg-white">
+                Custom amount
+              </a>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-gray-400">
+            <Link href="/donate" className="underline hover:text-charcoal">Learn more about supporting ToroPay</Link>
+          </p>
+        </div>
+      </section>
+
       <footer className="border-t border-gray-200 px-6 py-8 text-center text-sm text-gray-400">
-        ToroPay — Built for Indian businesses
+        <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-6">
+          <span>ToroPay — Built for Indian businesses</span>
+          <Link href="/donate" className="underline hover:text-charcoal">Donate</Link>
+        </div>
       </footer>
     </div>
   )
