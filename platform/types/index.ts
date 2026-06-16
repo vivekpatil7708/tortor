@@ -4,6 +4,7 @@ export interface Merchant {
   phone: string
   business_name: string
   business_logo_url: string | null
+  bg_image_url: string | null
   brand_color_primary: string
   brand_color_secondary: string
   brand_font: string
@@ -74,6 +75,7 @@ export interface Transaction {
 
 export interface BrandingConfig {
   logo_url: string | null
+  bg_image_url: string | null
   primary_color: string
   secondary_color: string
   font: string

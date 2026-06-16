@@ -24,6 +24,7 @@ interface CheckoutData {
   }
   merchant: {
     business_logo_url?: string | null
+    bg_image_url?: string | null
     brand_color_primary?: string
     brand_color_secondary?: string
     button_style?: string
@@ -56,8 +57,16 @@ export default function CheckoutClient({ data }: Props) {
   const secondaryColor = merchant.brand_color_secondary || '#2c2c2c'
   const btnRadius = buttonRadius(merchant.button_style || 'rounded')
   const isDark = merchant.page_theme === 'dark'
-  const bg = isDark ? 'bg-gray-900 text-white' : 'bg-cream text-charcoal'
-  const cardBg = isDark ? 'bg-white/10 border-white/20' : 'bg-white/60 border-white/80'
+  const bg = merchant.bg_image_url
+    ? 'bg-cover bg-center bg-no-repeat'
+    : isDark ? 'bg-gray-900 text-white' : 'bg-cream text-charcoal'
+  const bgStyle = merchant.bg_image_url ? { backgroundImage: `url(${merchant.bg_image_url})` } : undefined
+  const cardBg = isDark
+    ? 'bg-black/30 border-white/10 shadow-2xl shadow-black/30'
+    : 'bg-white/30 border-white/40 shadow-2xl shadow-black/10'
+  const inputBg = isDark
+    ? 'bg-white/10 border-white/10 text-white placeholder:text-white/40 focus:border-white/30'
+    : 'bg-white/50 border-white/60 text-charcoal placeholder:text-gray-400 focus:border-white/80'
   const ctaText = link.button_text || 'Continue to Pay'
 
   useEffect(() => {
@@ -163,8 +172,8 @@ export default function CheckoutClient({ data }: Props) {
 
   if (step === 'pay') {
     return (
-      <div className={`flex min-h-screen items-center justify-center ${bg} p-4`}>
-        <div className={`w-full max-w-md rounded-3xl border p-8 backdrop-blur-md ${cardBg}`}>
+      <div className={`flex min-h-screen items-center justify-center ${bg} p-4`} style={bgStyle}>
+        <div className={`w-full max-w-md rounded-3xl border p-8 backdrop-blur-xl ${cardBg}`}>
           <div className="mb-6 text-center">
             {merchant.business_logo_url && (
               <img src={merchant.business_logo_url} className="mx-auto mb-3 h-12 object-contain" alt="" />
@@ -196,7 +205,7 @@ export default function CheckoutClient({ data }: Props) {
               <div className="mb-4 grid grid-cols-3 gap-2">
                 {UPI_APPS.slice(0, 6).map(app => (
                   <button key={app.name} onClick={() => openUpi(app.name)}
-                    className={`border border-gray-200 bg-white/80 py-2 text-xs font-semibold text-charcoal hover:bg-white ${btnRadius}`}>
+                    className={`border border-white/20 bg-white/20 py-2 text-xs font-semibold backdrop-blur-md transition-all hover:bg-white/40 ${btnRadius}`}>
                     {app.name.split(' ')[0]}
                   </button>
                 ))}
@@ -205,7 +214,7 @@ export default function CheckoutClient({ data }: Props) {
           )}
 
           <button onClick={markAsPaid} disabled={confirming || paymentStatus === 'pending'}
-            className={`mb-2 w-full border border-gray-200 bg-white/80 py-2.5 text-sm font-semibold text-charcoal ${btnRadius} disabled:opacity-50`}>
+            className={`mb-2 w-full border border-white/20 bg-white/20 py-2.5 text-sm font-semibold backdrop-blur-md transition-all hover:bg-white/40 ${btnRadius} disabled:opacity-50`}>
             {confirming ? 'Updating...' : "I've completed payment"}
           </button>
 
@@ -228,8 +237,8 @@ export default function CheckoutClient({ data }: Props) {
   const customFields = link.custom_fields || []
 
   return (
-    <div className={`flex min-h-screen items-center justify-center ${bg} p-4`}>
-      <div className={`w-full max-w-sm rounded-3xl border p-8 backdrop-blur-md ${cardBg}`}>
+    <div className={`flex min-h-screen items-center justify-center ${bg} p-4`} style={bgStyle}>
+      <div className={`w-full max-w-sm rounded-3xl border p-8 backdrop-blur-xl ${cardBg}`}>
         <div className="mb-6 text-center">
           {merchant.business_logo_url && (
             <img src={merchant.business_logo_url} className="mx-auto mb-3 h-12 object-contain" alt="" />
@@ -241,9 +250,9 @@ export default function CheckoutClient({ data }: Props) {
         <div className="space-y-4">
           {link.amount_flexible ? (
             <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-500">Amount (₹)</label>
+              <label className="mb-1 block text-xs font-semibold opacity-70">Amount (₹)</label>
               <input type="number" value={amount || ''} onChange={e => setAmount(Number(e.target.value))} required
-                className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
+                className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
             </div>
           ) : (
             <div className="text-center">
@@ -254,32 +263,32 @@ export default function CheckoutClient({ data }: Props) {
           )}
 
           <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-500">Your Name *</label>
+            <label className="mb-1 block text-xs font-semibold opacity-70">Your Name *</label>
             <input value={customerName} onChange={e => setCustomerName(e.target.value)} required
-              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
+              className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-500">Phone *</label>
+            <label className="mb-1 block text-xs font-semibold opacity-70">Phone *</label>
             <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} required
-              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
+              className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-500">Email</label>
+            <label className="mb-1 block text-xs font-semibold opacity-70">Email</label>
             <input type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
+              className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-500">Note</label>
+            <label className="mb-1 block text-xs font-semibold opacity-70">Note</label>
             <textarea value={customerNote} onChange={e => setCustomerNote(e.target.value)} rows={2}
-              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
+              className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
           </div>
 
           {(link.custom_fields || []).map((f, i) => (
             <div key={i}>
-              <label className="mb-1 block text-xs font-semibold text-gray-500">{f.label}{f.required ? ' *' : ''}</label>
+              <label className="mb-1 block text-xs font-semibold opacity-70">{f.label}{f.required ? ' *' : ''}</label>
               <input type={f.type} value={fieldValues[f.name] || ''}
                 onChange={e => setFieldValues({ ...fieldValues, [f.name]: e.target.value })} required={f.required}
-                className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
+                className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
             </div>
           ))}
         </div>
@@ -292,7 +301,7 @@ export default function CheckoutClient({ data }: Props) {
           {ctaText}
         </button>
 
-        <p className="mt-4 text-center text-xs opacity-40">Powered by ToroPay</p>
+        <p className="mt-4 text-center text-xs opacity-50">Powered by ToroPay</p>
       </div>
     </div>
   )

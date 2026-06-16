@@ -20,6 +20,7 @@ model Merchant {
   buttonStyle          String   @default("rounded") @map("button_style")
   pageTheme            String   @default("cream") @map("page_theme")
   customDomain         String?  @map("custom_domain")
+  bgImageUrl           String?  @map("bg_image_url")
   status               String   @default("active")
   onboardingComplete   Boolean  @default(false) @map("onboarding_complete")
   createdAt            DateTime @default(now()) @map("created_at")

@@ -22,6 +22,7 @@ export async function PATCH(req: NextRequest) {
     if (body.button_style !== undefined) data.buttonStyle = body.button_style
     if (body.page_theme !== undefined) data.pageTheme = body.page_theme
     if (body.custom_domain !== undefined) data.customDomain = body.custom_domain
+    if (body.bg_image_url !== undefined) data.bgImageUrl = body.bg_image_url
 
     const merchant = await prisma.merchant.update({
       where: { id: session.id },

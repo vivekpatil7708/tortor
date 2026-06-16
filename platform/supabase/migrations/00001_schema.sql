@@ -15,6 +15,7 @@ create table merchants (
   button_style text not null default 'rounded',
   page_theme text not null default 'cream',
   custom_domain text,
+  bg_image_url text,
   onboarding_complete boolean not null default false,
   status text not null default 'active' check (status in ('active','suspended')),
   created_at timestamptz not null default now(),

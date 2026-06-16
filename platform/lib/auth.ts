@@ -62,6 +62,7 @@ export async function getSession() {
         buttonStyle: true,
         pageTheme: true,
         customDomain: true,
+        bgImageUrl: true,
         status: true,
         onboardingComplete: true,
         createdAt: true,
@@ -93,6 +94,7 @@ export function merchantToJson(m: {
   buttonStyle: string
   pageTheme: string
   customDomain: string | null
+  bgImageUrl: string | null
   status: string
   onboardingComplete: boolean
   createdAt: Date
@@ -103,6 +105,7 @@ export function merchantToJson(m: {
     phone: m.phone,
     business_name: m.businessName,
     business_logo_url: m.businessLogoUrl,
+    bg_image_url: m.bgImageUrl,
     brand_color_primary: m.brandColorPrimary,
     brand_color_secondary: m.brandColorSecondary,
     brand_font: m.brandFont,
