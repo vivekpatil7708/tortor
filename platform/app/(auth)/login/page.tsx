@@ -42,6 +42,7 @@ export default function LoginPage() {
           <label className="mb-1 block text-xs font-semibold text-gray-500">Password</label>
           <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
+          <Link href="/forgot-password" className="mt-1 inline-block text-xs text-gray-400 hover:text-charcoal">Forgot password?</Link>
         </div>
         {error && <p className="text-sm text-red-500">{error}</p>}
         <button type="submit" disabled={loading}
@@ -50,7 +51,7 @@ export default function LoginPage() {
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-gray-500">
-        Don&apos;t have an account? <Link href="/signup" className="font-semibold text-primary-600 hover:underline">Sign up</Link>
+        Don't have an account? <Link href="/signup" className="font-semibold text-primary-600 hover:underline">Sign up</Link>
       </p>
     </div>
   )

@@ -107,6 +107,8 @@ export default function LandingPage() {
         <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-6">
           <span>ToroPay — Built for Indian businesses</span>
           <Link href="/donate" className="underline hover:text-charcoal">Donate</Link>
+          <Link href="/terms" className="underline hover:text-charcoal">Terms</Link>
+          <Link href="/privacy" className="underline hover:text-charcoal">Privacy</Link>
         </div>
       </footer>
     </div>

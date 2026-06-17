@@ -4,17 +4,34 @@ import { createSession, hashPassword, merchantToJson } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, phone, password, business_name } = await req.json()
+    let { email, phone, password, business_name } = await req.json()
 
     if (!email || !phone || !password) {
       return NextResponse.json({ error: 'Email, phone, and password are required' }, { status: 400 })
     }
-    if (password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 })
+
+    email = email.toLowerCase().trim()
+    phone = phone.trim()
+    business_name = (business_name || '').trim()
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
+    }
+    if (!/^[+]?[\d\s\-()]{7,20}$/.test(phone)) {
+      return NextResponse.json({ error: 'Invalid phone number' }, { status: 400 })
+    }
+    if (password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
+    }
+    if (password.length > 128) {
+      return NextResponse.json({ error: 'Password too long' }, { status: 400 })
+    }
+    if (business_name.length > 100) {
+      return NextResponse.json({ error: 'Business name too long' }, { status: 400 })
     }
 
     const existing = await prisma.merchant.findFirst({
-      where: { OR: [{ email: email.toLowerCase() }, { phone }] },
+      where: { OR: [{ email }, { phone }] },
     })
     if (existing) {
       return NextResponse.json({ error: 'Account already exists with this email or phone' }, { status: 409 })
@@ -23,7 +40,7 @@ export async function POST(req: NextRequest) {
     const passwordHash = await hashPassword(password)
     const merchant = await prisma.merchant.create({
       data: {
-        email: email.toLowerCase(),
+        email,
         phone,
         passwordHash,
         businessName: business_name || email.split('@')[0],

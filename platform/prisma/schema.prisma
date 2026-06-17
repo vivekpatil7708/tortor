@@ -23,6 +23,10 @@ model Merchant {
   bgImageUrl           String?  @map("bg_image_url")
   status               String   @default("active")
   onboardingComplete   Boolean  @default(false) @map("onboarding_complete")
+  resetToken           String?  @map("reset_token")
+  resetTokenExpiry     DateTime? @map("reset_token_expiry")
+  loginAttempts        Int      @default(0) @map("login_attempts")
+  lockedUntil          DateTime? @map("locked_until")
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
