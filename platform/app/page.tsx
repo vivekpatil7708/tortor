@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import DonateWidget from '@/components/donate-widget'
 
 export default function LandingPage() {
   return (
@@ -79,23 +80,7 @@ export default function LandingPage() {
             Every contribution, no matter how small, makes a difference.
           </p>
           <div className="mt-6 rounded-2xl border border-white/60 bg-white/50 p-6 backdrop-blur-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Donate via UPI</p>
-            <p className="mt-1 font-mono text-lg font-bold text-charcoal">9172632189@kotakbank</p>
-            <div className="mt-4 flex flex-wrap justify-center gap-3">
-              {[10, 50, 100].map(amt => (
-                <a key={amt}
-                  href={`upi://pay?pa=9172632189@kotakbank&pn=ToroPay&am=${amt}&cu=INR`}
-                  className="rounded-xl bg-charcoal px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
-                  {'\u20B9'}{amt}
-                </a>
-              ))}
-            </div>
-            <div className="mt-3">
-              <a href={`upi://pay?pa=9172632189@kotakbank&pn=ToroPay&cu=INR`}
-                className="inline-block rounded-xl border border-gray-200 bg-white/60 px-6 py-2.5 text-sm font-semibold text-charcoal transition-colors hover:bg-white">
-                Custom amount
-              </a>
-            </div>
+            <DonateWidget />
           </div>
           <p className="mt-3 text-xs text-gray-400">
             <Link href="/donate" className="underline hover:text-charcoal">Learn more about supporting ToroPay</Link>
