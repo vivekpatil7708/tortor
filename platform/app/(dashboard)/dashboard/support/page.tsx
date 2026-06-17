@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { HeartHandshake } from 'lucide-react'
-
-const UPI_ID = '9172632189@kotakbank'
-const amounts = [10, 50, 100]
+import DonateWidget from '@/components/donate-widget'
 
 export default function SupportPage() {
   const [stats, setStats] = useState<{ total_txns: number; success_txns: number } | null>(null)
@@ -50,25 +48,7 @@ export default function SupportPage() {
           </p>
 
           <div className="mt-8 rounded-2xl border border-white/60 bg-white/50 p-6 backdrop-blur-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Donate via UPI</p>
-            <p className="mt-1 font-mono text-lg font-bold text-charcoal">{UPI_ID}</p>
-
-            <div className="mt-5 flex flex-wrap justify-center gap-3">
-              {amounts.map(amt => (
-                <a key={amt}
-                  href={`upi://pay?pa=${UPI_ID}&pn=ToroPay&am=${amt}&cu=INR`}
-                  className="min-w-[5rem] rounded-xl bg-charcoal px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90">
-                  {'\u20B9'}{amt}
-                </a>
-              ))}
-            </div>
-
-            <div className="mt-3">
-              <a href={`upi://pay?pa=${UPI_ID}&pn=ToroPay&cu=INR`}
-                className="inline-block rounded-xl border border-gray-200 bg-white/60 px-6 py-3 text-sm font-semibold text-charcoal transition-colors hover:bg-white">
-                Custom amount
-              </a>
-            </div>
+            <DonateWidget />
           </div>
 
           <p className="mt-4 text-xs text-gray-400">
