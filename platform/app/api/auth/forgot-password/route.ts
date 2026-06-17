@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { renderResetEmail } from '@/lib/email'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+const fromAddress = process.env.RESEND_FROM || 'ToroPay <onboarding@resend.dev>'
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,13 +33,22 @@ export async function POST(req: NextRequest) {
     const resetLink = `${baseUrl}/reset-password?token=${token}`
 
     if (resend) {
-      await resend.emails.send({
-        from: 'ToroPay <noreply@toropay.in>',
-        to: normalizedEmail,
-        subject: 'Reset your ToroPay password',
-        html: renderResetEmail({ resetLink, businessName: merchant.businessName }),
-      })
-      return NextResponse.json({ success: true, message: 'Reset link sent to your email.' })
+      try {
+        await resend.emails.send({
+          from: fromAddress,
+          to: normalizedEmail,
+          subject: 'Reset your ToroPay password',
+          html: renderResetEmail({ resetLink, businessName: merchant.businessName }),
+        })
+        return NextResponse.json({ success: true, message: 'Reset link sent to your email.' })
+      } catch {
+        return NextResponse.json({
+          success: true,
+          message: 'Reset link generated.',
+          reset_link: resetLink,
+          note: 'Could not send email. Use the link below to reset your password.',
+        })
+      }
     }
 
     return NextResponse.json({

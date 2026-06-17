@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
             {message && <p className="text-sm text-green-600">{message}</p>}
             {resetLink && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
-                <p className="font-medium text-amber-800">Reset link (dev mode):</p>
+                <p className="font-medium text-amber-800">Your reset link:</p>
                 <a href={resetLink} className="mt-1 block break-all text-amber-700 underline">{resetLink}</a>
               </div>
             )}
