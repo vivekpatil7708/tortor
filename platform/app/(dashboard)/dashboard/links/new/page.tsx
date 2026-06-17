@@ -22,10 +22,11 @@ interface ProductItem {
   price: string
   delivery: string
   availability: string
+  image?: string
 }
 
 const emptyProduct = (): ProductItem => ({
-  name: '', category: '', description: '', price: '', delivery: 'delivery', availability: 'in-stock',
+  name: '', category: '', description: '', price: '', delivery: 'delivery', availability: 'in-stock', image: '',
 })
 
 export default function NewLinkPage() {
@@ -154,9 +155,12 @@ export default function NewLinkPage() {
           {products.length > 0 && (
             <div className="my-3 space-y-1 text-left">
               {products.map((p, i) => (
-                <div key={i} className="rounded-lg border border-gray-100 bg-gray-50 p-2 text-xs">
-                  <p className="font-semibold">{p.name || 'Product'}</p>
-                  {p.price && <p className="text-gray-500">₹{p.price}</p>}
+                <div key={i} className="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 p-2 text-xs">
+                  {p.image && <img src={p.image} className="h-8 w-8 rounded object-cover" alt="" />}
+                  <div>
+                    <p className="font-semibold">{p.name || 'Product'}</p>
+                    {p.price && <p className="text-gray-500">₹{p.price}</p>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -296,47 +300,65 @@ export default function NewLinkPage() {
                       <button type="button" onClick={() => removeProduct(i)} className="text-xs text-red-500">Remove</button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1 block text-xs text-gray-400">Name *</label>
-                      <input required value={p.name} onChange={e => updateProduct(i, 'name', e.target.value)}
-                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1 block text-xs text-gray-400">Name *</label>
+                        <input required value={p.name} onChange={e => updateProduct(i, 'name', e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-gray-400">Category</label>
+                        <input value={p.category} onChange={e => updateProduct(i, 'category', e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="mb-1 block text-xs text-gray-400">Description</label>
+                        <textarea value={p.description} onChange={e => updateProduct(i, 'description', e.target.value)} rows={2}
+                          className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="mb-1 block text-xs text-gray-400">Image</label>
+                        <input type="file" accept="image/*" onChange={e => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onload = () => updateProduct(i, 'image', reader.result as string)
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                          className="w-full text-xs file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs file:font-medium hover:file:bg-gray-200" />
+                        {p.image && (
+                          <div className="mt-1 flex items-center gap-2">
+                            <img src={p.image} className="h-10 w-10 rounded object-cover" alt="" />
+                            <button type="button" onClick={() => updateProduct(i, 'image', '')} className="text-xs text-red-500">Remove</button>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-gray-400">Price (₹)</label>
+                        <input type="number" value={p.price} onChange={e => updateProduct(i, 'price', e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-gray-400">Delivery Type</label>
+                        <select value={p.delivery} onChange={e => updateProduct(i, 'delivery', e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none">
+                          <option value="delivery">Delivery</option>
+                          <option value="pickup">Pickup</option>
+                          <option value="both">Both</option>
+                          <option value="digital">Digital</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-gray-400">Availability</label>
+                        <select value={p.availability} onChange={e => updateProduct(i, 'availability', e.target.value)}
+                          className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none">
+                          <option value="in-stock">In Stock</option>
+                          <option value="out-of-stock">Out of Stock</option>
+                          <option value="pre-order">Pre-order</option>
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-gray-400">Category</label>
-                      <input value={p.category} onChange={e => updateProduct(i, 'category', e.target.value)}
-                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="mb-1 block text-xs text-gray-400">Description</label>
-                      <textarea value={p.description} onChange={e => updateProduct(i, 'description', e.target.value)} rows={2}
-                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-gray-400">Price (₹)</label>
-                      <input type="number" value={p.price} onChange={e => updateProduct(i, 'price', e.target.value)}
-                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-gray-400">Delivery Type</label>
-                      <select value={p.delivery} onChange={e => updateProduct(i, 'delivery', e.target.value)}
-                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none">
-                        <option value="delivery">Delivery</option>
-                        <option value="pickup">Pickup</option>
-                        <option value="both">Both</option>
-                        <option value="digital">Digital</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-gray-400">Availability</label>
-                      <select value={p.availability} onChange={e => updateProduct(i, 'availability', e.target.value)}
-                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none">
-                        <option value="in-stock">In Stock</option>
-                        <option value="out-of-stock">Out of Stock</option>
-                        <option value="pre-order">Pre-order</option>
-                      </select>
-                    </div>
-                  </div>
                 </div>
               ))}
             </div>

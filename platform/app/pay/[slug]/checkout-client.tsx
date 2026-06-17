@@ -339,15 +339,18 @@ export default function CheckoutClient({ data }: Props) {
             <div className="space-y-2">
               <p className="text-xs font-semibold opacity-70">Products / Services</p>
               {productItems.map((p: any, i: number) => (
-                <div key={i} className="rounded-xl border border-white/20 bg-white/10 p-3 backdrop-blur-sm">
-                  <p className="text-sm font-bold">{p.name}</p>
-                  {p.category && <p className="text-xs opacity-60">{p.category}</p>}
-                  {p.description && <p className="mt-1 text-xs opacity-70">{p.description}</p>}
-                  <div className="mt-1 flex items-center justify-between">
-                    {p.price && <p className="text-sm font-semibold">₹{p.price}</p>}
-                    <span className={`text-xs ${p.availability === 'in-stock' ? 'text-green-400' : p.availability === 'out-of-stock' ? 'text-red-400' : 'text-amber-400'}`}>
-                      {p.availability === 'in-stock' ? 'In Stock' : p.availability === 'out-of-stock' ? 'Out of Stock' : 'Pre-order'}
-                    </span>
+                <div key={i} className="flex gap-3 rounded-xl border border-white/20 bg-white/10 p-3 backdrop-blur-sm">
+                  {p.image && <img src={p.image} className="h-14 w-14 flex-shrink-0 rounded-lg object-cover" alt="" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold">{p.name}</p>
+                    {p.category && <p className="text-xs opacity-60">{p.category}</p>}
+                    {p.description && <p className="mt-1 text-xs opacity-70">{p.description}</p>}
+                    <div className="mt-1 flex items-center justify-between">
+                      {p.price && <p className="text-sm font-semibold">₹{p.price}</p>}
+                      <span className={`text-xs ${p.availability === 'in-stock' ? 'text-green-400' : p.availability === 'out-of-stock' ? 'text-red-400' : 'text-amber-400'}`}>
+                        {p.availability === 'in-stock' ? 'In Stock' : p.availability === 'out-of-stock' ? 'Out of Stock' : 'Pre-order'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
