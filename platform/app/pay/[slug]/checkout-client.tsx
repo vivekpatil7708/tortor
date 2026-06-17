@@ -53,6 +53,7 @@ export default function CheckoutClient({ data }: Props) {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [confirming, setConfirming] = useState(false)
+  const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set())
 
   const primaryColor = merchant.brand_color_primary || '#7bb86c'
   const secondaryColor = merchant.brand_color_secondary || '#2c2c2c'
@@ -113,11 +114,16 @@ export default function CheckoutClient({ data }: Props) {
     if (nameErr) { setError(nameErr); return }
     const phoneErr = validatePhone(customerPhone)
     if (phoneErr) { setError(phoneErr); return }
-    if (link.amount_flexible && amount < (link.min_amount || 1)) {
+    if (hasProducts && selectedProducts.size === 0) {
+      setError('Please select at least one product')
+      return
+    }
+    const payAmount = displayAmount
+    if (!hasProducts && link.amount_flexible && payAmount < (link.min_amount || 1)) {
       setError(`Minimum amount is ₹${link.min_amount || 1}`)
       return
     }
-    if (link.amount_flexible && link.max_amount && amount > link.max_amount) {
+    if (!hasProducts && link.amount_flexible && link.max_amount && payAmount > link.max_amount) {
       setError(`Maximum amount is ₹${link.max_amount}`)
       return
     }
@@ -140,6 +146,7 @@ export default function CheckoutClient({ data }: Props) {
 
     const id = generateTxnId()
     setTxnId(id)
+    if (hasProducts) setAmount(payAmount)
     setStep('pay')
     setError('')
 
@@ -150,7 +157,7 @@ export default function CheckoutClient({ data }: Props) {
         merchant_id: link.merchant_id,
         payment_link_id: link.id,
         txn_id: id,
-        amount,
+        amount: payAmount,
         customer_name: customerName,
         customer_phone: customerPhone,
         customer_email: customerEmail || null,
@@ -278,6 +285,21 @@ export default function CheckoutClient({ data }: Props) {
   const customFields = allFields.filter((f: any) => f._type !== 'products')
   const productItems = allFields.find((f: any) => f._type === 'products')?.items || []
 
+  const productSubtotal = Array.from(selectedProducts).reduce((sum, i) => {
+    const price = parseFloat(productItems[i]?.price)
+    return sum + (isNaN(price) ? 0 : price)
+  }, 0)
+  const hasProducts = productItems.length > 0
+  const displayAmount = hasProducts && selectedProducts.size > 0 ? productSubtotal : amount
+
+  function toggleProduct(i: number) {
+    setSelectedProducts(prev => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i); else next.add(i)
+      return next
+    })
+  }
+
   function toggleMultiselect(fieldName: string, option: string) {
     const current: string[] = (fieldValues[fieldName] as unknown as string[]) || []
     const updated = current.includes(option)
@@ -298,7 +320,17 @@ export default function CheckoutClient({ data }: Props) {
         </div>
 
         <div className="space-y-4">
-          {link.amount_flexible ? (
+          {hasProducts ? (
+            <div className="text-center">
+              {displayAmount > 0 ? (
+                <div className="text-4xl font-bold tracking-tight" style={{ color: secondaryColor }}>
+                  ₹{displayAmount.toFixed(2)}
+                </div>
+              ) : (
+                <p className="text-xs opacity-50">Select products below</p>
+              )}
+            </div>
+          ) : link.amount_flexible ? (
             <div>
               <label className="mb-1 block text-xs font-semibold opacity-70">Amount (₹) <span className="text-red-400">*</span></label>
               <input type="number" value={amount || ''} onChange={e => setAmount(Number(e.target.value))} required
@@ -338,22 +370,35 @@ export default function CheckoutClient({ data }: Props) {
           {productItems.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-semibold opacity-70">Products / Services</p>
-              {productItems.map((p: any, i: number) => (
-                <div key={i} className="flex gap-3 rounded-xl border border-white/20 bg-white/10 p-3 backdrop-blur-sm">
-                  {p.image && <img src={p.image} className="h-14 w-14 flex-shrink-0 rounded-lg object-cover" alt="" />}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold">{p.name}</p>
-                    {p.category && <p className="text-xs opacity-60">{p.category}</p>}
-                    {p.description && <p className="mt-1 text-xs opacity-70">{p.description}</p>}
-                    <div className="mt-1 flex items-center justify-between">
-                      {p.price && <p className="text-sm font-semibold">₹{p.price}</p>}
-                      <span className={`text-xs ${p.availability === 'in-stock' ? 'text-green-400' : p.availability === 'out-of-stock' ? 'text-red-400' : 'text-amber-400'}`}>
-                        {p.availability === 'in-stock' ? 'In Stock' : p.availability === 'out-of-stock' ? 'Out of Stock' : 'Pre-order'}
-                      </span>
+              {productItems.map((p: any, i: number) => {
+                const sel = selectedProducts.has(i)
+                return (
+                  <label key={i} className={`flex cursor-pointer gap-3 rounded-xl border p-3 backdrop-blur-sm transition-all ${sel ? 'border-white/40 bg-white/20' : 'border-white/20 bg-white/10 hover:bg-white/15'}`}>
+                    {p.image && <img src={p.image} className="h-14 w-14 flex-shrink-0 rounded-lg object-cover" alt="" />}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-bold">{p.name}</p>
+                        <input type="checkbox" checked={sel} onChange={() => toggleProduct(i)}
+                          className="mt-0.5 h-4 w-4 flex-shrink-0 rounded" />
+                      </div>
+                      {p.category && <p className="text-xs opacity-60">{p.category}</p>}
+                      {p.description && <p className="mt-1 text-xs opacity-70 line-clamp-2">{p.description}</p>}
+                      <div className="mt-1 flex items-center justify-between">
+                        {p.price && <p className="text-sm font-semibold">₹{p.price}</p>}
+                        <span className={`text-xs ${p.availability === 'in-stock' ? 'text-green-400' : p.availability === 'out-of-stock' ? 'text-red-400' : 'text-amber-400'}`}>
+                          {p.availability === 'in-stock' ? 'In Stock' : p.availability === 'out-of-stock' ? 'Out of Stock' : 'Pre-order'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  </label>
+                )
+              })}
+              {selectedProducts.size > 0 && (
+                <div className="flex items-center justify-between rounded-xl border border-white/30 bg-white/20 p-3 backdrop-blur-sm">
+                  <span className="text-xs font-semibold opacity-70">Subtotal ({selectedProducts.size} item{selectedProducts.size > 1 ? 's' : ''})</span>
+                  <span className="text-lg font-bold">₹{productSubtotal.toFixed(2)}</span>
                 </div>
-              ))}
+              )}
             </div>
           )}
 
