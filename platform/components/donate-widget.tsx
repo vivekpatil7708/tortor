@@ -50,7 +50,7 @@ export default function DonateWidget() {
   }
 
   const qrSrc = selectedAmount
-    ? `/api/qr?vpa=${encodeURIComponent(UPI_ID)}&pn=ToroPay&am=${selectedAmount}&cu=INR`
+    ? `/api/qr?vpa=${encodeURIComponent(UPI_ID)}&amount=${selectedAmount}&txn_id=donate_${Date.now()}`
     : null
 
   return (
