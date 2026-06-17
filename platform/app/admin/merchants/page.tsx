@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { exportToCSV } from '@/lib/export-csv'
 
 interface Merchant {
   id: string
@@ -28,12 +29,31 @@ export default function AdminMerchants() {
     m.phone.includes(search)
   )
 
+  function handleExport() {
+    exportToCSV('toropay-merchants', [
+      { key: 'email', label: 'Email' },
+      { key: 'business_name', label: 'Business Name' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'status', label: 'Status' },
+      { key: 'onboarding_complete', label: 'Onboarding Complete' },
+      { key: 'transaction_count', label: 'Transactions' },
+      { key: 'revenue', label: 'Revenue' },
+      { key: 'created_at', label: 'Joined Date' },
+    ], filtered)
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Merchants ({merchants.length})</h1>
-        <input type="text" placeholder="Search merchants..." value={search} onChange={e => setSearch(e.target.value)}
-          className="w-64 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400" />
+        <div className="flex items-center gap-3">
+          <input type="text" placeholder="Search merchants..." value={search} onChange={e => setSearch(e.target.value)}
+            className="w-64 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400" />
+          <button onClick={handleExport} disabled={filtered.length === 0}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-charcoal transition-colors hover:bg-gray-50 disabled:opacity-40">
+            Export to Excel
+          </button>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">

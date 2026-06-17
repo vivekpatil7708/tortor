@@ -4,10 +4,13 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { formatAmount, formatDate, statusColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { exportToCSV } from '@/lib/export-csv'
 
 export default function TransactionsPage() {
   const [txns, setTxns] = useState<Record<string, unknown>[]>([])
   const [filter, setFilter] = useState('all')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
 
   function load() {
     api.getTransactions().then(setTxns).catch(() => {})
@@ -20,22 +23,69 @@ export default function TransactionsPage() {
     load()
   }
 
-  const filtered = filter === 'all' ? txns : txns.filter(t => t.status === filter)
+  const filtered = txns.filter(t => {
+    if (filter !== 'all' && t.status !== filter) return false
+    if (fromDate && new Date(t.created_at as string) < new Date(fromDate)) return false
+    if (toDate) {
+      const end = new Date(toDate)
+      end.setHours(23, 59, 59, 999)
+      if (new Date(t.created_at as string) > end) return false
+    }
+    return true
+  })
+
+  function handleExport() {
+    exportToCSV('toropay-transactions', [
+      { key: 'txn_id', label: 'Transaction ID' },
+      { key: 'amount', label: 'Amount' },
+      { key: 'status', label: 'Status' },
+      { key: 'customer_name', label: 'Customer Name' },
+      { key: 'customer_phone', label: 'Customer Phone' },
+      { key: 'customer_email', label: 'Customer Email' },
+      { key: 'upi_txn_id', label: 'UTR Number' },
+      { key: 'payment_app', label: 'Payment App' },
+      { key: 'payer_vpa', label: 'Payer VPA' },
+      { key: 'settlement_status', label: 'Settlement Status' },
+      { key: 'settlement_amount', label: 'Settlement Amount' },
+      { key: 'error_message', label: 'Error' },
+      { key: 'created_at', label: 'Created Date' },
+      { key: 'confirmed_at', label: 'Confirmed Date' },
+    ], filtered)
+  }
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
-        <p className="text-sm text-gray-500">All payment transactions made through your links.</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
+          <p className="text-sm text-gray-500">All payment transactions made through your links.</p>
+        </div>
+        <button onClick={handleExport} disabled={filtered.length === 0}
+          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-charcoal transition-colors hover:bg-gray-50 disabled:opacity-40">
+          Export to Excel
+        </button>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {['all', 'success', 'pending', 'initiated', 'failed'].map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${filter === f ? 'bg-charcoal text-white' : 'bg-white/60 text-gray-500 hover:bg-white'}`}>
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap gap-2">
+          {['all', 'success', 'pending', 'initiated', 'failed'].map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${filter === f ? 'bg-charcoal text-white' : 'bg-white/60 text-gray-500 hover:bg-white'}`}>
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
+            className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 outline-none" />
+          <span className="text-gray-400">to</span>
+          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
+            className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 outline-none" />
+          {(fromDate || toDate) && (
+            <button onClick={() => { setFromDate(''); setToDate('') }}
+              className="text-gray-400 hover:text-charcoal">Clear</button>
+          )}
+        </div>
       </div>
 
       {filtered.length === 0 ? (
