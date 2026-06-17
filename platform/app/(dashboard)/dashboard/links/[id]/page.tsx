@@ -13,6 +13,50 @@ export default function LinkDetailPage() {
   const { toast } = useToast()
   const [link, setLink] = useState<Record<string, unknown> | null>(null)
   const [txns, setTxns] = useState<Record<string, unknown>[]>([])
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  function toggleExpand(id: string) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function renderOrderDetails(t: Record<string, unknown>) {
+    const cfv = t.custom_field_values as Record<string, unknown> | undefined
+    if (!cfv) return null
+    const products = cfv._selected_products as Array<{ name: string; price: string; category: string }> | undefined
+    const note = t.customer_note as string | null
+    const otherFields = Object.entries(cfv).filter(([k]) => k !== '_selected_products')
+    if (!products?.length && !otherFields.length && !note) return null
+    return (
+      <div className="mt-2 space-y-1.5 border-t border-gray-100 pt-2">
+        {products && products.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-gray-400">Products</p>
+            {products.map((p, i) => (
+              <div key={i} className="flex items-center justify-between rounded bg-gray-100 px-3 py-1 text-xs">
+                <span>{p.name}{p.category ? ` (${p.category})` : ''}</span>
+                <span className="font-medium">₹{p.price}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {otherFields.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-gray-400">Custom Fields</p>
+            {otherFields.map(([k, v]) => (
+              <div key={k} className="rounded bg-gray-100 px-3 py-1 text-xs">
+                <span className="text-gray-400">{k}:</span> {String(v)}
+              </div>
+            ))}
+          </div>
+        )}
+        {note && <div className="rounded bg-gray-100 px-3 py-1 text-xs"><span className="text-gray-400">Note:</span> {note}</div>}
+      </div>
+    )
+  }
 
   useEffect(() => {
     api.getLink(id).then(setLink).catch(() => {})
@@ -85,18 +129,32 @@ export default function LinkDetailPage() {
           <p className="py-4 text-center text-sm text-gray-400">No transactions yet.</p>
         ) : (
           <div className="space-y-2">
-            {txns.map((t) => (
-              <div key={t.id as string} className="flex items-center justify-between rounded-xl bg-white/50 px-4 py-3">
-                <div>
-                  <p className="text-xs font-mono font-semibold">{t.txn_id as string}</p>
-                  <p className="text-xs text-gray-400">{(t.customer_name as string) || '—'}</p>
+            {txns.map((t) => {
+              const tid = t.id as string
+              const isExpanded = expanded.has(tid)
+              const cfv = t.custom_field_values
+              const hasDetails = !!(cfv && (cfv as Record<string, unknown>)._selected_products || (cfv && Object.keys(cfv as Record<string, unknown>).length > 0) || t.customer_note)
+              return (
+              <div key={tid} className="rounded-xl bg-white/50 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">{(t.customer_name as string) || 'Anonymous'} · {(t.customer_phone as string) || '—'}</p>
+                    <p className="text-xs text-gray-400">{t.txn_id as string}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold">{formatAmount(Number(t.amount))}</p>
+                    <p className={`text-xs ${t.status === 'success' ? 'text-green-600' : t.status === 'failed' ? 'text-red-600' : 'text-amber-600'}`}>{t.status as string}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold">{formatAmount(Number(t.amount))}</p>
-                  <p className={`text-xs ${t.status === 'success' ? 'text-green-600' : t.status === 'failed' ? 'text-red-600' : 'text-amber-600'}`}>{t.status as string}</p>
-                </div>
+                {hasDetails && (
+                  <button onClick={() => toggleExpand(tid)}
+                    className="mt-1 text-xs font-semibold text-gray-400 hover:text-charcoal">
+                    {isExpanded ? '▲ Hide' : '▼ Details'}
+                  </button>
+                )}
+                {isExpanded && hasDetails && renderOrderDetails(t)}
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>

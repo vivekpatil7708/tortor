@@ -58,6 +58,8 @@ export default function AdminTransactions() {
       { key: 'status', label: 'Status' },
       { key: 'customer_name', label: 'Customer Name' },
       { key: 'customer_phone', label: 'Customer Phone' },
+      { key: 'customer_email', label: 'Customer Email' },
+      { key: 'customer_note', label: 'Customer Note' },
       { key: 'merchant_email', label: 'Merchant Email' },
       { key: 'merchant_business', label: 'Merchant Business' },
       { key: 'created_at', label: 'Date' },

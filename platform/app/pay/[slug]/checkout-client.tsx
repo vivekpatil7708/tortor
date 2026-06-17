@@ -119,11 +119,11 @@ export default function CheckoutClient({ data }: Props) {
       return
     }
     const payAmount = displayAmount
-    if (!hasProducts && link.amount_flexible && payAmount < (link.min_amount || 1)) {
+    if (link.amount_flexible && payAmount < (link.min_amount || 1)) {
       setError(`Minimum amount is ₹${link.min_amount || 1}`)
       return
     }
-    if (!hasProducts && link.amount_flexible && link.max_amount && payAmount > link.max_amount) {
+    if (link.amount_flexible && link.max_amount && payAmount > link.max_amount) {
       setError(`Maximum amount is ₹${link.max_amount}`)
       return
     }

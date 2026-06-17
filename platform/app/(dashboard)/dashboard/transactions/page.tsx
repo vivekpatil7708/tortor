@@ -90,6 +90,7 @@ export default function TransactionsPage() {
       { key: 'customer_name', label: 'Customer Name' },
       { key: 'customer_phone', label: 'Customer Phone' },
       { key: 'customer_email', label: 'Customer Email' },
+      { key: 'customer_note', label: 'Customer Note' },
       { key: 'upi_txn_id', label: 'UTR Number' },
       { key: 'payment_app', label: 'Payment App' },
       { key: 'payer_vpa', label: 'Payer VPA' },
