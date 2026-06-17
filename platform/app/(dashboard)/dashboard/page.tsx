@@ -61,10 +61,10 @@ export default function DashboardPage() {
           <div className="space-y-3">
             {recentTxns.map((t) => (
               <div key={t.id as string} className="flex items-center justify-between rounded-xl border border-gray-100 bg-white/50 px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold">{t.txn_id as string}</p>
-                  <p className="text-xs text-gray-400">{(t.customer_name as string) || 'Anonymous'} · {formatDate(t.created_at as string)}</p>
-                </div>
+                  <div>
+                    <p className="text-sm font-semibold">{(t.customer_name as string) || 'Anonymous'} · {(t.customer_phone as string) || '—'}</p>
+                    <p className="text-xs text-gray-400">{t.txn_id as string} · {formatDate(t.created_at as string)}</p>
+                  </div>
                 <div className="text-right">
                   <p className="text-sm font-bold">{formatAmount(Number(t.amount))}</p>
                   <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(t.status as string)}`}>
