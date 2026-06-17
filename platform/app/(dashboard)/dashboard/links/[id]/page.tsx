@@ -5,13 +5,14 @@ import { api } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import { formatDate, formatAmount } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/toast'
 
 export default function LinkDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { toast } = useToast()
   const [link, setLink] = useState<Record<string, unknown> | null>(null)
   const [txns, setTxns] = useState<Record<string, unknown>[]>([])
-  const [msg, setMsg] = useState('')
 
   useEffect(() => {
     api.getLink(id).then(setLink).catch(() => {})
@@ -22,13 +23,13 @@ export default function LinkDetailPage() {
     const newStatus = link?.status === 'active' ? 'inactive' : 'active'
     await api.updateLink(id, { status: newStatus })
     setLink({ ...link!, status: newStatus })
-    setMsg(`Link ${newStatus}`)
-    setTimeout(() => setMsg(''), 3000)
+    toast(`Link ${newStatus}`)
   }
 
   async function deleteLink() {
     if (!confirm('Delete this link permanently?')) return
     await api.deleteLink(id)
+    toast('Link deleted')
     router.push('/dashboard/links')
   }
 
@@ -48,13 +49,11 @@ export default function LinkDetailPage() {
         </span>
       </div>
 
-      {msg && <div className="mb-4 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-600">{msg}</div>}
-
       <div className="mb-6 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
         <h2 className="mb-3 font-bold">Share</h2>
         <p className="mb-2 break-all font-mono text-sm text-gray-600">{payUrl}</p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(payUrl)}>Copy Link</Button>
+          <Button variant="secondary" size="sm" onClick={() => { navigator.clipboard.writeText(payUrl); toast('Link copied to clipboard') }}>Copy Link</Button>
           <a href={payUrl} target="_blank" rel="noreferrer"><Button variant="secondary" size="sm">Open Checkout</Button></a>
         </div>
         {qrUrl && (

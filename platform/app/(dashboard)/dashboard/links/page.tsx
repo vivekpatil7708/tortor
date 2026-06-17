@@ -5,8 +5,10 @@ import { api } from '@/lib/api'
 import { formatAmount, formatDate, statusColor } from '@/lib/utils'
 import Link from 'next/link'
 import { Plus, ExternalLink, Copy } from 'lucide-react'
+import { useToast } from '@/components/toast'
 
 export default function LinksPage() {
+  const { toast } = useToast()
   const [links, setLinks] = useState<Record<string, unknown>[]>([])
 
   useEffect(() => {
@@ -15,6 +17,7 @@ export default function LinksPage() {
 
   async function copyLink(slug: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/pay/${slug}`)
+    toast('Link copied to clipboard')
   }
 
   return (
