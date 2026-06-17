@@ -88,9 +88,30 @@ export default function CheckoutClient({ data }: Props) {
     return () => clearInterval(interval)
   }, [txnId, step, link, router])
 
+  function validateName(name: string): string | null {
+    const trimmed = name.trim()
+    if (!trimmed) return 'Name is required'
+    if (trimmed.length < 2) return 'Name must be at least 2 characters'
+    if (trimmed.length > 50) return 'Name must be under 50 characters'
+    if (!/^[A-Za-z\s.\-']+$/.test(trimmed)) return 'Name can only contain letters, spaces, dots, hyphens, and apostrophes'
+    return null
+  }
+
+  function validatePhone(phone: string): string | null {
+    const trimmed = phone.trim()
+    if (!trimmed) return 'Phone is required'
+    const digits = trimmed.replace(/\D/g, '')
+    if (digits.length < 10) return 'Phone must have at least 10 digits'
+    if (digits.length > 15) return 'Phone number too long'
+    if (!/^\+?\d{1,4}[\d\s\-]{7,15}$/.test(trimmed)) return 'Enter a valid phone number with country code (e.g. +919999999999)'
+    return null
+  }
+
   async function handleProceed() {
-    if (!customerName.trim()) { setError('Name is required'); return }
-    if (!customerPhone.trim()) { setError('Phone is required'); return }
+    const nameErr = validateName(customerName)
+    if (nameErr) { setError(nameErr); return }
+    const phoneErr = validatePhone(customerPhone)
+    if (phoneErr) { setError(phoneErr); return }
     if (link.amount_flexible && amount < (link.min_amount || 1)) {
       setError(`Minimum amount is ₹${link.min_amount || 1}`)
       return
@@ -264,12 +285,12 @@ export default function CheckoutClient({ data }: Props) {
 
           <div>
             <label className="mb-1 block text-xs font-semibold opacity-70">Your Name *</label>
-            <input value={customerName} onChange={e => setCustomerName(e.target.value)} required
+            <input value={customerName} onChange={e => setCustomerName(e.target.value.replace(/[^A-Za-z\s.\-']/g, '').slice(0, 50))} required
               className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold opacity-70">Phone *</label>
-            <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} required
+            <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/[^+\d\s\-]/g, '').slice(0, 16))} required
               className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
           </div>
           <div>
