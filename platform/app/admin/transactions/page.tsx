@@ -9,6 +9,9 @@ interface Txn {
   status: string
   customer_name: string | null
   customer_phone: string | null
+  customer_email: string | null
+  customer_note: string | null
+  custom_field_values: Record<string, unknown> | null
   merchant_email: string
   merchant_business: string
   created_at: string
@@ -20,6 +23,15 @@ export default function AdminTransactions() {
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [search, setSearch] = useState('')
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  function toggleExpand(id: string) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
 
   useEffect(() => {
     fetch('/api/admin/transactions').then(r => r.json()).then(d => setTxns(d.transactions || [])).catch(() => {})
@@ -106,9 +118,23 @@ export default function AdminTransactions() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(t => (
+            {filtered.flatMap(t => {
+              const isExpanded = expanded.has(t.txn_id)
+              const cfv = t.custom_field_values
+              const products = cfv?._selected_products as Array<{ name: string; price: string; category: string }> | undefined
+              const otherFields = Object.entries(cfv || {}).filter(([k]) => k !== '_selected_products')
+              const hasDetails = !!products?.length || !!otherFields.length || !!t.customer_note
+              const rows: JSX.Element[] = [
               <tr key={t.txn_id} className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="px-5 py-3 font-mono text-xs">{t.txn_id}</td>
+                <td className="px-5 py-3">
+                  <span className="font-mono text-xs">{t.txn_id}</span>
+                  {hasDetails && (
+                    <button onClick={() => toggleExpand(t.txn_id)}
+                      className="ml-2 text-xs text-gray-400 hover:text-charcoal">
+                      {isExpanded ? '▲' : '▼'}
+                    </button>
+                  )}
+                </td>
                 <td className="px-5 py-3 font-medium">{'\u20B9'}{t.amount.toLocaleString('en-IN')}</td>
                 <td className="px-5 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColor[t.status] || 'bg-gray-50 text-gray-700'}`}>
@@ -125,7 +151,45 @@ export default function AdminTransactions() {
                 </td>
                 <td className="px-5 py-3 text-gray-400">{new Date(t.created_at).toLocaleDateString('en-IN')}</td>
               </tr>
-            ))}
+              ]
+              if (isExpanded && hasDetails) {
+                rows.push(
+                  <tr key={`${t.txn_id}-details`}>
+                    <td colSpan={6} className="bg-gray-50 px-5 py-3">
+                      <div className="space-y-2 text-xs">
+                        {products && products.length > 0 && (
+                          <div>
+                            <p className="mb-1 font-semibold text-gray-500">Ordered Products</p>
+                            {products.map((p, i) => (
+                              <div key={i} className="flex items-center justify-between rounded bg-white px-3 py-1.5">
+                                <span>{p.name}{p.category ? ` (${p.category})` : ''}</span>
+                                <span className="font-medium">₹{p.price}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {otherFields.length > 0 && (
+                          <div>
+                            <p className="mb-1 font-semibold text-gray-500">Custom Fields</p>
+                            {otherFields.map(([k, v]) => (
+                              <div key={k} className="rounded bg-white px-3 py-1.5">
+                                <span className="text-gray-400">{k}:</span> {String(v)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {t.customer_note && (
+                          <div className="rounded bg-white px-3 py-1.5">
+                            <span className="text-gray-400">Note:</span> {t.customer_note}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              }
+              return rows
+            })}
             {filtered.length === 0 && (
               <tr><td colSpan={6} className="px-5 py-8 text-center text-gray-400">No transactions yet</td></tr>
             )}

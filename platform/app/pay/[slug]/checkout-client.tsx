@@ -162,9 +162,18 @@ export default function CheckoutClient({ data }: Props) {
         customer_phone: customerPhone,
         customer_email: customerEmail || null,
         customer_note: customerNote || null,
-        custom_field_values: Object.fromEntries(
-          Object.entries(fieldValues).map(([k, v]) => [k, Array.isArray(v) ? v.join(', ') : v])
-        ),
+        custom_field_values: {
+          ...Object.fromEntries(
+            Object.entries(fieldValues).map(([k, v]) => [k, Array.isArray(v) ? v.join(', ') : v])
+          ),
+          ...(hasProducts && selectedProducts.size > 0 ? {
+            _selected_products: Array.from(selectedProducts).map(i => ({
+              name: productItems[i]?.name || `Item ${i + 1}`,
+              price: productItems[i]?.price || '0',
+              category: productItems[i]?.category || '',
+            }))
+          } : {}),
+        },
       }),
     }).catch(() => {})
   }

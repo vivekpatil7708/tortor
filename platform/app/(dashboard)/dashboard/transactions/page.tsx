@@ -11,6 +11,54 @@ export default function TransactionsPage() {
   const [filter, setFilter] = useState('all')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  function toggleExpand(id: string) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function renderOrderDetails(t: Record<string, unknown>) {
+    const cfv = t.custom_field_values as Record<string, unknown> | undefined
+    if (!cfv) return null
+    const products = cfv._selected_products as Array<{ name: string; price: string; category: string }> | undefined
+    const note = t.customer_note as string | null
+    const otherFields = Object.entries(cfv).filter(([k]) => k !== '_selected_products')
+    if (!products && otherFields.length === 0 && !note) return null
+    return (
+      <div className="mt-3 space-y-2 border-t border-white/20 pt-3">
+        {products && products.length > 0 && (
+          <div>
+            <p className="mb-1 text-xs font-semibold opacity-70">Ordered Products</p>
+            {products.map((p, i) => (
+              <div key={i} className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-1.5 text-xs">
+                <span>{p.name}{p.category ? ` (${p.category})` : ''}</span>
+                <span className="font-semibold">₹{p.price}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {otherFields.length > 0 && (
+          <div>
+            <p className="mb-1 text-xs font-semibold opacity-70">Custom Fields</p>
+            {otherFields.map(([k, v]) => (
+              <div key={k} className="rounded-lg bg-white/10 px-3 py-1.5 text-xs">
+                <span className="opacity-60">{k}:</span> <span>{String(v)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {note && (
+          <div className="rounded-lg bg-white/10 px-3 py-1.5 text-xs">
+            <span className="opacity-60">Note:</span> {note}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   function load() {
     api.getTransactions().then(setTxns).catch(() => {})
@@ -92,8 +140,14 @@ export default function TransactionsPage() {
         <div className="rounded-2xl border border-white/80 bg-white/60 p-12 text-center text-sm text-gray-400 backdrop-blur-sm">No transactions found.</div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((t) => (
-            <div key={t.id as string} className="rounded-2xl border border-white/80 bg-white/60 p-5 backdrop-blur-sm">
+          {filtered.map((t) => {
+            const tid = t.id as string
+            const isExpanded = expanded.has(tid)
+            const hasDetails = !!(t.custom_field_values && (t.custom_field_values as Record<string, unknown>)._selected_products ||
+              (t.custom_field_values && Object.keys(t.custom_field_values as Record<string, unknown>).length > 0) ||
+              t.customer_note)
+            return (
+            <div key={tid} className="rounded-2xl border border-white/80 bg-white/60 p-5 backdrop-blur-sm">
               <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
@@ -115,8 +169,18 @@ export default function TransactionsPage() {
                   )}
                 </div>
               </div>
+              {hasDetails && (
+                <>
+                  <button onClick={() => toggleExpand(tid)}
+                    className="mt-2 text-xs font-semibold opacity-60 hover:opacity-100">
+                    {isExpanded ? '▲ Hide details' : '▼ View order details'}
+                  </button>
+                  {isExpanded && renderOrderDetails(t)}
+                </>
+              )}
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
