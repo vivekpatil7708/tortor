@@ -299,7 +299,7 @@ export default function CheckoutClient({ data }: Props) {
     return sum + (isNaN(price) ? 0 : price)
   }, 0)
   const hasProducts = productItems.length > 0
-  const displayAmount = hasProducts && selectedProducts.size > 0 ? productSubtotal : amount
+  const displayAmount = hasProducts && selectedProducts.size > 0 ? productSubtotal : (hasProducts ? 0 : amount)
 
   function toggleProduct(i: number) {
     setSelectedProducts(prev => {
