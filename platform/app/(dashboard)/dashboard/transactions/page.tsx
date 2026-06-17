@@ -95,16 +95,16 @@ export default function TransactionsPage() {
           {filtered.map((t) => (
             <div key={t.id as string} className="rounded-2xl border border-white/80 bg-white/60 p-5 backdrop-blur-sm">
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold">{t.txn_id as string}</p>
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(t.status as string)}`}>{t.status as string}</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold">{(t.customer_name as string) || 'Anonymous'} · {(t.customer_phone as string) || '—'}</p>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(t.status as string)}`}>{t.status as string}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-400">
+                      {t.txn_id as string} · {formatDate(t.created_at as string)}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-400">Settlement: {t.settlement_status as string}</p>
                   </div>
-                  <p className="mt-1 text-xs text-gray-400">
-                    {(t.customer_name as string) || 'Anonymous'} · {(t.customer_phone as string) || '—'} · {formatDate(t.created_at as string)}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-400">Settlement: {t.settlement_status as string}</p>
-                </div>
                 <div className="text-right">
                   <p className="text-sm font-bold">{formatAmount(Number(t.amount))}</p>
                   {(t.status === 'pending' || t.status === 'initiated') && (
