@@ -46,11 +46,12 @@ export default function CheckoutClient({ data }: Props) {
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [customerNote, setCustomerNote] = useState('')
-  const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
+  const [fieldValues, setFieldValues] = useState<Record<string, string | string[]>>({})
   const [step, setStep] = useState<'form' | 'pay'>('form')
   const [txnId, setTxnId] = useState('')
   const [paymentStatus, setPaymentStatus] = useState<string>('initiated')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [confirming, setConfirming] = useState(false)
 
   const primaryColor = merchant.brand_color_primary || '#7bb86c'
@@ -121,6 +122,22 @@ export default function CheckoutClient({ data }: Props) {
       return
     }
 
+    const newFieldErrors: Record<string, string> = {}
+    for (const f of customFields) {
+      if (f.required) {
+        const val = fieldValues[f.name]
+        if (!val || (Array.isArray(val) && val.length === 0) || (typeof val === 'string' && !val.trim())) {
+          newFieldErrors[f.name] = `"${f.label}" is required`
+        }
+      }
+    }
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors)
+      setError('Please fill in all required fields')
+      return
+    }
+    setFieldErrors({})
+
     const id = generateTxnId()
     setTxnId(id)
     setStep('pay')
@@ -138,7 +155,9 @@ export default function CheckoutClient({ data }: Props) {
         customer_phone: customerPhone,
         customer_email: customerEmail || null,
         customer_note: customerNote || null,
-        custom_field_values: fieldValues,
+        custom_field_values: Object.fromEntries(
+          Object.entries(fieldValues).map(([k, v]) => [k, Array.isArray(v) ? v.join(', ') : v])
+        ),
       }),
     }).catch(() => {})
   }
@@ -255,7 +274,17 @@ export default function CheckoutClient({ data }: Props) {
     )
   }
 
-  const customFields = link.custom_fields || []
+  const allFields = (link.custom_fields || []) as any[]
+  const customFields = allFields.filter((f: any) => f._type !== 'products')
+  const productItems = allFields.find((f: any) => f._type === 'products')?.items || []
+
+  function toggleMultiselect(fieldName: string, option: string) {
+    const current: string[] = (fieldValues[fieldName] as unknown as string[]) || []
+    const updated = current.includes(option)
+      ? current.filter((v: string) => v !== option)
+      : [...current, option]
+    setFieldValues({ ...fieldValues, [fieldName]: updated })
+  }
 
   return (
     <div className={`flex min-h-screen items-center justify-center ${bg} p-4`} style={bgStyle}>
@@ -271,7 +300,7 @@ export default function CheckoutClient({ data }: Props) {
         <div className="space-y-4">
           {link.amount_flexible ? (
             <div>
-              <label className="mb-1 block text-xs font-semibold opacity-70">Amount (₹)</label>
+              <label className="mb-1 block text-xs font-semibold opacity-70">Amount (₹) <span className="text-red-400">*</span></label>
               <input type="number" value={amount || ''} onChange={e => setAmount(Number(e.target.value))} required
                 className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
             </div>
@@ -284,14 +313,16 @@ export default function CheckoutClient({ data }: Props) {
           )}
 
           <div>
-            <label className="mb-1 block text-xs font-semibold opacity-70">Your Name *</label>
-            <input value={customerName} onChange={e => setCustomerName(e.target.value.replace(/[^A-Za-z\s.\-']/g, '').slice(0, 50))} required
+              <label className="mb-1 block text-xs font-semibold opacity-70">Your Name <span className="text-red-400">*</span></label>
+            <input value={customerName} onChange={e => { setCustomerName(e.target.value.replace(/[^A-Za-z\s.\-']/g, '').slice(0, 50)); setFieldErrors(p => ({...p, name: ''})) }} required
               className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
+            {fieldErrors.name && <p className="mt-1 text-xs text-red-400">{fieldErrors.name}</p>}
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold opacity-70">Phone *</label>
-            <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value.replace(/[^+\d\s\-]/g, '').slice(0, 16))} required
+              <label className="mb-1 block text-xs font-semibold opacity-70">Phone <span className="text-red-400">*</span></label>
+            <input type="tel" value={customerPhone} onChange={e => { setCustomerPhone(e.target.value.replace(/[^+\d\s\-]/g, '').slice(0, 16)); setFieldErrors(p => ({...p, phone: ''})) }} required
               className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
+            {fieldErrors.phone && <p className="mt-1 text-xs text-red-400">{fieldErrors.phone}</p>}
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold opacity-70">Email</label>
@@ -304,12 +335,49 @@ export default function CheckoutClient({ data }: Props) {
               className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
           </div>
 
-          {(link.custom_fields || []).map((f, i) => (
+          {productItems.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold opacity-70">Products / Services</p>
+              {productItems.map((p: any, i: number) => (
+                <div key={i} className="rounded-xl border border-white/20 bg-white/10 p-3 backdrop-blur-sm">
+                  <p className="text-sm font-bold">{p.name}</p>
+                  {p.category && <p className="text-xs opacity-60">{p.category}</p>}
+                  {p.description && <p className="mt-1 text-xs opacity-70">{p.description}</p>}
+                  <div className="mt-1 flex items-center justify-between">
+                    {p.price && <p className="text-sm font-semibold">₹{p.price}</p>}
+                    <span className={`text-xs ${p.availability === 'in-stock' ? 'text-green-400' : p.availability === 'out-of-stock' ? 'text-red-400' : 'text-amber-400'}`}>
+                      {p.availability === 'in-stock' ? 'In Stock' : p.availability === 'out-of-stock' ? 'Out of Stock' : 'Pre-order'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {customFields.map((f: any, i: number) => (
             <div key={i}>
-              <label className="mb-1 block text-xs font-semibold opacity-70">{f.label}{f.required ? ' *' : ''}</label>
-              <input type={f.type} value={fieldValues[f.name] || ''}
-                onChange={e => setFieldValues({ ...fieldValues, [f.name]: e.target.value })} required={f.required}
-                className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
+              <label className="mb-1 block text-xs font-semibold opacity-70">{f.label}{f.required && <span className="text-red-400"> *</span>}</label>
+              {f.type === 'multiselect' ? (
+                <div className="space-y-1.5">
+                  {(f.options || []).map((opt: string) => {
+                    const val = fieldValues[f.name]
+                    const checked = Array.isArray(val) && val.includes(opt)
+                    return (
+                      <label key={opt} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition-all ${checked ? 'bg-white/20' : 'bg-white/5'}`}>
+                        <input type="checkbox" checked={checked}
+                          onChange={() => { toggleMultiselect(f.name, opt); setFieldErrors(p => ({...p, [f.name]: ''})) }}
+                          className="h-3.5 w-3.5 rounded" />
+                        {opt}
+                      </label>
+                    )
+                  })}
+                </div>
+              ) : (
+                <input type={f.type} value={fieldValues[f.name] as string || ''}
+                  onChange={e => { setFieldValues({ ...fieldValues, [f.name]: e.target.value }); setFieldErrors(p => ({...p, [f.name]: ''})) }} required={f.required}
+                  className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
+              )}
+              {fieldErrors[f.name] && <p className="mt-1 text-xs text-red-400">{fieldErrors[f.name]}</p>}
             </div>
           ))}
         </div>

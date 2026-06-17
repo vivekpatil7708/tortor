@@ -5,6 +5,29 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 
+interface CustomField {
+  name: string
+  label: string
+  type: string
+  required: boolean
+  options?: string[]
+  _type?: string
+  items?: ProductItem[]
+}
+
+interface ProductItem {
+  name: string
+  category: string
+  description: string
+  price: string
+  delivery: string
+  availability: string
+}
+
+const emptyProduct = (): ProductItem => ({
+  name: '', category: '', description: '', price: '', delivery: 'delivery', availability: 'in-stock',
+})
+
 export default function NewLinkPage() {
   const router = useRouter()
   const [merchant, setMerchant] = useState<Record<string, unknown> | null>(null)
@@ -14,7 +37,8 @@ export default function NewLinkPage() {
     min_amount: '', max_amount: '', button_text: '',
     redirect_url: '', webhook_url: '',
   })
-  const [fields, setFields] = useState<{ name: string; label: string; type: string; required: boolean }[]>([])
+  const [fields, setFields] = useState<CustomField[]>([])
+  const [products, setProducts] = useState<ProductItem[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -41,20 +65,39 @@ export default function NewLinkPage() {
           button_text: t.button_text || f.button_text,
           webhook_url: t.webhook_url || f.webhook_url,
         }))
-        if (t.custom_fields) setFields(t.custom_fields)
+        if (t.custom_fields) {
+          const cf: CustomField[] = t.custom_fields
+          setFields(cf.filter((f: CustomField) => f._type !== 'products'))
+          const prodEntry = cf.find((f: CustomField) => f._type === 'products')
+          if (prodEntry?.items) setProducts(prodEntry.items)
+        }
         sessionStorage.removeItem('toropay_template')
       } catch { /* ignore */ }
     }
   }, [])
 
   function addField() {
-    setFields([...fields, { name: '', label: '', type: 'text', required: false }])
+    setFields([...fields, { name: '', label: '', type: 'text', required: false, options: [] }])
   }
 
   function updateField(i: number, key: string, val: unknown) {
     const updated = [...fields]
-    ;(updated[i] as Record<string, unknown>)[key] = val
+    ;(updated[i] as any)[key] = val
     setFields(updated)
+  }
+
+  function addProduct() {
+    setProducts([...products, emptyProduct()])
+  }
+
+  function updateProduct(i: number, key: string, val: string) {
+    const updated = [...products]
+    ;(updated[i] as any)[key] = val
+    setProducts(updated)
+  }
+
+  function removeProduct(i: number) {
+    setProducts(products.filter((_, idx) => idx !== i))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -62,6 +105,10 @@ export default function NewLinkPage() {
     setSaving(true)
     setError('')
     try {
+      const customFields: CustomField[] = [...fields]
+      if (products.length > 0) {
+        customFields.push({ _type: 'products', name: '', label: '', type: '', required: false, items: products })
+      }
       await api.createLink({
         upi_id: form.upi_id,
         title: form.title,
@@ -71,7 +118,7 @@ export default function NewLinkPage() {
         min_amount: form.min_amount ? Number(form.min_amount) : null,
         max_amount: form.max_amount ? Number(form.max_amount) : null,
         button_text: form.button_text || null,
-        custom_fields: fields.filter(f => f.name && f.label),
+        custom_fields: customFields.filter(f => f._type === 'products' || (f.name && f.label)),
         redirect_url: form.redirect_url || null,
         webhook_url: form.webhook_url || null,
       })
@@ -104,6 +151,16 @@ export default function NewLinkPage() {
           )}
           <p className="text-lg font-bold" style={{ color: secondaryColor }}>{form.title || 'Your Payment Page'}</p>
           {form.description && <p className="mt-1 text-xs text-gray-400">{form.description}</p>}
+          {products.length > 0 && (
+            <div className="my-3 space-y-1 text-left">
+              {products.map((p, i) => (
+                <div key={i} className="rounded-lg border border-gray-100 bg-gray-50 p-2 text-xs">
+                  <p className="font-semibold">{p.name || 'Product'}</p>
+                  {p.price && <p className="text-gray-500">₹{p.price}</p>}
+                </div>
+              ))}
+            </div>
+          )}
           <div className="my-4 text-4xl font-extrabold tracking-tight" style={{ color: secondaryColor }}>
             {form.amount_flexible ? '₹___' : amt > 0 ? `₹${amt}` : '₹___'}
           </div>
@@ -179,7 +236,7 @@ export default function NewLinkPage() {
             <input value={form.button_text} onChange={e => setForm({ ...form, button_text: e.target.value })}
               placeholder="e.g. Pay Now, Book, Donate, Subscribe"
               className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
-            <p className="mt-1 text-xs text-gray-400">Shown on the checkout page. Default: &ldquo;Continue to Pay&rdquo;</p>
+            <p className="mt-1 text-xs text-gray-400">Shown on the checkout page. Default: Continue to Pay</p>
           </div>
         </div>
 
@@ -192,15 +249,98 @@ export default function NewLinkPage() {
             {fields.map((f, i) => (
               <div key={i} className="flex items-start gap-3 rounded-xl border border-gray-100 bg-white/50 p-4">
                 <div className="flex-1 space-y-2">
-                  <input placeholder="Field name" value={f.name} onChange={e => updateField(i, 'name', e.target.value)}
-                    className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                  <div className="flex gap-2">
+                    <input placeholder="Field name" value={f.name} onChange={e => updateField(i, 'name', e.target.value)}
+                      className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                    <select value={f.type} onChange={e => updateField(i, 'type', e.target.value)}
+                      className="rounded-lg border border-gray-200 bg-white/70 px-2 py-2 text-xs outline-none">
+                      <option value="text">Text</option>
+                      <option value="number">Number</option>
+                      <option value="email">Email</option>
+                      <option value="multiselect">Multi-select</option>
+                    </select>
+                  </div>
                   <input placeholder="Label" value={f.label} onChange={e => updateField(i, 'label', e.target.value)}
                     className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                  {f.type === 'multiselect' && (
+                    <input placeholder="Options (comma-separated)" value={(f.options || []).join(', ')}
+                      onChange={e => updateField(i, 'options', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                      className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                  )}
                 </div>
+                <label className="flex items-center gap-1 text-xs">
+                  <input type="checkbox" checked={f.required} onChange={e => updateField(i, 'required', e.target.checked)}
+                    className="h-3 w-3" />
+                  Req
+                </label>
                 <button type="button" onClick={() => setFields(fields.filter((_, idx) => idx !== i))} className="text-xs text-red-500">Remove</button>
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-bold">Products / Services</h2>
+            <button type="button" onClick={addProduct} className="text-sm font-semibold text-primary-600 hover:underline">+ Add More</button>
+          </div>
+          {products.length === 0 ? (
+            <p className="text-xs text-gray-400">No products added. Click &quot;+ Add More&quot; to list what you offer.</p>
+          ) : (
+            <div className="space-y-3">
+              {products.map((p, i) => (
+                <div key={i} className="rounded-xl border border-gray-100 bg-white/50 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-500">Item {i + 1}</span>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => removeProduct(i)} className="text-xs text-red-500">Remove</button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Name *</label>
+                      <input required value={p.name} onChange={e => updateProduct(i, 'name', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Category</label>
+                      <input value={p.category} onChange={e => updateProduct(i, 'category', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="mb-1 block text-xs text-gray-400">Description</label>
+                      <textarea value={p.description} onChange={e => updateProduct(i, 'description', e.target.value)} rows={2}
+                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Price (₹)</label>
+                      <input type="number" value={p.price} onChange={e => updateProduct(i, 'price', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Delivery Type</label>
+                      <select value={p.delivery} onChange={e => updateProduct(i, 'delivery', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none">
+                        <option value="delivery">Delivery</option>
+                        <option value="pickup">Pickup</option>
+                        <option value="both">Both</option>
+                        <option value="digital">Digital</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-400">Availability</label>
+                      <select value={p.availability} onChange={e => updateProduct(i, 'availability', e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs outline-none">
+                        <option value="in-stock">In Stock</option>
+                        <option value="out-of-stock">Out of Stock</option>
+                        <option value="pre-order">Pre-order</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
