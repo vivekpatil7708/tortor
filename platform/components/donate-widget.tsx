@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const UPI_ID = '9172632189@kotakbank'
 
@@ -16,6 +16,10 @@ const UPI_APPS = [
 export default function DonateWidget({ initialAmount }: { initialAmount?: number | null }) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(initialAmount ?? null)
   const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (initialAmount != null) setSelectedAmount(initialAmount)
+  }, [initialAmount])
 
   function buildUpiUrl(amount?: number) {
     const params = new URLSearchParams({ pa: UPI_ID, pn: 'ToroPay', cu: 'INR' })

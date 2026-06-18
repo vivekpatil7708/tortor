@@ -496,11 +496,22 @@
       setTimeout(function() { toast.style.display = 'none'; }, 4000);
     }
 
+    const AIRTABLE_TOKEN = 'patxCNX9RzqhgXWcW';
+    const AIRTABLE_BASE = 'appvvPmdX8w6wXp0I';
+    const AIRTABLE_TABLE = 'Payments';
+
     function logPayment(name, phone, people, amount, status) {
-      fetch('/api/airtable-log', {
+      fetch('https://api.airtable.com/v0/' + AIRTABLE_BASE + '/' + AIRTABLE_TABLE, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, people, amount, status })
+        headers: {
+          'Authorization': 'Bearer ' + AIRTABLE_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          records: [{
+            fields: { Name: name, Phone: phone, People: String(people), Amount: amount, Status: status, Note: NOTE_PREFIX }
+          }]
+        })
       }).catch(function(){});
     }
 
