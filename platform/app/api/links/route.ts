@@ -3,6 +3,7 @@ import { requireSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { serializeLink } from '@/lib/serializers'
 import { generateSlug } from '@/lib/utils'
+import { isValidRedirectUrl, isValidWebhookUrl } from '@/lib/validate-url'
 
 export async function GET() {
   try {
@@ -24,6 +25,14 @@ export async function POST(req: NextRequest) {
 
     if (!body.title || !body.upi_id) {
       return NextResponse.json({ error: 'Title and UPI ID are required' }, { status: 400 })
+    }
+
+    if (body.redirect_url && !isValidRedirectUrl(body.redirect_url)) {
+      return NextResponse.json({ error: 'Invalid redirect URL' }, { status: 400 })
+    }
+
+    if (body.webhook_url && !isValidWebhookUrl(body.webhook_url)) {
+      return NextResponse.json({ error: 'Invalid webhook URL' }, { status: 400 })
     }
 
     const slug = body.slug || generateSlug()

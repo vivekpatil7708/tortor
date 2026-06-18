@@ -6,8 +6,13 @@ import DonateWidget from '@/components/donate-widget'
 
 export default function SupportPage() {
   const [stats, setStats] = useState<{ total_txns: number; success_txns: number } | null>(null)
+  const [amountParam, setAmountParam] = useState<number | null>(null)
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const a = params.get('amount')
+    if (a) setAmountParam(Number(a))
+
     fetch('/api/analytics').then(r => r.json()).then(d => {
       setStats({
         total_txns: d.total_transactions || 0,
@@ -48,12 +53,12 @@ export default function SupportPage() {
           </p>
 
           <div className="mt-8 rounded-2xl border border-white/60 bg-white/50 p-6 backdrop-blur-sm">
-            <DonateWidget />
+            <DonateWidget initialAmount={amountParam} />
           </div>
 
           <p className="mt-4 text-xs text-gray-400">
-            Money goes directly to the UPI ID above via your UPI app.
-            ToroPay never touches your donation.
+            Your support goes directly toward hosting and development that keeps
+            ToroPay free for everyone. Every contribution truly makes a difference.
           </p>
         </div>
       </div>

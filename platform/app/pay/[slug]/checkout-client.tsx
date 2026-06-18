@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { UPI_APPS } from '@/lib/constants'
 import { buildAppDeepLink, buildUpiIntentUrl, buildUpiPayUrl } from '@/lib/upi'
 import { buttonRadius, formatAmount, generateTxnId } from '@/lib/utils'
+import { isValidRedirectUrl } from '@/lib/validate-url'
 
 interface CheckoutData {
   link: {
@@ -80,7 +81,7 @@ export default function CheckoutClient({ data }: Props) {
       if (txn.status === 'success') {
         setPaymentStatus('success')
         clearInterval(interval)
-        if (link.redirect_url) {
+        if (link.redirect_url && isValidRedirectUrl(link.redirect_url)) {
           window.location.href = link.redirect_url
         } else {
           router.push(`/pay/${link.slug}/success?txn=${txnId}`)
@@ -220,7 +221,7 @@ export default function CheckoutClient({ data }: Props) {
     })
     const data = await res.json()
     setConfirming(false)
-    if (data.redirect_url) window.location.href = data.redirect_url
+    if (data.redirect_url && isValidRedirectUrl(data.redirect_url)) window.location.href = data.redirect_url
     else router.push(`/pay/${link.slug}/success?txn=${txnId}`)
   }
 

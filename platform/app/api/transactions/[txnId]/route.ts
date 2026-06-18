@@ -7,6 +7,16 @@ import { notifyPaymentStatus } from '@/lib/webhooks'
 export async function GET(_req: NextRequest, { params }: { params: { txnId: string } }) {
   const txn = await prisma.transaction.findUnique({ where: { txnId: params.txnId } })
   if (!txn) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  try {
+    const session = await requireSession()
+    if (session.id !== txn.merchantId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   return NextResponse.json(serializeTransaction(txn))
 }
 

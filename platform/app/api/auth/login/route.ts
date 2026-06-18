@@ -27,13 +27,16 @@ export async function POST(req: NextRequest) {
 
     if (!merchant || !(await verifyPassword(password, merchant.passwordHash))) {
       if (merchant) {
-        const attempts = merchant.loginAttempts + 1
-        const update: Record<string, unknown> = { loginAttempts: attempts }
-        if (attempts >= MAX_LOGIN_ATTEMPTS) {
-          update.lockedUntil = new Date(Date.now() + LOCK_DURATION_MIN * 60 * 1000)
-          update.loginAttempts = 0
-        }
-        await prisma.merchant.update({ where: { id: merchant.id }, data: update })
+        await prisma.merchant.update({
+          where: { id: merchant.id },
+          data: {
+            loginAttempts: { increment: 1 },
+            ...(merchant.loginAttempts + 1 >= MAX_LOGIN_ATTEMPTS ? {
+              lockedUntil: new Date(Date.now() + LOCK_DURATION_MIN * 60 * 1000),
+              loginAttempts: 0,
+            } : {}),
+          },
+        })
       }
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }

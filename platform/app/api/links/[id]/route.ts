@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { serializeLink } from '@/lib/serializers'
+import { isValidRedirectUrl, isValidWebhookUrl } from '@/lib/validate-url'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -25,6 +26,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id: params.id, merchantId: session.id },
     })
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    if (body.redirect_url !== undefined && body.redirect_url !== null && !isValidRedirectUrl(body.redirect_url)) {
+      return NextResponse.json({ error: 'Invalid redirect URL' }, { status: 400 })
+    }
+
+    if (body.webhook_url !== undefined && body.webhook_url !== null && !isValidWebhookUrl(body.webhook_url)) {
+      return NextResponse.json({ error: 'Invalid webhook URL' }, { status: 400 })
+    }
 
     const link = await prisma.paymentLink.update({
       where: { id: params.id },

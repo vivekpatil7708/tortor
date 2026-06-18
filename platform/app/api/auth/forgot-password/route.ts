@@ -32,31 +32,31 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const resetLink = `${baseUrl}/reset-password?token=${token}`
 
-    if (resend) {
-      try {
-        await resend.emails.send({
-          from: fromAddress,
-          to: normalizedEmail,
-          subject: 'Reset your ToroPay password',
-          html: renderResetEmail({ resetLink, businessName: merchant.businessName }),
-        })
-        return NextResponse.json({ success: true, message: 'Reset link sent to your email.' })
-      } catch {
-        return NextResponse.json({
-          success: true,
-          message: 'Reset link generated.',
-          reset_link: resetLink,
-          note: 'Could not send email. Use the link below to reset your password.',
-        })
-      }
+    if (!resend) {
+      return NextResponse.json({
+        success: true,
+        message: 'Reset link generated.',
+        reset_link: resetLink,
+        note: 'No email service configured. In production, this would be emailed. For now, use the link below.',
+      })
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Reset link generated.',
-      reset_link: resetLink,
-      note: 'No email service configured. In production, this would be emailed. For now, use the link below.',
-    })
+    try {
+      await resend.emails.send({
+        from: fromAddress,
+        to: normalizedEmail,
+        subject: 'Reset your ToroPay password',
+        html: renderResetEmail({ resetLink, businessName: merchant.businessName }),
+      })
+      return NextResponse.json({ success: true, message: 'Reset link sent to your email.' })
+    } catch {
+      return NextResponse.json({
+        success: true,
+        message: 'Reset link generated.',
+        reset_link: resetLink,
+        note: 'Could not send email. Use the link below to reset your password.',
+      })
+    }
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })
   }

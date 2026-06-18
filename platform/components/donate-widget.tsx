@@ -13,8 +13,8 @@ const UPI_APPS = [
   { name: 'BHIM', id: 'bhim', pkg: 'in.org.npci.upiapp' },
 ]
 
-export default function DonateWidget() {
-  const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
+export default function DonateWidget({ initialAmount }: { initialAmount?: number | null }) {
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(initialAmount ?? null)
   const [copied, setCopied] = useState(false)
 
   function buildUpiUrl(amount?: number) {

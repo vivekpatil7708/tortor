@@ -70,5 +70,8 @@ export async function GET(req: NextRequest) {
 
   const txn = await prisma.transaction.findUnique({ where: { txnId } })
   if (!txn) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  return NextResponse.json(serializeTransaction(txn))
+  return NextResponse.json({
+    status: txn.status,
+    txn_id: txn.txnId,
+  })
 }

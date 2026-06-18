@@ -26,6 +26,15 @@ export async function POST(req: NextRequest) {
     if (password.length > 128) {
       return NextResponse.json({ error: 'Password too long' }, { status: 400 })
     }
+    if (!/[A-Z]/.test(password)) {
+      return NextResponse.json({ error: 'Password must contain at least one uppercase letter' }, { status: 400 })
+    }
+    if (!/[a-z]/.test(password)) {
+      return NextResponse.json({ error: 'Password must contain at least one lowercase letter' }, { status: 400 })
+    }
+    if (!/[0-9]/.test(password)) {
+      return NextResponse.json({ error: 'Password must contain at least one number' }, { status: 400 })
+    }
     if (business_name.length > 100) {
       return NextResponse.json({ error: 'Business name too long' }, { status: 400 })
     }

@@ -28,8 +28,8 @@ export default function DonatePage() {
           </div>
 
           <p className="mt-4 text-xs text-gray-400">
-            Money goes directly to the UPI ID above via your UPI app.
-            ToroPay never touches your donation.
+            We deeply value your support. Every contribution, no matter the size,
+            helps us keep ToroPay free and thriving for everyone.
           </p>
         </div>
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { X, Heart } from 'lucide-react'
 
 const UPI_ID = '9172632189@kotakbank'
@@ -8,6 +9,7 @@ const STORAGE_KEY = 'toropay_donation_dismissed'
 const THRESHOLD = 3
 
 export function DonationPrompt() {
+  const router = useRouter()
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export function DonationPrompt() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 w-80">
-      <div className="rounded-2xl border border-white/60 bg-white/90 p-5 shadow-2xl backdrop-blur-xl">
+      <div className="relative rounded-2xl border border-gray-100 bg-white p-5 shadow-2xl">
         <button onClick={() => dismiss(false)}
           className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
           <X className="h-4 w-4" />
@@ -51,15 +53,14 @@ export function DonationPrompt() {
           consider donating to keep it free forever.
         </p>
 
-        <div className="mb-3 rounded-xl border border-white/60 bg-white/60 p-3 backdrop-blur-sm">
+        <div className="mb-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
           <p className="text-center font-mono text-sm font-bold text-charcoal">{UPI_ID}</p>
           <div className="mt-2 flex justify-center gap-2">
             {[10, 50, 100].map(amt => (
-              <a key={amt}
-                href={`upi://pay?pa=${UPI_ID}&pn=ToroPay&am=${amt}&cu=INR`}
+              <button key={amt} onClick={() => { dismiss(false); router.push(`/dashboard/support?amount=${amt}`) }}
                 className="rounded-lg bg-charcoal px-4 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90">
                 {'\u20B9'}{amt}
-              </a>
+              </button>
             ))}
           </div>
         </div>

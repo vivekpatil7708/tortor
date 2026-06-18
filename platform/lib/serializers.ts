@@ -83,7 +83,7 @@ export function serializeSettings(s: MerchantSettings) {
     settlement_frequency: s.settlementFrequency,
     notification_email: s.notificationEmail,
     notification_phone: s.notificationPhone,
-    webhook_secret: s.webhookSecret,
+    webhook_secret: s.webhookSecret ? `${'*'.repeat(Math.max(0, s.webhookSecret.length - 4))}${s.webhookSecret.slice(-4)}` : null,
     updated_at: s.updatedAt.toISOString(),
   }
 }
