@@ -6,7 +6,7 @@ export function renderResetEmail({ resetLink, businessName }: { resetLink: strin
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
     <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;border:1px solid rgba(255,255,255,0.6);padding:40px;">
       <tr><td style="text-align:center;padding-bottom:8px;">
-        <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro<span style="color:#7bb86c;">Pay</span></span>
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMzAiIGhlaWdodD0iMzYiIHZpZXdCb3g9IjAgMCAxMzAgMzYiPjx0ZXh0IHg9IjAiIHk9IjI2IiBmb250LWZhbWlseT0iLWFwcGxlLXN5c3RlbSxCbGlua01hY1N5c3RlbUZvbnQsU2Vnb2UgVUksc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyNCIgZm9udC13ZWlnaHQ9IjgwMCIgbGV0dGVyLXNwYWNpbmc9Ii0wLjAzZW0iIGZpbGw9IiMyYzJjMmMiPlRvcm88dHNwYW4gZmlsbD0iIzdiYjg2YyI+UGF5PC90c3Bhbj48L3RleHQ+PC9zdmc+" width="130" height="36" alt="ToroPay" style="display:block;margin:0 auto;" />
       </td></tr>
       <tr><td style="padding-bottom:24px;text-align:center;">
         <h1 style="font-size:20px;font-weight:700;color:#2c2c2c;margin:0;">Reset your password</h1>
