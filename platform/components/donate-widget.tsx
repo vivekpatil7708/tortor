@@ -15,6 +15,8 @@ const UPI_APPS = [
 
 export default function DonateWidget({ initialAmount }: { initialAmount?: number | null }) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(initialAmount ?? null)
+  const [customMode, setCustomMode] = useState(false)
+  const [customInput, setCustomInput] = useState('')
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -34,6 +36,8 @@ export default function DonateWidget({ initialAmount }: { initialAmount?: number
 
   function handleAmountClick(amt: number) {
     setSelectedAmount(amt)
+    setCustomMode(false)
+    setCustomInput('')
   }
 
   async function copyUpiId() {
@@ -82,11 +86,18 @@ export default function DonateWidget({ initialAmount }: { initialAmount?: number
         ))}
       </div>
 
-      <div className="mt-3">
-        <a href={buildUpiUrl()}
-          className="inline-block rounded-xl border border-gray-200 bg-white/60 px-6 py-3 text-sm font-semibold text-charcoal transition-colors hover:bg-white">
-          Custom amount
-        </a>
+      <div className="mt-3 space-y-2">
+        <button onClick={() => setCustomMode(!customMode)}
+          className="rounded-xl border border-gray-200 bg-white/60 px-6 py-3 text-sm font-semibold text-charcoal transition-colors hover:bg-white">
+          {customMode ? 'Cancel' : 'Custom amount'}
+        </button>
+        {customMode && (
+          <div className="flex gap-2">
+            <input type="number" min="1" placeholder="Enter amount"
+              value={customInput} onChange={e => { setCustomInput(e.target.value); setSelectedAmount(Number(e.target.value) || null) }}
+              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
+          </div>
+        )}
       </div>
 
       {selectedAmount && (
