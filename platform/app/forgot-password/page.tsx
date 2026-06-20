@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+
+const COOLDOWN = 60
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -9,6 +11,13 @@ export default function ForgotPasswordPage() {
   const [resetLink, setResetLink] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const id = setInterval(() => setCooldown(c => c - 1), 1000)
+    return () => clearInterval(id)
+  }, [cooldown])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -31,6 +40,7 @@ export default function ForgotPasswordPage() {
         if (data.reset_link) {
           setResetLink(data.reset_link)
         }
+        setCooldown(COOLDOWN)
       }
     } catch {
       setError('Network error')
@@ -67,9 +77,9 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
-            <button type="submit" disabled={loading}
+            <button type="submit" disabled={loading || cooldown > 0}
               className="w-full rounded-xl bg-charcoal py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
-              {loading ? 'Sending...' : 'Send reset link'}
+              {loading ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Send reset link'}
             </button>
           </form>
 
