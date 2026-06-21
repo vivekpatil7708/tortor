@@ -21,10 +21,11 @@ export async function middleware(req: NextRequest) {
   const isAuthPath = pathname.startsWith('/login') || pathname.startsWith('/signup')
   const isDashboardPath = pathname.startsWith('/dashboard')
   const isOnboardingPath = pathname.startsWith('/onboarding')
+  const isAdminPath = pathname.startsWith('/admin')
 
   const loggedIn = await hasValidSession(req)
 
-  if (isDashboardPath && !loggedIn) {
+  if ((isDashboardPath || isAdminPath) && !loggedIn) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
@@ -40,5 +41,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/onboarding', '/login', '/signup'],
+  matcher: ['/dashboard/:path*', '/admin/:path*', '/onboarding', '/login', '/signup'],
 }

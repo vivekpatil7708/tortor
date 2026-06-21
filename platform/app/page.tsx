@@ -1,9 +1,66 @@
 import Link from 'next/link'
 import DonateWidget from '@/components/donate-widget'
 
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'ToroPay',
+  url: 'https://toropay.co.in',
+  logo: 'https://toropay.co.in/favicon.svg',
+  description: 'Free UPI payment link and hosted checkout page platform for Indian businesses.',
+  foundingDate: '2024',
+}
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Is ToroPay really free?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes, ToroPay is 100% free. There are no paid plans, no transaction fees, no hidden charges. Unlimited payment links and pages.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How do I get paid?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Payments go directly to your own UPI ID. ToroPay does not handle or process any funds. Your customers pay you directly via any UPI app.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What can I create with ToroPay?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'You can create branded hosted checkout pages, shareable payment links, and dynamic QR codes. Customize colors, logo, background image, and button text.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Who is ToroPay for?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'ToroPay is built for Indian businesses, freelancers, creators, and anyone who needs to accept UPI payments without a website or technical setup.',
+      },
+    },
+  ],
+}
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream to-beige">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <div className="text-2xl font-extrabold tracking-tight">Toro<span className="text-primary-500">Pay</span></div>
         <div className="flex items-center gap-4">
@@ -65,6 +122,30 @@ export default function LandingPage() {
           <h2 className="text-3xl font-bold tracking-tight">Start accepting UPI payments in minutes</h2>
           <p className="mt-3 text-gray-300">Create unlimited payment links, pages, and QR codes. Completely free. No credit card needed.</p>
           <Link href="/signup" className="mt-6 inline-block rounded-xl bg-primary-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-primary-600">Create free account — it's free</Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-4xl px-6 pb-10">
+        <div className="rounded-3xl border border-white/60 bg-white/40 p-8 backdrop-blur-xl sm:p-12">
+          <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">Frequently asked questions</h2>
+          <div className="mt-8 space-y-4">
+            {[
+              { q: 'Is ToroPay really free?', a: 'Yes, ToroPay is 100% free. There are no paid plans, no transaction fees, no hidden charges. You get unlimited payment links, pages, and QR codes at no cost.' },
+              { q: 'How do I get paid?', a: 'Payments go directly to your own UPI ID. ToroPay does not handle, process, or store any payment funds. Your customers pay you directly via any UPI app — Google Pay, PhonePe, Paytm, BHIM, or any other.' },
+              { q: 'What can I create with ToroPay?', a: 'You can create branded hosted checkout pages with your logo and colors, shareable payment links with custom button text, dynamic QR codes with preset amounts, and multi-product order forms with custom fields.' },
+              { q: 'Who is ToroPay for?', a: 'ToroPay is built for Indian businesses, freelancers, creators, solopreneurs, coaches, and anyone who needs to accept UPI payments without building a website or writing any code.' },
+              { q: 'Do I need a website to use ToroPay?', a: 'No. ToroPay generates a hosted checkout page for you. Just share the link or QR code with your customers. No website, no coding required.' },
+              { q: 'Can I customize the checkout page?', a: 'Yes. You can upload your logo, set brand colors, add a background image, change button text, and choose a page theme. The checkout page reflects your brand identity.' },
+            ].map(({ q, a }) => (
+              <details key={q} className="group rounded-xl border border-gray-200 bg-white/60 p-4 backdrop-blur-sm">
+                <summary className="cursor-pointer text-sm font-semibold text-charcoal">{q}</summary>
+                <p className="mt-2 text-sm leading-relaxed text-gray-500">{a}</p>
+              </details>
+            ))}
+          </div>
+          <p className="mt-6 text-center text-sm text-gray-400">
+            Have more questions? <Link href="/donate" className="underline hover:text-charcoal">Contact us</Link>
+          </p>
         </div>
       </section>
 
