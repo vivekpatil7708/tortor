@@ -58,6 +58,10 @@ export default function LinksPage() {
                 <button onClick={() => copyLink(l.slug as string)} className="rounded-xl border border-gray-200 bg-white p-2.5 text-gray-500 hover:text-charcoal"><Copy className="h-4 w-4" /></button>
                 <a href={`/pay/${l.slug}`} target="_blank" rel="noreferrer" className="rounded-xl border border-gray-200 bg-white p-2.5 text-gray-500 hover:text-charcoal"><ExternalLink className="h-4 w-4" /></a>
                 <Link href={`/dashboard/links/${l.id}`} className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-semibold text-gray-500 hover:text-charcoal">Details</Link>
+                <div className="hidden sm:flex gap-1">
+                  <a href={`https://wa.me/?text=${encodeURIComponent('Pay using this link: ' + window.location.origin + '/pay/' + l.slug)}`} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-[#25D366] px-2 py-1.5 text-xs font-semibold text-white hover:opacity-90">WA</a>
+                  <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('Pay me using this link: ' + window.location.origin + '/pay/' + l.slug)}`} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-[#000] px-2 py-1.5 text-xs font-semibold text-white hover:opacity-90">X</a>
+                </div>
               </div>
             </div>
           ))}
