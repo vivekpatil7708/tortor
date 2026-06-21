@@ -12,17 +12,24 @@ export const metadata: Metadata = {
   description: 'Create branded UPI payment links, QR codes, and hosted checkout pages with your own merchant UPI ID. 100% free — unlimited links, zero fees.',
   icons: {
     icon: '/favicon.svg',
+    apple: '/apple-touch-icon.svg',
   },
   robots: { index: true, follow: true },
   openGraph: {
     title: 'ToroPay — Free UPI Payment Pages for India',
     description: 'Create branded UPI payment links, QR codes, and hosted checkout pages. 100% free, unlimited links, zero fees.',
-    url: baseUrl,
+    url: baseUrl + '/',
     siteName: 'ToroPay',
     type: 'website',
+    locale: 'en_IN',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ToroPay — Free UPI Payment Pages for India',
+    description: 'Create branded UPI payment links, QR codes, and hosted checkout pages. 100% free, unlimited links, zero fees.',
   },
   alternates: {
-    canonical: baseUrl,
+    canonical: baseUrl + '/',
   },
 }
 
