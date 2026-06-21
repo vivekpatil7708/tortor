@@ -99,6 +99,9 @@ export default function LinkDetailPage() {
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" onClick={() => { navigator.clipboard.writeText(payUrl); toast('Link copied to clipboard') }}>Copy Link</Button>
           <a href={payUrl} target="_blank" rel="noreferrer"><Button variant="secondary" size="sm">Open Checkout</Button></a>
+          <a href={`https://wa.me/?text=${encodeURIComponent('Pay using this link: ' + payUrl)}`} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-[#25D366] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">WhatsApp</a>
+          <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('Pay me using this link: ' + payUrl)}`} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-[#000] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">X</a>
+          <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(payUrl)}`} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-[#0A66C2] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">LinkedIn</a>
         </div>
         {qrUrl && (
           <div className="mt-4 text-center">
