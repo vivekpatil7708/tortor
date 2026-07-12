@@ -9,7 +9,7 @@ export async function GET() {
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-    const [totalMerchants, totalTransactions, revenueResult, signupsToday, revenueToday, activeMerchants, recentSignups] = await Promise.all([
+    const [totalMerchants, totalTransactions, revenueResult, signupsToday, revenueToday, activeMerchants, recentSignups, totalPageviews, pageviewsToday, uniqueVisitorsToday] = await Promise.all([
       prisma.merchant.count(),
       prisma.transaction.count(),
       prisma.transaction.aggregate({ where: { status: 'success' }, _sum: { amount: true } }),
@@ -17,6 +17,9 @@ export async function GET() {
       prisma.transaction.aggregate({ where: { status: 'success', createdAt: { gte: todayStart } }, _sum: { amount: true } }),
       prisma.merchant.count({ where: { transactions: { some: {} } } }),
       prisma.merchant.findMany({ orderBy: { createdAt: 'desc' }, take: 5, select: { email: true, businessName: true, createdAt: true } }),
+      prisma.pageView.count(),
+      prisma.pageView.count({ where: { createdAt: { gte: todayStart } } }),
+      prisma.pageView.groupBy({ by: ['ipAddress'], where: { createdAt: { gte: todayStart }, ipAddress: { not: null } }, _count: { ipAddress: true } }),
     ])
 
     return NextResponse.json({
@@ -26,6 +29,9 @@ export async function GET() {
       signups_today: signupsToday,
       revenue_today: revenueToday._sum.amount || 0,
       active_merchants: activeMerchants,
+      total_pageviews: totalPageviews,
+      pageviews_today: pageviewsToday,
+      unique_visitors_today: uniqueVisitorsToday.length,
       recent_signups: recentSignups.map(s => ({ email: s.email, business_name: s.businessName, created_at: s.createdAt.toISOString() })),
     })
   } catch (err: unknown) {

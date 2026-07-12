@@ -36,7 +36,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-cream text-charcoal antialiased">{children}</body>
+      <body className="bg-cream text-charcoal antialiased">{children}
+        <script dangerouslySetInnerHTML={{
+          __html: `(function(){var p=location.pathname;if(!p.startsWith('/admin')&&!p.startsWith('/dashboard')&&!p.startsWith('/api')){navigator.sendBeacon('/api/analytics/pageview',JSON.stringify({path:p}))}})()`
+        }} />
+      </body>
     </html>
   )
 }

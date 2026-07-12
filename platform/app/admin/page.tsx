@@ -9,6 +9,9 @@ interface Stats {
   signups_today: number
   revenue_today: number
   active_merchants: number
+  total_pageviews: number
+  pageviews_today: number
+  unique_visitors_today: number
   recent_signups: Array<{ email: string; business_name: string; created_at: string }>
 }
 
@@ -28,6 +31,9 @@ export default function AdminOverview() {
     { label: 'Signups Today', value: stats.signups_today, color: 'bg-amber-50 text-amber-700' },
     { label: 'Revenue Today', value: '\u20B9' + stats.revenue_today.toLocaleString('en-IN'), color: 'bg-emerald-50 text-emerald-700' },
     { label: 'Active Merchants', value: stats.active_merchants, color: 'bg-indigo-50 text-indigo-700' },
+    { label: 'Total Visits', value: stats.total_pageviews.toLocaleString('en-IN'), color: 'bg-rose-50 text-rose-700' },
+    { label: 'Visits Today', value: stats.pageviews_today.toLocaleString('en-IN'), color: 'bg-cyan-50 text-cyan-700' },
+    { label: 'Unique Visitors Today', value: stats.unique_visitors_today.toLocaleString('en-IN'), color: 'bg-orange-50 text-orange-700' },
   ]
 
   return (

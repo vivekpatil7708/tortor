@@ -164,6 +164,16 @@ model ApiKey {
   @@map("api_keys")
 }
 
+model PageView {
+  id        String   @id @default(uuid())
+  path      String
+  ipAddress String?  @map("ip_address")
+  referrer  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("page_views")
+}
+
 model MerchantSettings {
   merchantId           String   @id @map("merchant_id")
   smsEnabled           Boolean  @default(false) @map("sms_enabled")
