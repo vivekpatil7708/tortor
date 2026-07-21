@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, LogOut, Menu, X
+  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, LogOut, Menu, X
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -18,6 +18,7 @@ const navItems = [
   { label: 'Templates', href: '/dashboard/templates', icon: FileStack },
   { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { label: 'Support', href: '/dashboard/support', icon: HeartHandshake },
+  { label: 'Messaging', href: '/dashboard/settings/messaging', icon: MessageSquare },
   { label: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 

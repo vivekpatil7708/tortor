@@ -37,6 +37,9 @@ model Merchant {
   apiKeys       ApiKey[]
   settings      MerchantSettings?
   webhookLogs   WebhookLog[]
+  messageTemplates MessageTemplate[]
+  messageLogs     MessageLog[]
+  channelConnections ChannelConnection[]
 
   @@map("merchants")
 }
@@ -172,6 +175,59 @@ model PageView {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("page_views")
+}
+
+model MessageTemplate {
+  id         String   @id @default(uuid())
+  merchantId String   @map("merchant_id")
+  channel    String   // email / whatsapp / instagram
+  name       String
+  subject    String   @default("")
+  body       String
+  isDefault  Boolean  @default(false) @map("is_default")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, channel, name])
+  @@map("message_templates")
+}
+
+model MessageLog {
+  id               String   @id @default(uuid())
+  merchantId       String   @map("merchant_id")
+  orderId          String?  @map("order_id")
+  channel          String   // email / whatsapp / instagram
+  recipient        String
+  subject          String   @default("")
+  renderedBody     String   @map("rendered_body")
+  status           String   @default("pending") // pending / sent / failed
+  provider         String   @default("") // resend / twilio / meta / manual
+  providerMessageId String? @map("provider_message_id")
+  errorMessage     String?  @map("error_message")
+  createdBy        String   @map("created_by")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("message_logs")
+}
+
+model ChannelConnection {
+  id         String   @id @default(uuid())
+  merchantId String   @map("merchant_id")
+  channel    String   // email / whatsapp / instagram
+  status     String   @default("disconnected") // connected / disconnected / error
+  accountId  String?  @map("account_id")
+  metadata   String   @default("{}") // JSON blob for channel-specific data
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, channel])
+  @@map("channel_connections")
 }
 
 model MerchantSettings {

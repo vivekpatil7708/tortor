@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { MessageSquare } from 'lucide-react'
 
 export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
@@ -53,6 +55,18 @@ export default function SettingsPage() {
       </div>
 
       {msg && <div className="mb-4 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-600">{msg}</div>}
+
+      <div className="mb-6 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-bold">Messaging</h2>
+            <p className="text-xs text-gray-500">Manage confirmation message templates for Email, WhatsApp, and Instagram.</p>
+          </div>
+          <Link href="/dashboard/settings/messaging" className="flex items-center gap-1.5 rounded-xl bg-charcoal px-4 py-2 text-xs font-semibold text-white hover:opacity-90">
+            <MessageSquare className="h-3.5 w-3.5" /> Manage Templates
+          </Link>
+        </div>
+      </div>
 
       <form onSubmit={saveSettings} className="mb-6 space-y-5">
         <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">

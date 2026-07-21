@@ -73,6 +73,53 @@ export interface Transaction {
   created_at: string
 }
 
+export interface AnalyticsSummary {
+  total_orders: number
+  successful_payments: number
+  failed_payments: number
+  pending_orders: number
+  gross_payment_volume: number
+  refund_amount: number
+  conversion_rate: number
+  average_order_value: number
+}
+
+export interface MessageTemplate {
+  id: string
+  merchant_id: string
+  channel: string
+  name: string
+  subject: string
+  body: string
+  is_default: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface MessageLog {
+  id: string
+  merchant_id: string
+  order_id: string | null
+  channel: string
+  recipient: string
+  subject: string
+  rendered_body: string
+  status: string
+  provider: string
+  provider_message_id: string | null
+  error_message: string | null
+  created_by: string
+  created_at: string
+}
+
+export interface ChannelStatus {
+  status: string
+  provider: string
+  description: string
+  fallback_actions?: string[]
+  setup_help?: string
+}
+
 export interface BrandingConfig {
   logo_url: string | null
   bg_image_url: string | null

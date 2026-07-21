@@ -81,4 +81,33 @@ export const api = {
     request<{ key: string; prefix: string }>('/api/api-keys', { method: 'POST', body: JSON.stringify({ name }) }),
 
   getApiKeys: () => request<Record<string, unknown>[]>('/api/api-keys'),
+
+  getTransaction: (txnId: string) => request<Record<string, unknown>>(`/api/transactions/${txnId}`),
+
+  getAnalyticsSummary: (params?: string) => request<Record<string, unknown>>(`/api/analytics/summary${params || ''}`),
+
+  getOrdersTimeseries: (params?: string) => request<{ timeseries: Array<{ date: string; total: number; success: number; failed: number; pending: number }> }>(`/api/analytics/orders-timeseries${params || ''}`),
+
+  getPaymentsTimeseries: (params?: string) => request<{ timeseries: Array<{ date: string; amount: number }> }>(`/api/analytics/payments-timeseries${params || ''}`),
+
+  getStatusBreakdown: (params?: string) => request<{ breakdown: Record<string, number> }>(`/api/analytics/status-breakdown${params || ''}`),
+
+  getTopEntities: (params?: string) => request<{ top_payment_apps: Array<{ name: string; count: number; amount: number }>; top_links: Array<{ name: string; count: number; amount: number }> }>(`/api/analytics/top-entities${params || ''}`),
+
+  getMessagingTemplates: () => request<{ templates: Record<string, unknown>[] }>('/api/messaging/templates'),
+
+  saveMessagingTemplate: (body: Record<string, unknown>) =>
+    request<{ template: Record<string, unknown> }>('/api/messaging/templates', { method: 'PUT', body: JSON.stringify(body) }),
+
+  previewMessage: (body: Record<string, unknown>) =>
+    request<{ rendered_subject: string; rendered_body: string; validation: Record<string, unknown> }>('/api/messaging/preview', { method: 'POST', body: JSON.stringify(body) }),
+
+  sendMessage: (body: Record<string, unknown>) =>
+    request<{ success: boolean; log: Record<string, unknown> }>('/api/messaging/send', { method: 'POST', body: JSON.stringify(body) }),
+
+  getMessageLogs: (orderId?: string) =>
+    request<{ logs: Record<string, unknown>[] }>(`/api/messaging/logs${orderId ? `?orderId=${orderId}` : ''}`),
+
+  getChannelStatus: () =>
+    request<{ channels: Record<string, { status: string; provider: string; description: string }> }>('/api/integrations/channels/status'),
 }

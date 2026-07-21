@@ -5,7 +5,10 @@ import { serializeTransaction } from '@/lib/serializers'
 import { notifyPaymentStatus } from '@/lib/webhooks'
 
 export async function GET(_req: NextRequest, { params }: { params: { txnId: string } }) {
-  const txn = await prisma.transaction.findUnique({ where: { txnId: params.txnId } })
+  const txn = await prisma.transaction.findUnique({
+    where: { txnId: params.txnId },
+    include: { paymentLink: { select: { title: true, slug: true, amount: true } }, merchant: { select: { businessName: true, email: true, phone: true } } },
+  })
   if (!txn) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   try {
@@ -17,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: { params: { txnId: stri
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  return NextResponse.json(serializeTransaction(txn))
+  return NextResponse.json({ ...serializeTransaction(txn), payment_link: txn.paymentLink, merchant: txn.merchant })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { txnId: string } }) {
