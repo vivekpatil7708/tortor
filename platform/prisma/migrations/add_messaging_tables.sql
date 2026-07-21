@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS "message_templates" (
     "id" TEXT NOT NULL,
-    "merchant_id" TEXT NOT NULL,
+    "merchant_id" UUID NOT NULL,
     "channel" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "subject" TEXT NOT NULL DEFAULT '',
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS "message_templates" (
 
 CREATE TABLE IF NOT EXISTS "message_logs" (
     "id" TEXT NOT NULL,
-    "merchant_id" TEXT NOT NULL,
+    "merchant_id" UUID NOT NULL,
     "order_id" TEXT,
     "channel" TEXT NOT NULL,
     "recipient" TEXT NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS "message_logs" (
 
 CREATE TABLE IF NOT EXISTS "channel_connections" (
     "id" TEXT NOT NULL,
-    "merchant_id" TEXT NOT NULL,
+    "merchant_id" UUID NOT NULL,
     "channel" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'disconnected',
     "account_id" TEXT,
