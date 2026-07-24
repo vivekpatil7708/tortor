@@ -21,6 +21,12 @@ const CHANNELS = [
   { key: 'instagram', label: 'Instagram', icon: '📸' },
 ]
 
+function statusBadge(status: string | undefined) {
+  if (status === 'available') return <span className="ml-1.5 rounded-md bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">Live</span>
+  if (status === 'coming_soon') return <span className="ml-1.5 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Coming soon</span>
+  return null
+}
+
 export default function MessagingTemplatesPage() {
   const [templates, setTemplates] = useState<Template[]>([])
   const [activeChannel, setActiveChannel] = useState('email')
@@ -90,11 +96,11 @@ export default function MessagingTemplatesPage() {
         <p className="text-sm text-gray-500">Manage confirmation message templates for each channel.</p>
       </div>
 
-      <div className="mb-6 flex gap-2">
+      <div className="mb-6 flex flex-wrap gap-2">
         {CHANNELS.map(ch => (
           <button key={ch.key} onClick={() => setActiveChannel(ch.key)}
-            className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${activeChannel === ch.key ? 'bg-charcoal text-white' : 'border border-gray-200 bg-white text-gray-500 hover:text-charcoal'}`}>
-            {ch.icon} {ch.label}
+            className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${activeChannel === ch.key ? 'bg-charcoal text-white' : 'border border-gray-200 bg-white text-gray-500 hover:text-charcoal'}`}>
+            {ch.icon} {ch.label} {statusBadge(channelStatus?.[ch.key]?.status)}
           </button>
         ))}
       </div>
@@ -102,7 +108,7 @@ export default function MessagingTemplatesPage() {
       {status && (
         <div className={`mb-6 rounded-xl border p-3 text-xs ${
           status.status === 'available' ? 'border-green-200 bg-green-50 text-green-700' :
-          status.status === 'limited' ? 'border-amber-200 bg-amber-50 text-amber-700' :
+          status.status === 'coming_soon' ? 'border-amber-200 bg-amber-50 text-amber-700' :
           'border-gray-200 bg-gray-50 text-gray-500'
         }`}>
           <span className="font-semibold">{status.provider}:</span> {status.description}

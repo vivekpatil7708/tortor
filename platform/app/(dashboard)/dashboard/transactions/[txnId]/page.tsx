@@ -181,6 +181,11 @@ function SendConfirmationModal({ txn, onClose, onSent }: { txn: Record<string, a
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [channelStatus, setChannelStatus] = useState<Record<string, any> | null>(null)
+
+  useEffect(() => {
+    api.getChannelStatus().then(r => setChannelStatus(r.channels as unknown as Record<string, any>)).catch(() => {})
+  }, [])
 
   const fillData: Record<string, string> = {
     customer_name: txn.customer_name || 'Customer',
@@ -259,6 +264,8 @@ function SendConfirmationModal({ txn, onClose, onSent }: { txn: Record<string, a
     </div>
   )
 
+  const channelInfo = channelStatus?.[channel]
+  const isComingSoon = channelInfo?.status === 'coming_soon'
   const isInstagram = channel === 'instagram'
 
   return (
@@ -275,13 +282,17 @@ function SendConfirmationModal({ txn, onClose, onSent }: { txn: Record<string, a
         <div className="space-y-4 p-6">
           <div>
             <p className="mb-2 text-xs font-semibold text-gray-500">Channel</p>
-            <div className="flex gap-2">
-              {['whatsapp', 'email', 'instagram'].map(ch => (
-                <button key={ch} onClick={() => handleChannelChange(ch)}
-                  className={`rounded-xl px-4 py-2 text-xs font-semibold capitalize ${channel === ch ? 'bg-charcoal text-white' : 'border border-gray-200 text-gray-500 hover:text-charcoal'}`}>
-                  {ch === 'instagram' ? 'Instagram' : ch === 'whatsapp' ? 'WhatsApp' : 'Email'}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {['whatsapp', 'email', 'instagram'].map(ch => {
+                const st = channelStatus?.[ch]?.status
+                return (
+                  <button key={ch} onClick={() => handleChannelChange(ch)}
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold capitalize ${channel === ch ? 'bg-charcoal text-white' : 'border border-gray-200 text-gray-500 hover:text-charcoal'}`}>
+                    {ch === 'instagram' ? 'Instagram' : ch === 'whatsapp' ? 'WhatsApp' : 'Email'}
+                    {st === 'coming_soon' && <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Soon</span>}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -305,9 +316,9 @@ function SendConfirmationModal({ txn, onClose, onSent }: { txn: Record<string, a
               className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-charcoal" />
           </div>
 
-          {isInstagram && (
+          {isComingSoon && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
-              Instagram does not support sending messages directly. Instead, you can preview, copy, or open Instagram to send manually.
+              {channel === 'whatsapp' ? 'WhatsApp message sending is coming soon. You can still preview and copy the message to send manually.' : 'Instagram message sending is coming soon. You can still preview, copy, or open Instagram to send manually.'}
             </div>
           )}
 
@@ -317,17 +328,18 @@ function SendConfirmationModal({ txn, onClose, onSent }: { txn: Record<string, a
               {showPreview ? 'Hide Preview' : 'Preview'}
             </button>
             <div className="flex gap-2">
-              {isInstagram && (
+              {isComingSoon || isInstagram ? (
                 <>
                   <button onClick={handleCopyMessage} className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-500 hover:text-charcoal">
                     <Copy className="h-3.5 w-3.5" /> {copied ? 'Copied!' : 'Copy'}
                   </button>
-                  <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-500 hover:text-charcoal">
-                    <ExternalLink className="h-3.5 w-3.5" /> Open Instagram
-                  </a>
+                  {isInstagram && (
+                    <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-500 hover:text-charcoal">
+                      <ExternalLink className="h-3.5 w-3.5" /> Open Instagram
+                    </a>
+                  )}
                 </>
-              )}
-              {!isInstagram && (
+              ) : (
                 <button onClick={handleSend} disabled={sending || !recipient}
                   className="flex items-center gap-1.5 rounded-xl bg-charcoal px-5 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">
                   <Send className="h-3.5 w-3.5" /> {sending ? 'Sending...' : 'Send'}

@@ -216,6 +216,38 @@ export default function LandingPage() {
       </section>
 
       <section className="mx-auto max-w-4xl px-6 pb-32">
+        <div className="rounded-3xl border border-white/60 bg-white/40 p-8 backdrop-blur-xl sm:p-12">
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-center">From the Blog</h2>
+          <p className="mx-auto mt-3 max-w-lg text-sm text-center text-gray-500">Guides, comparisons, and tips for Indian businesses on UPI payments.</p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <Link href="/blog/best-razorpay-alternatives-for-indian-businesses" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
+              <span className="text-xs font-medium text-primary-600">Comparisons</span>
+              <h3 className="mt-1 text-sm font-bold text-charcoal">7 Best Razorpay Alternatives for Indian Businesses in 2026</h3>
+              <p className="mt-1 text-xs text-gray-400">Compare free payment gateways and UPI solutions.</p>
+            </Link>
+            <Link href="/blog/free-payment-links-india" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
+              <span className="text-xs font-medium text-primary-600">Tutorials</span>
+              <h3 className="mt-1 text-sm font-bold text-charcoal">How to Create Free Payment Links in India</h3>
+              <p className="mt-1 text-xs text-gray-400">Accept payments instantly with zero transaction fees.</p>
+            </Link>
+            <Link href="/blog/cashless-payment-solutions-for-small-business" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
+              <span className="text-xs font-medium text-primary-600">Guides</span>
+              <h3 className="mt-1 text-sm font-bold text-charcoal">Cashless Payment Solutions for Small Businesses</h3>
+              <p className="mt-1 text-xs text-gray-400">Complete guide to going cashless in India.</p>
+            </Link>
+            <Link href="/blog/toropay-vs-instapay-comparison" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
+              <span className="text-xs font-medium text-primary-600">Comparisons</span>
+              <h3 className="mt-1 text-sm font-bold text-charcoal">ToroPay vs InstaPay: Which Is Better?</h3>
+              <p className="mt-1 text-xs text-gray-400">Feature-by-feature comparison of UPI payment solutions.</p>
+            </Link>
+          </div>
+          <div className="mt-6 text-center">
+            <Link href="/blog" className="text-sm font-semibold text-primary-500 hover:underline">Read all articles →</Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-4xl px-6 pb-32">
         <div className="rounded-3xl border border-white/60 bg-white/40 p-8 text-center backdrop-blur-xl sm:p-12">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-50 text-2xl">{'❤️'}</div>
           <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Support ToroPay</h2>
@@ -236,6 +268,7 @@ export default function LandingPage() {
       <footer className="border-t border-gray-200 px-6 py-8 text-center text-sm text-gray-400">
         <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-6">
           <span>ToroPay — Built for Indian businesses</span>
+          <Link href="/blog" className="underline hover:text-charcoal">Blog</Link>
           <Link href="/donate" className="underline hover:text-charcoal">Donate</Link>
           <Link href="/terms" className="underline hover:text-charcoal">Terms</Link>
           <Link href="/privacy" className="underline hover:text-charcoal">Privacy</Link>
