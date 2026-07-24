@@ -1,7 +1,16 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { BLOG_POSTS, getBlogPost } from '@/lib/blog-data'
+import { BLOG_POSTS, getBlogPost, getRelatedPosts } from '@/lib/blog-data'
+import BlogNavbar from '@/components/blog/BlogNavbar'
+import BlogFooter from '@/components/blog/BlogFooter'
+import AuthorBlock from '@/components/blog/AuthorBlock'
+import ShareButtons from '@/components/blog/ShareButtons'
+import CTABanner from '@/components/blog/CTABanner'
+import RelatedPosts from '@/components/blog/RelatedPosts'
+import TableOfContents from '@/components/blog/TableOfContents'
+import ReadingProgress from '@/components/blog/ReadingProgress'
+import TagChip from '@/components/blog/TagChip'
 
 type Props = { params: { slug: string } }
 
@@ -24,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: 'article',
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt,
-      authors: [post.author],
+      authors: [post.author.name],
       tags: post.tags,
     },
     twitter: {
@@ -39,19 +48,20 @@ export default function BlogPostPage({ params }: Props) {
   const post = getBlogPost(params.slug)
   if (!post) notFound()
 
+  const related = getRelatedPosts(post, 3)
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: post.title,
     description: post.description,
-    author: { '@type': 'Organization', name: post.author },
+    author: { '@type': 'Person', name: post.author.name },
     datePublished: post.publishedAt,
     dateModified: post.updatedAt,
     publisher: {
       '@type': 'Organization',
       name: 'ToroPay',
       url: 'https://toropay.co.in',
-      logo: 'https://toropay.co.in/favicon.svg',
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
@@ -60,71 +70,91 @@ export default function BlogPostPage({ params }: Props) {
     keywords: post.tags.join(', '),
   }
 
+  const formattedDate = new Date(post.publishedAt).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream to-beige">
+    <div className="min-h-screen bg-white">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <ReadingProgress />
+      <BlogNavbar />
 
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <Link href="/" className="text-2xl font-extrabold tracking-tight">
-          Toro<span className="text-primary-500">Pay</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <Link href="/blog" className="text-sm font-medium text-gray-600 hover:text-charcoal">Blog</Link>
-          <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-charcoal">Log in</Link>
-          <Link href="/signup" className="rounded-xl bg-charcoal px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">Get started</Link>
-        </div>
-      </header>
+      <main className="mx-auto max-w-6xl px-6">
+        <article className="mx-auto max-w-[680px] pt-12 sm:pt-16">
+          {/* Header */}
+          <header>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <Link href={`/blog/category/${post.category.toLowerCase()}`} className="font-medium text-primary-600 transition-colors hover:text-primary-700">
+                {post.category}
+              </Link>
+              <span>·</span>
+              <time dateTime={post.publishedAt}>{formattedDate}</time>
+              <span>·</span>
+              <span>{post.readTime}</span>
+            </div>
+            <h1 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-gray-900 sm:text-4xl lg:text-[2.75rem]">
+              {post.title}
+            </h1>
+            <p className="mt-4 text-lg leading-relaxed text-gray-500">{post.excerpt}</p>
 
-      <main className="mx-auto max-w-3xl px-6 pb-32">
-        <article className="pt-12">
-          <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-gray-400">
-            <Link href="/blog" className="font-medium text-primary-500 hover:underline">← Blog</Link>
-            <span>·</span>
-            <span className="rounded-md bg-primary-50 px-2 py-0.5 font-medium text-primary-600">{post.category}</span>
-            <span>{post.readTime}</span>
-          </div>
+            <AuthorBlock author={post.author} date={post.publishedAt} readTime={post.readTime} />
+          </header>
 
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{post.title}</h1>
-          <p className="mt-4 text-lg text-gray-500">{post.description}</p>
+          {/* Content */}
+          <div
+            className="prose mt-10 max-w-none
+              prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-gray-900
+              prose-h2:mt-12 prose-h2:text-2xl
+              prose-h3:mt-8 prose-h3:text-lg
+              prose-p:my-4 prose-p:text-[17px] prose-p:leading-[1.8] prose-p:text-gray-700
+              prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline
+              prose-strong:text-gray-900
+              prose-li:my-1.5 prose-li:text-[17px] prose-li:leading-[1.8] prose-li:text-gray-700
+              prose-table:my-8 prose-table:text-sm
+              prose-th:bg-gray-50 prose-th:px-4 prose-th:py-2.5 prose-th:text-left prose-th:text-xs prose-th:font-semibold prose-th:uppercase prose-th:tracking-wider prose-th:text-gray-500
+              prose-td:px-4 prose-td:py-2.5 prose-td:text-gray-600
+              prose-table:border prose-table:border-gray-200 prose-table:border-collapse prose-table:rounded-lg prose-table:overflow-hidden
+              prose-blockquote:border-l-2 prose-blockquote:border-gray-900 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-gray-500
+              prose-code:text-sm prose-code:bg-gray-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-gray-800 prose-code:font-normal prose-code:before:content-none prose-code:after:content-none
+              prose-pre:bg-gray-950 prose-pre:text-gray-100 prose-pre:rounded-xl prose-pre:border prose-pre:border-gray-200
+              max-w-none"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
 
-          <div className="mt-4 flex items-center gap-3 text-sm text-gray-400">
-            <span className="font-medium text-gray-600">{post.author}</span>
-            <span>·</span>
-            <time dateTime={post.publishedAt}>
-              Published {new Date(post.publishedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </time>
-            {post.updatedAt !== post.publishedAt && (
-              <>
-                <span>·</span>
-                <time dateTime={post.updatedAt}>
-                  Updated {new Date(post.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </time>
-              </>
-            )}
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-1.5">
+          {/* Tags */}
+          <div className="mt-12 flex flex-wrap gap-2">
             {post.tags.map(tag => (
-              <span key={tag} className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{tag}</span>
+              <TagChip key={tag} tag={tag} />
             ))}
           </div>
 
-          <div className="prose prose-gray mt-10 max-w-none prose-headings:text-charcoal prose-a:text-primary-500 prose-strong:text-charcoal prose-table:text-sm prose-th:bg-gray-50 prose-th:px-4 prose-th:py-2 prose-td:px-4 prose-td:py-2 prose-table:border prose-table:border-gray-200 prose-table:border-collapse prose-img:rounded-2xl"
-            dangerouslySetInnerHTML={{ __html: post.content }} />
-
-          <div className="mt-16 rounded-3xl bg-charcoal p-8 text-center text-white sm:p-12">
-            <h2 className="text-2xl font-bold tracking-tight">Ready to get started?</h2>
-            <p className="mt-3 text-gray-300">Create free payment pages, links, and QR codes. Zero transaction fees.</p>
-            <Link href="/signup" className="mt-6 inline-block rounded-xl bg-primary-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-primary-600">
-              Create free account
+          {/* Share + Footer */}
+          <div className="mt-8 flex items-center justify-between border-t border-gray-100 pt-6">
+            <ShareButtons title={post.title} slug={post.slug} />
+            <Link href="/blog" className="text-xs font-medium text-gray-400 transition-colors hover:text-gray-900">
+              All articles
             </Link>
           </div>
 
-          <div className="mt-10 flex items-center justify-between border-t border-gray-200 pt-6">
-            <Link href="/blog" className="text-sm font-medium text-primary-500 hover:underline">← Back to Blog</Link>
-          </div>
+          {/* CTA */}
+          <CTABanner />
+
+          {/* Related */}
+          <RelatedPosts posts={related} />
         </article>
       </main>
+
+      {/* Sidebar TOC - desktop only */}
+      <div className="fixed right-8 top-24 hidden w-56 xl:block">
+        <TableOfContents content={post.content} />
+      </div>
+
+      <div className="mt-20">
+        <BlogFooter />
+      </div>
     </div>
   )
 }

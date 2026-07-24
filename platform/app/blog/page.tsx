@@ -1,63 +1,104 @@
 import type { Metadata } from 'next'
+import { BLOG_POSTS, getBlogCategories, getBlogAuthors } from '@/lib/blog-data'
+import BlogNavbar from '@/components/blog/BlogNavbar'
+import BlogFooter from '@/components/blog/BlogFooter'
+import FeaturedArticle from '@/components/blog/FeaturedArticle'
+import ArticleCard from '@/components/blog/ArticleCard'
+import AuthorCard from '@/components/blog/AuthorCard'
+import SearchBar from '@/components/blog/SearchBar'
 import Link from 'next/link'
-import { BLOG_POSTS } from '@/lib/blog-data'
 
 export const metadata: Metadata = {
   title: 'Blog — ToroPay',
-  description: 'Guides, comparisons, and tips for Indian businesses on UPI payments, payment links, cashless solutions, and digital payment strategies.',
+  description: 'Guides, comparisons, and tips for Indian businesses on UPI payments, payment links, and digital payment strategies.',
   alternates: { canonical: 'https://toropay.co.in/blog' },
 }
 
 export default function BlogPage() {
-  const posts = BLOG_POSTS
+  const categories = getBlogCategories()
+  const authors = getBlogAuthors()
+  const featured = BLOG_POSTS.find(p => p.featured)
+  const remaining = BLOG_POSTS.filter(p => p.slug !== featured?.slug)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream to-beige">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <Link href="/" className="text-2xl font-extrabold tracking-tight">
-          Toro<span className="text-primary-500">Pay</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-charcoal">Log in</Link>
-          <Link href="/signup" className="rounded-xl bg-charcoal px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">Get started</Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-white">
+      <BlogNavbar />
 
-      <main className="mx-auto max-w-4xl px-6 pb-32">
-        <div className="pt-16 pb-12 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">Blog</h1>
-          <p className="mt-4 text-lg text-gray-500">Guides, comparisons, and tips for Indian businesses on UPI payments.</p>
-        </div>
+      <main className="mx-auto max-w-6xl px-6">
+        {/* Hero */}
+        <section className="pt-16 pb-10 sm:pt-20 sm:pb-12">
+          <div className="max-w-2xl">
+            <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl">Blog</h1>
+            <p className="mt-4 text-lg text-gray-500">Insights on UPI payments, fintech, and building for Indian businesses.</p>
+          </div>
+          <div className="mt-8 max-w-md">
+            <SearchBar />
+          </div>
+        </section>
 
-        <div className="space-y-6">
-          {posts.map(post => (
-            <Link key={post.slug} href={`/blog/${post.slug}`}
-              className="block rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm transition-all hover:bg-white/80 hover:shadow-md">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                <span className="rounded-md bg-primary-50 px-2 py-0.5 font-medium text-primary-600">{post.category}</span>
-                <span>{post.readTime}</span>
-                <span>·</span>
-                <time dateTime={post.publishedAt}>{new Date(post.publishedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</time>
-              </div>
-              <h2 className="mt-3 text-xl font-bold tracking-tight text-charcoal">{post.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-gray-500">{post.description}</p>
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {post.tags.slice(0, 3).map(tag => (
-                  <span key={tag} className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{tag}</span>
-                ))}
-              </div>
-            </Link>
-          ))}
-        </div>
+        {/* Featured */}
+        {featured && (
+          <section className="pb-12">
+            <FeaturedArticle post={featured} />
+          </section>
+        )}
 
-        <div className="mt-16 rounded-3xl bg-charcoal p-8 text-center text-white sm:p-12">
-          <h2 className="text-2xl font-bold tracking-tight">Ready to accept free UPI payments?</h2>
-          <p className="mt-3 text-gray-300">Create your free ToroPay account in 2 minutes. Zero fees, branded pages, instant setup.</p>
-          <Link href="/signup" className="mt-6 inline-block rounded-xl bg-primary-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-primary-600">
-            Create free account
-          </Link>
-        </div>
+        {/* Category Filter + Articles */}
+        <section className="border-t border-gray-100 py-12">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-lg font-bold tracking-tight text-gray-900">All Articles</h2>
+            <div className="flex flex-wrap gap-2">
+              {categories.map(cat => (
+                <Link
+                  key={cat}
+                  href={`/blog/category/${cat.toLowerCase()}`}
+                  className="rounded-full bg-gray-100 px-4 py-1.5 text-xs font-medium text-gray-600 transition-all hover:bg-gray-200 hover:text-gray-900"
+                >
+                  {cat}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+            {remaining.map(post => (
+              <ArticleCard key={post.slug} post={post} />
+            ))}
+          </div>
+        </section>
+
+        {/* Authors */}
+        <section className="border-t border-gray-100 py-12">
+          <h2 className="text-lg font-bold tracking-tight text-gray-900">Authors</h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {authors.map(author => (
+              <AuthorCard
+                key={author.slug}
+                author={author}
+                postCount={BLOG_POSTS.filter(p => p.author.slug === author.slug).length}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="border-t border-gray-100 py-16">
+          <div className="max-w-xl">
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900">Free UPI payments for your business</h2>
+            <p className="mt-3 text-gray-500">Zero transaction fees. Branded payment pages. Instant setup. Used by thousands of Indian businesses.</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/signup" className="rounded-lg bg-gray-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-800">
+                Create free account
+              </Link>
+              <Link href="/login" className="rounded-lg border border-gray-200 px-6 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
+                Log in
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
+
+      <BlogFooter />
     </div>
   )
 }
