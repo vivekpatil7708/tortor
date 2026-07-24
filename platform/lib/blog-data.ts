@@ -556,6 +556,117 @@ export const BLOG_POSTS: BlogPost[] = [
 
 <p><a href="/signup">Create your free ToroPay account →</a></p>`,
   },
+  {
+    slug: 'how-to-use-toropay-complete-guide',
+    title: 'How to Use ToroPay: Complete Step-by-Step Guide',
+    description: 'Learn how to set up your ToroPay account, create payment links, build your storefront, generate QR codes, and start accepting UPI payments — all in under 5 minutes.',
+    author: 'ToroPay',
+    publishedAt: '2026-07-24',
+    updatedAt: '2026-07-24',
+    category: 'Tutorials',
+    tags: ['ToroPay guide', 'how to use ToroPay', 'payment link setup', 'UPI payment tutorial', 'step by step', 'Indian business payments'],
+    readTime: '7 min read',
+    content: `
+<h2>What is ToroPay?</h2>
+<p>ToroPay is a free UPI payment platform built for Indian businesses, freelancers, and creators. It lets you accept payments through custom payment links, a professional storefront page, and QR codes — all with zero transaction fees.</p>
+<p>No merchant account. No gateway charges. No hidden costs. Just sign up and start accepting payments.</p>
+
+<h2>Step 1: Create Your Free Account</h2>
+<ol>
+  <li>Go to <a href="https://toropay.co.in/signup">toropay.co.in/signup</a></li>
+  <li>Enter your email address and create a password</li>
+  <li>Verify your email (check your inbox for the verification link)</li>
+  <li>Log in to your dashboard</li>
+</ol>
+<p>The entire process takes less than 2 minutes. No phone number or KYC required to get started.</p>
+
+<h2>Step 2: Add Your UPI ID</h2>
+<p>Before you can accept payments, you need to connect your UPI ID so ToroPay knows where to route funds.</p>
+<ol>
+  <li>Go to <strong>Dashboard → UPI</strong></li>
+  <li>Click <strong>"Add UPI ID"</strong></li>
+  <li>Enter your VPA (e.g. <code>yourname@upi</code>, <code>yourname@oksbi</code>)</li>
+  <li>Click <strong>"Verify"</strong> — ToroPay will send a ₹1 verification to confirm the ID is valid</li>
+  <li>Once verified, your UPI ID is ready to use</li>
+</ol>
+<p>You can add multiple UPI IDs (from different banks) and set one as your primary receiving account.</p>
+
+<h2>Step 3: Create a Payment Link</h2>
+<p>Payment links are the fastest way to start collecting money. Share them via WhatsApp, email, SMS, or Instagram DMs.</p>
+<ol>
+  <li>Go to <strong>Dashboard → Links → Create New</strong></li>
+  <li>Enter a title (e.g. "Order #123 — T-shirt")</li>
+  <li>Set the amount (or leave it open for the customer to enter)</li>
+  <li>Add optional products with descriptions and prices</li>
+  <li>Add a customer note (optional) — e.g. "Thank you for your order!"</li>
+  <li>Click <strong>"Create Link"</strong></li>
+</ol>
+<p>Copy the generated URL and share it with your customer. When they pay, you'll see the transaction in your dashboard instantly.</p>
+
+<h2>Step 4: Build Your Storefront</h2>
+<p>Your storefront is a public page that shows all your payment links in one place — like a mini website for your business.</p>
+<ol>
+  <li>Go to <strong>Dashboard → Branding</strong></li>
+  <li>Upload your business logo</li>
+  <li>Add a tagline (e.g. "Handmade jewellery from Mumbai")</li>
+  <li>Choose your theme colours</li>
+  <li>Add your business description and social links</li>
+</ol>
+<p>Your storefront URL is <code>toropay.co.in/pay/your-store</code> — share it anywhere and let customers browse and pay at their own pace.</p>
+
+<h2>Step 5: Generate QR Codes</h2>
+<p>QR codes are perfect for in-person payments — display them at your shop, on packaging, or on invoices.</p>
+<ol>
+  <li>Go to <strong>Dashboard → Links → [your link] → QR Code</strong></li>
+  <li>Download the QR code as PNG</li>
+  <li>Print it, display it, or attach it to invoices</li>
+</ol>
+<p>When a customer scans the code, they're taken directly to your payment page.</p>
+
+<h2>Step 6: Track Your Payments</h2>
+<p>The ToroPay dashboard shows everything in real time:</p>
+<ul>
+  <li><strong>Transactions</strong> — View all incoming payments with status (completed, pending, failed)</li>
+  <li><strong>Analytics</strong> — See total revenue, orders over time, payment method breakdown, and top-performing links</li>
+  <li><strong>Order Details</strong> — Click any transaction to see full details including what the customer ordered</li>
+</ul>
+<p>No more chasing payments or losing track of who paid. Everything is in one place.</p>
+
+<h2>Step 7: Share Your Links</h2>
+<p>ToroPay makes sharing easy with built-in buttons:</p>
+<ul>
+  <li><strong>WhatsApp</strong> — One-click share to any WhatsApp contact or group</li>
+  <li><strong>X (Twitter)</strong> — Tweet your payment link</li>
+  <li><strong>LinkedIn</strong> — Share professionally</li>
+  <li><strong>Copy Link</strong> — Paste anywhere — email, SMS, Instagram, Telegram</li>
+</ul>
+<p>You can also share your storefront link on your social media bios, business cards, or email signatures.</p>
+
+<h2>FAQs</h2>
+
+<h3>Is ToroPay really free?</h3>
+<p>Yes. There are zero transaction fees, zero setup fees, and zero monthly charges. ToroPay is free forever.</p>
+
+<h3>How do I receive the money?</h3>
+<p>Payments go directly from your customer's UPI app to your UPI ID. ToroPay never holds your money — it goes straight to your bank account via UPI.</p>
+
+<h3>Can I use ToroPay for my online store?</h3>
+<p>Absolutely. Create payment links for each product or service, add them to your storefront page, and share the link on social media or your website.</p>
+
+<h3>Do I need a business registration?</h3>
+<p>No. ToroPay works for anyone — freelancers, solopreneurs, students, content creators, and registered businesses alike.</p>
+
+<h3>What if a payment fails?</h3>
+<p>Failed payments show up in your dashboard with details. You can contact the customer and share the link again — no extra effort needed.</p>
+
+<h3>Can I add multiple products to one link?</h3>
+<p>Yes. Each link supports multiple products with individual names, descriptions, and prices. The customer sees everything on one page.</p>
+
+<h2>Get Started Now</h2>
+<p>Setting up ToroPay takes less than 5 minutes. No contracts, no fees, no hassle.</p>
+<p><a href="/signup">Create your free ToroPay account →</a></p>
+`,
+  },
 ]
 
 export function getBlogPost(slug: string): BlogPost | undefined {

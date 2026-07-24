@@ -230,10 +230,10 @@ export default function LandingPage() {
               <h3 className="mt-1 text-sm font-bold text-charcoal">How to Create Free Payment Links in India</h3>
               <p className="mt-1 text-xs text-gray-400">Accept payments instantly with zero transaction fees.</p>
             </Link>
-            <Link href="/blog/cashless-payment-solutions-for-small-business" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
-              <span className="text-xs font-medium text-primary-600">Guides</span>
-              <h3 className="mt-1 text-sm font-bold text-charcoal">Cashless Payment Solutions for Small Businesses</h3>
-              <p className="mt-1 text-xs text-gray-400">Complete guide to going cashless in India.</p>
+            <Link href="/blog/how-to-use-toropay-complete-guide" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
+              <span className="text-xs font-medium text-primary-600">Tutorials</span>
+              <h3 className="mt-1 text-sm font-bold text-charcoal">How to Use ToroPay: Complete Guide</h3>
+              <p className="mt-1 text-xs text-gray-400">Step-by-step setup from account to first payment.</p>
             </Link>
             <Link href="/blog/toropay-vs-instapay-comparison" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
               <span className="text-xs font-medium text-primary-600">Comparisons</span>
