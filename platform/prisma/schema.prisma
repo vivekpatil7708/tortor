@@ -10,8 +10,11 @@ datasource db {
 model Merchant {
   id                   String   @id @default(uuid())
   email                String   @unique
-  phone                String   @unique
-  passwordHash         String   @map("password_hash")
+  phone                String?  @unique
+  passwordHash         String?  @map("password_hash")
+  provider             String?  @default("email")
+  name                 String?  @default("")
+  avatarUrl            String?  @map("avatar_url")
   businessName         String   @default("") @map("business_name")
   businessLogoUrl      String?  @map("business_logo_url")
   brandColorPrimary    String   @default("#7bb86c") @map("brand_color_primary")

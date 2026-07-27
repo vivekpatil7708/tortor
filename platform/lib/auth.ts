@@ -54,6 +54,8 @@ export async function getSession() {
         id: true,
         email: true,
         phone: true,
+        name: true,
+        provider: true,
         businessName: true,
         businessLogoUrl: true,
         brandColorPrimary: true,
@@ -85,7 +87,7 @@ export async function requireSession() {
 export function merchantToJson(m: {
   id: string
   email: string
-  phone: string
+  phone: string | null
   businessName: string
   businessLogoUrl: string | null
   brandColorPrimary: string

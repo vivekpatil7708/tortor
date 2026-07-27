@@ -22,6 +22,9 @@ export const api = {
 
   logout: () => request<{ success: boolean }>('/api/auth/logout', { method: 'POST' }),
 
+  google: (body: { credential: string }) =>
+    request<{ success: boolean; isNewUser: boolean; merchant: Record<string, unknown> }>('/api/auth/google', { method: 'POST', body: JSON.stringify(body) }),
+
   me: () => request<{ merchant: Record<string, unknown> | null }>('/api/auth/me'),
 
   updateMerchant: (body: Record<string, unknown>) =>

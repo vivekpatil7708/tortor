@@ -25,8 +25,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Account locked. Try again in ${remaining} minutes.` }, { status: 429 })
     }
 
-    if (!merchant || !(await verifyPassword(password, merchant.passwordHash))) {
-      if (merchant) {
+    if (!merchant || !merchant.passwordHash || !(await verifyPassword(password, merchant.passwordHash))) {
+      if (merchant && !merchant.passwordHash) {
+        return NextResponse.json({ error: 'This account uses Google Sign-In. Please log in with Google.' }, { status: 400 })
+      }
+      if (merchant && merchant.passwordHash) {
         await prisma.merchant.update({
           where: { id: merchant.id },
           data: {

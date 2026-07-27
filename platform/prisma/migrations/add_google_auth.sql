@@ -1,0 +1,5 @@
+ALTER TABLE "merchants" ALTER COLUMN "password_hash" DROP NOT NULL;
+ALTER TABLE "merchants" ALTER COLUMN "phone" DROP NOT NULL;
+ALTER TABLE "merchants" ADD COLUMN IF NOT EXISTS "provider" TEXT DEFAULT 'email';
+ALTER TABLE "merchants" ADD COLUMN IF NOT EXISTS "name" TEXT DEFAULT '';
+ALTER TABLE "merchants" ADD COLUMN IF NOT EXISTS "avatar_url" TEXT;
