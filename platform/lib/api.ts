@@ -9,7 +9,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     throw new Error('Unable to connect to server. Make sure the app is running.')
   }
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || 'Request failed')
+  if (!res.ok) throw new Error(data.detail ? `${data.error}: ${data.detail}` : data.error || 'Request failed')
   return data as T
 }
 

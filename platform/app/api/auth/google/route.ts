@@ -16,78 +16,67 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Google auth not configured' }, { status: 500 })
     }
 
-    const payload = await verifyGoogleToken(credential, clientId)
+    let payload
+    try {
+      payload = await verifyGoogleToken(credential, clientId)
+    } catch (e: any) {
+      return NextResponse.json({ error: 'Token verification failed', detail: e?.message }, { status: 401 })
+    }
 
     if (!payload || !payload.email) {
-      return NextResponse.json({ error: 'Invalid Google token' }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid Google token', detail: 'No email in payload' }, { status: 401 })
     }
 
     const email = String(payload.email).toLowerCase()
     const name = String(payload.name || '')
     const avatarUrl = (payload.picture as string) || null
 
-    let merchant = await prisma.merchant.findUnique({ where: { email } })
+    let merchant
+    try {
+      merchant = await prisma.merchant.findUnique({ where: { email } })
+    } catch (e: any) {
+      return NextResponse.json({ error: 'DB find failed', detail: e?.message }, { status: 500 })
+    }
+
     let isNewUser = false
 
     if (!merchant) {
-      merchant = await prisma.merchant.create({
-        data: {
-          email,
-          name,
-          avatarUrl,
-          provider: 'google',
-          businessName: '',
-        },
-      })
+      try {
+        merchant = await prisma.merchant.create({
+          data: {
+            email,
+            name,
+            avatarUrl,
+            provider: 'google',
+            businessName: '',
+          },
+        })
+      } catch (e: any) {
+        return NextResponse.json({ error: 'DB create merchant failed', detail: e?.message }, { status: 500 })
+      }
       isNewUser = true
-
-      await prisma.auditLog.create({
-        data: {
-          merchantId: merchant.id,
-          email,
-          action: 'signup_google',
-          ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
-          userAgent: req.headers.get('user-agent') || 'unknown',
-        },
-      })
     } else {
       if (merchant.status === 'suspended') {
         return NextResponse.json({ error: 'Account suspended' }, { status: 403 })
       }
 
-      if (!merchant.provider || merchant.provider === 'email') {
-        await prisma.merchant.update({
-          where: { id: merchant.id },
-          data: { provider: 'google' },
-        })
+      try {
+        if (!merchant.provider || merchant.provider === 'email') {
+          await prisma.merchant.update({
+            where: { id: merchant.id },
+            data: { provider: 'google' },
+          })
+        }
+      } catch (e: any) {
+        return NextResponse.json({ error: 'DB update provider failed', detail: e?.message }, { status: 500 })
       }
-
-      if (name && !merchant.name) {
-        await prisma.merchant.update({
-          where: { id: merchant.id },
-          data: { name },
-        })
-      }
-
-      if (avatarUrl && !merchant.avatarUrl) {
-        await prisma.merchant.update({
-          where: { id: merchant.id },
-          data: { avatarUrl },
-        })
-      }
-
-      await prisma.auditLog.create({
-        data: {
-          merchantId: merchant.id,
-          email,
-          action: 'login_google',
-          ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
-          userAgent: req.headers.get('user-agent') || 'unknown',
-        },
-      })
     }
 
-    await createSession(merchant.id, merchant.email)
+    try {
+      await createSession(merchant.id, merchant.email)
+    } catch (e: any) {
+      return NextResponse.json({ error: 'Session creation failed', detail: e?.message }, { status: 500 })
+    }
 
     return NextResponse.json({
       success: true,
@@ -111,33 +100,26 @@ export async function POST(req: Request) {
       }),
     })
   } catch (err: any) {
-    console.error('Google auth error:', err?.message || err)
     return NextResponse.json({ error: 'Authentication failed', detail: err?.message || String(err) }, { status: 500 })
   }
 }
 
 async function verifyGoogleToken(token: string, audience: string) {
-  try {
-    const header = JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString())
-    const kid = header.kid
+  const header = JSON.parse(Buffer.from(token.split('.')[0], 'base64url').toString())
+  const kid = header.kid
 
-    const response = await fetch('https://www.googleapis.com/oauth2/v3/certs', {
-      next: { revalidate: 3600 },
-    })
-    const { keys } = await response.json()
+  const response = await fetch('https://www.googleapis.com/oauth2/v3/certs')
+  const { keys } = await response.json()
 
-    const key = keys.find((k: any) => k.kid === kid)
-    if (!key) return null
+  const key = keys.find((k: any) => k.kid === kid)
+  if (!key) throw new Error('No matching key for kid: ' + kid)
 
-    const publicKey = await importJWK(key, 'RS256')
+  const publicKey = await importJWK(key, 'RS256')
 
-    const { payload } = await jwtVerify(token, publicKey, {
-      issuer: ['https://accounts.google.com', 'accounts.google.com'],
-      audience: audience,
-    })
+  const { payload } = await jwtVerify(token, publicKey, {
+    issuer: ['https://accounts.google.com', 'accounts.google.com'],
+    audience: audience,
+  })
 
-    return payload
-  } catch {
-    return null
-  }
+  return payload
 }
