@@ -111,8 +111,8 @@ export async function POST(req: Request) {
       }),
     })
   } catch (err: any) {
-    console.error('Google auth error:', err)
-    return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
+    console.error('Google auth error:', err?.message || err)
+    return NextResponse.json({ error: 'Authentication failed', detail: err?.message || String(err) }, { status: 500 })
   }
 }
 
