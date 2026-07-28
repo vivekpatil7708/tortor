@@ -20,11 +20,11 @@ export async function POST(req: Request) {
     try {
       payload = await verifyGoogleToken(credential, clientId)
     } catch (e: any) {
-      return NextResponse.json({ error: 'Token verification failed', detail: e?.message }, { status: 401 })
+      return NextResponse.json({ error: 'Token verification failed' }, { status: 401 })
     }
 
     if (!payload || !payload.email) {
-      return NextResponse.json({ error: 'Invalid Google token', detail: 'No email in payload' }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid Google token' }, { status: 401 })
     }
 
     const email = String(payload.email).toLowerCase()
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     try {
       merchant = await prisma.merchant.findUnique({ where: { email } })
     } catch (e: any) {
-      return NextResponse.json({ error: 'DB find failed', detail: e?.message }, { status: 500 })
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
     }
 
     let isNewUser = false
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
           },
         })
       } catch (e: any) {
-        return NextResponse.json({ error: 'DB create merchant failed', detail: e?.message }, { status: 500 })
+        return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
       }
       isNewUser = true
     } else {
@@ -68,14 +68,14 @@ export async function POST(req: Request) {
           })
         }
       } catch (e: any) {
-        return NextResponse.json({ error: 'DB update provider failed', detail: e?.message }, { status: 500 })
+        return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
       }
     }
 
     try {
       await createSession(merchant.id, merchant.email)
     } catch (e: any) {
-      return NextResponse.json({ error: 'Session creation failed', detail: e?.message }, { status: 500 })
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
       }),
     })
   } catch (err: any) {
-    return NextResponse.json({ error: 'Authentication failed', detail: err?.message || String(err) }, { status: 500 })
+    return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
   }
 }
 
