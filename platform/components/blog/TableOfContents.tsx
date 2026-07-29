@@ -33,10 +33,12 @@ export default function TableOfContents({ content }: { content: string }) {
       { rootMargin: '-80px 0px -80% 0px', threshold: 0 }
     )
 
-    items.forEach(item => {
-      const el = document.getElementById(item.id)
-      if (el) observer.observe(el)
-    })
+    setTimeout(() => {
+      items.forEach(item => {
+        const el = document.getElementById(item.id)
+        if (el) observer.observe(el)
+      })
+    }, 0)
 
     return () => observer.disconnect()
   }, [content])
@@ -44,28 +46,33 @@ export default function TableOfContents({ content }: { content: string }) {
   if (headings.length < 2) return null
 
   return (
-    <nav className="hidden xl:block">
-      <div className="sticky top-24">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">On this page</p>
-        <ul className="space-y-1.5 border-l border-gray-100">
-          {headings.map(h => (
-            <li key={h.id}>
-              <a
-                href={`#${h.id}`}
-                className={`block border-l-2 py-0.5 text-sm transition-all hover:text-gray-900 ${
-                  h.level === 3 ? 'pl-6' : 'pl-4'
-                } ${
-                  activeId === h.id
-                    ? 'border-gray-900 font-medium text-gray-900'
-                    : 'border-transparent text-gray-400'
+    <nav>
+      <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-400">
+        On this page
+      </p>
+      <ul className="space-y-1">
+        {headings.map(h => (
+          <li key={h.id}>
+            <a
+              href={`#${h.id}`}
+              className={`group flex items-start gap-2 py-1.5 text-sm transition-all ${
+                h.level === 3 ? 'pl-5' : ''
+              } ${
+                activeId === h.id
+                  ? 'font-medium text-primary-600'
+                  : 'text-gray-400 hover:text-gray-700'
+              }`}
+            >
+              <span
+                className={`mt-1.5 block h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${
+                  activeId === h.id ? 'bg-primary-500' : 'bg-gray-300'
                 }`}
-              >
-                {h.text}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
+              />
+              <span>{h.text}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
     </nav>
   )
 }

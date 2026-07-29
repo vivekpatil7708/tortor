@@ -596,3 +596,10 @@ export function getCategoryDescription(category: string): string {
   }
   return descriptions[category] || 'Articles about UPI payments and digital business tools.'
 }
+
+export function addHeadingIds(html: string): string {
+  return html.replace(/<(h[23])(\b[^>]*?)>(.*?)<\/\1>/g, (_, tag, attrs, text) => {
+    const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    return `<${tag}${attrs} id="${id}">${text}</${tag}>`
+  })
+}

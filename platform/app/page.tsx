@@ -217,7 +217,7 @@ export default function LandingPage() {
 
       <section className="mx-auto max-w-4xl px-6 pb-32">
         <div className="rounded-3xl border border-white/60 bg-white/40 p-8 backdrop-blur-xl sm:p-12">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl text-center">From the Blog</h2>
+          <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl text-center">From the Blog</h2>
           <p className="mx-auto mt-3 max-w-lg text-sm text-center text-gray-500">Guides, comparisons, and tips for Indian businesses on UPI payments.</p>
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <Link href="/blog/best-razorpay-alternatives-for-indian-businesses" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">

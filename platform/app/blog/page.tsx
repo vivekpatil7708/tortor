@@ -21,7 +21,7 @@ export default function BlogPage() {
   const remaining = BLOG_POSTS.filter(p => p.slug !== featured?.slug)
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#faf8f5]">
       <BlogNavbar />
 
       <main className="mx-auto max-w-6xl px-6">

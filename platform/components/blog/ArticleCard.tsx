@@ -71,7 +71,7 @@ export default function ArticleCard({ post, large = false }: { post: BlogPost; l
           <span>·</span>
           <time dateTime={post.publishedAt}>{date}</time>
         </div>
-        <h3 className="mt-2 text-lg font-bold leading-snug tracking-tight text-gray-900 transition-colors group-hover:text-primary-600">
+        <h3 className="mt-2 font-serif text-lg font-bold leading-snug tracking-tight text-gray-900 transition-colors group-hover:text-primary-600">
           {post.title}
         </h3>
         <p className="mt-1.5 text-sm leading-relaxed text-gray-500 line-clamp-2">{post.excerpt}</p>
