@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { BLOG_POSTS, getBlogPost, getRelatedPosts } from '@/lib/blog-data'
 import BlogNavbar from '@/components/blog/BlogNavbar'
@@ -102,6 +103,11 @@ export default function BlogPostPage({ params }: Props) {
 
             <AuthorBlock author={post.author} date={post.publishedAt} readTime={post.readTime} />
           </header>
+
+          {/* Hero Image */}
+          <div className="relative mt-8 h-64 w-full overflow-hidden rounded-xl sm:h-80">
+            <Image src={post.imageUrl} alt={post.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 680px" priority />
+          </div>
 
           {/* Content */}
           <div

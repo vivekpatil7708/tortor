@@ -18,6 +18,7 @@ export interface BlogPost {
   tags: string[]
   readTime: string
   featured?: boolean
+  imageUrl: string
   content: string
 }
 
@@ -51,6 +52,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['ToroPay guide', 'how to use ToroPay', 'payment link setup', 'UPI payment tutorial', 'step by step', 'Indian business payments'],
     readTime: '7 min read',
     featured: true,
+    imageUrl: 'https://images.pexels.com/photos/6994291/pexels-photo-6994291.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
     content: `
 <h2>What is ToroPay?</h2>
 <p>ToroPay is a free UPI payment platform built for Indian businesses, freelancers, and creators. It lets you accept payments through custom payment links, a professional storefront page, and QR codes — all with zero transaction fees.</p>
@@ -157,6 +159,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Comparisons',
     tags: ['Razorpay alternative', 'payment gateway', 'UPI', 'free payment solution'],
     readTime: '8 min read',
+    imageUrl: 'https://images.pexels.com/photos/5849576/pexels-photo-5849576.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
     content: `
 <h2>Why Look for Razorpay Alternatives?</h2>
 <p>Razorpay has been one of the most popular payment gateways in India. But it's not the only option — and for many businesses, it might not be the best one.</p>
@@ -246,6 +249,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Tutorials',
     tags: ['free payment links', 'UPI payment', 'no transaction fees', 'payment solution India'],
     readTime: '5 min read',
+    imageUrl: 'https://images.pexels.com/photos/15510851/pexels-photo-15510851.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
     content: `
 <h2>What Are Payment Links?</h2>
 <p>Payment links are shareable URLs that let your customers pay you directly. When a customer clicks the link, they see a branded payment page where they can complete the transaction using any UPI app.</p>
@@ -301,6 +305,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Guides',
     tags: ['cashless payment', 'small business', 'UPI', 'digital payments', 'India'],
     readTime: '10 min read',
+    imageUrl: 'https://images.pexels.com/photos/6214448/pexels-photo-6214448.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
     content: `
 <h2>India's Cashless Payment Revolution</h2>
 <p>India processes over 12 billion UPI transactions every month. For small businesses, going cashless isn't just a convenience — it's a necessity.</p>
@@ -351,6 +356,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Comparisons',
     tags: ['ToroPay vs InstaPay', 'InstaPay alternative', 'UPI business', 'PhonePe business'],
     readTime: '6 min read',
+    imageUrl: 'https://images.pexels.com/photos/3305/numbers-money-calculating-calculation.jpg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
     content: `
 <h2>ToroPay vs InstaPay: Overview</h2>
 <p>Both ToroPay and InstaPay help businesses accept UPI payments, but they serve different needs.</p>
@@ -398,6 +404,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Guides',
     tags: ['accept payments without website', 'UPI payments', 'no-code payments', 'payment links India'],
     readTime: '5 min read',
+    imageUrl: 'https://images.pexels.com/photos/6994295/pexels-photo-6994295.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
     content: `
 <h2>You Don't Need a Website to Accept Payments</h2>
 <p>Many freelancers, tutors, and small business owners think they need a website to accept digital payments. That's not true.</p>
@@ -447,6 +454,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Tips',
     tags: ['UPI payment page', 'conversion optimization', 'checkout design', 'payment best practices'],
     readTime: '7 min read',
+    imageUrl: 'https://images.pexels.com/photos/11952301/pexels-photo-11952301.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
     content: `
 <h2>Your Payment Page Is Your Last Impression</h2>
 <p>A customer has decided to pay you. They click the payment link. What happens next determines whether you get paid — or lose the sale.</p>
@@ -493,6 +501,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Comparisons',
     tags: ['best UPI app business', 'Google Pay business', 'PhonePe business', 'UPI payments India'],
     readTime: '6 min read',
+    imageUrl: 'https://images.pexels.com/photos/163069/mobile-phone-money-banknotes-us-dollars-163069.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
     content: `
 <h2>Which UPI App Should Your Business Use?</h2>
 <p>India's UPI ecosystem has multiple apps — Google Pay, PhonePe, Paytm, BHIM, Amazon Pay, CRED, and more. For businesses, the question is: which one should you use to accept payments?</p>

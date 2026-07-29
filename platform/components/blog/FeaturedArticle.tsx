@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import type { BlogPost } from '@/lib/blog-data'
 
 export default function FeaturedArticle({ post }: { post: BlogPost }) {
@@ -10,6 +11,15 @@ export default function FeaturedArticle({ post }: { post: BlogPost }) {
 
   return (
     <article className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all hover:shadow-lg">
+      <div className="relative h-56 w-full overflow-hidden sm:h-72">
+        <Image
+          src={post.imageUrl}
+          alt={post.title}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 800px"
+        />
+      </div>
       <div className="p-8 sm:p-10">
         <div className="flex items-center gap-2 text-xs text-gray-400">
           <span className="rounded-full bg-primary-50 px-3 py-0.5 font-semibold text-primary-600">Featured</span>

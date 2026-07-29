@@ -4,6 +4,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },
       { protocol: 'https', hostname: 'api.qrserver.com' },
+      { protocol: 'https', hostname: 'images.pexels.com' },
+      { protocol: 'https', hostname: 'pexels.com' },
     ],
   },
   async headers() {

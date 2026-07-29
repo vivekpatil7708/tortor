@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import type { BlogPost } from '@/lib/blog-data'
 
 export default function ArticleCard({ post, large = false }: { post: BlogPost; large?: boolean }) {
@@ -12,6 +13,15 @@ export default function ArticleCard({ post, large = false }: { post: BlogPost; l
     return (
       <Link href={`/blog/${post.slug}`} className="group block">
         <article>
+          <div className="relative mb-4 h-48 w-full overflow-hidden rounded-xl sm:h-56">
+            <Image
+              src={post.imageUrl}
+              alt={post.title}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              sizes="(max-width: 768px) 100vw, 700px"
+            />
+          </div>
           <div className="flex items-center gap-2 text-xs text-gray-400">
             <span className="font-medium text-primary-600">
               {post.category}
@@ -45,6 +55,15 @@ export default function ArticleCard({ post, large = false }: { post: BlogPost; l
   return (
     <Link href={`/blog/${post.slug}`} className="group block">
       <article className="flex flex-col">
+        <div className="relative mb-3 h-40 w-full overflow-hidden rounded-xl sm:h-48">
+          <Image
+            src={post.imageUrl}
+            alt={post.title}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, 400px"
+          />
+        </div>
         <div className="flex items-center gap-2 text-xs text-gray-400">
           <span className="font-medium text-primary-600">
             {post.category}
