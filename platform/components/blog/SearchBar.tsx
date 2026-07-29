@@ -25,7 +25,7 @@ export default function SearchBar({ initialQuery = '', autoFocus = false }: { in
         onChange={e => setQuery(e.target.value)}
         placeholder="Search articles..."
         autoFocus={autoFocus}
-        className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-gray-300 focus:outline-none focus:ring-0"
+        className="w-full rounded-xl border border-gray-200 bg-white py-3.5 pl-11 pr-4 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-all focus:border-gray-300 focus:outline-none focus:ring-0 focus:shadow-md"
       />
     </form>
   )
