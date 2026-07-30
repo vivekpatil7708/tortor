@@ -1,3 +1,35 @@
+export function renderOrderConfirmationEmail({
+  subject,
+  body,
+  merchantName,
+}: {
+  subject: string
+  body: string
+  merchantName: string
+}): string {
+  const bodyParagraphs = body.split('\n').filter(Boolean)
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f0eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
+    <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;border:1px solid rgba(255,255,255,0.6);padding:40px;">
+      <tr><td style="text-align:center;padding-bottom:16px;">
+        <a href="https://toropay.co.in" style="text-decoration:none;display:inline-block;">          <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#7bb86c;">Pay</span>        </a>
+      </td></tr>
+      <tr><td style="padding-bottom:24px;">
+        <h1 style="font-size:18px;font-weight:700;color:#2c2c2c;margin:0;">${subject}</h1>
+      </td></tr>
+      ${bodyParagraphs.map((p: string) => `<tr><td style="padding-bottom:12px;color:#4b5563;font-size:14px;line-height:1.7;">${p}</td></tr>`).join('')}
+      <tr><td style="border-top:1px solid #e5e7eb;padding-top:16px;color:#9ca3af;font-size:12px;text-align:center;">
+        ${merchantName} — Powered by ToroPay
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body>
+</html>`
+}
+
 export function renderResetEmail({ resetLink, businessName }: { resetLink: string; businessName: string }): string {
   return `<!DOCTYPE html>
 <html>
