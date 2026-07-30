@@ -5,6 +5,8 @@ import { api } from '@/lib/api'
 import { formatAmount, formatDate, statusColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { exportToCSV } from '@/lib/export-csv'
+import { Send } from 'lucide-react'
+import SendConfirmationModal from '@/components/dashboard/send-confirmation-modal'
 
 export default function TransactionsPage() {
   const [txns, setTxns] = useState<Record<string, unknown>[]>([])
@@ -12,6 +14,7 @@ export default function TransactionsPage() {
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [sendTxn, setSendTxn] = useState<Record<string, any> | null>(null)
 
   function toggleExpand(id: string) {
     setExpanded(prev => {
@@ -143,6 +146,7 @@ export default function TransactionsPage() {
         <div className="space-y-2">
           {filtered.map((t) => {
             const tid = t.id as string
+            const txnId = t.txn_id as string
             const isExpanded = expanded.has(tid)
             const hasDetails = !!(t.custom_field_values && (t.custom_field_values as Record<string, unknown>)._selected_products ||
               (t.custom_field_values && Object.keys(t.custom_field_values as Record<string, unknown>).length > 0) ||
@@ -156,18 +160,26 @@ export default function TransactionsPage() {
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(t.status as string)}`}>{t.status as string}</span>
                     </div>
                     <p className="mt-1 text-xs text-gray-400">
-                      {t.txn_id as string} · {formatDate(t.created_at as string)}
+                      {txnId} · {formatDate(t.created_at as string)}
                     </p>
                     <p className="mt-1 text-xs text-gray-400">Settlement: {t.settlement_status as string}</p>
                   </div>
                 <div className="text-right">
                   <p className="text-sm font-bold">{formatAmount(Number(t.amount))}</p>
-                  {(t.status === 'pending' || t.status === 'initiated') && (
-                    <div className="mt-2 flex gap-1">
-                      <Button size="sm" onClick={() => updateStatus(t.txn_id as string, 'success')}>Confirm</Button>
-                      <Button size="sm" variant="danger" onClick={() => updateStatus(t.txn_id as string, 'failed')}>Reject</Button>
-                    </div>
-                  )}
+                  <div className="mt-2 flex gap-1">
+                    {(t.status === 'success' || t.status === 'pending') && (
+                      <button onClick={() => setSendTxn(t as Record<string, any>)}
+                        className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal hover:bg-gray-50">
+                        <Send className="h-3 w-3" /> Send
+                      </button>
+                    )}
+                    {(t.status === 'pending' || t.status === 'initiated') && (
+                      <>
+                        <Button size="sm" onClick={() => updateStatus(txnId, 'success')}>Confirm</Button>
+                        <Button size="sm" variant="danger" onClick={() => updateStatus(txnId, 'failed')}>Reject</Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               {hasDetails && (
@@ -184,6 +196,8 @@ export default function TransactionsPage() {
           })}
         </div>
       )}
+
+      {sendTxn && <SendConfirmationModal txn={sendTxn} onClose={() => setSendTxn(null)} onSent={() => { setSendTxn(null); load() }} />}
     </div>
   )
 }
