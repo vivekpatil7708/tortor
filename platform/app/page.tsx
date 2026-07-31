@@ -7,7 +7,7 @@ const organizationSchema = {
   name: 'ToroPay',
   url: 'https://toropay.co.in/',
   logo: 'https://toropay.co.in/favicon.svg',
-  description: 'Free UPI payment link and hosted checkout page platform for Indian businesses.',
+  description: 'Free UPI payment link generator and payment gateway without a website — pay by link in India with branded checkout pages and QR codes.',
   foundingDate: '2024',
   sameAs: [
     'https://instagram.com/toropay.co.in',
@@ -35,6 +35,11 @@ const faqSchema = {
     },
     {
       '@type': 'Question',
+      name: 'How is ToroPay a payment gateway without a website?',
+      acceptedAnswer: { '@type': 'Answer', text: 'ToroPay hosts a branded checkout page for you. You just create a payment link, share it on WhatsApp, Instagram, or email, and your customer pays you directly via UPI. No website, no coding, no gateway setup.' },
+    },
+    {
+      '@type': 'Question',
       name: 'Who is ToroPay for?',
       acceptedAnswer: { '@type': 'Answer', text: 'ToroPay is built for Indian businesses, freelancers, creators, and anyone who needs to accept UPI payments without a website or technical setup.' },
     },
@@ -42,6 +47,11 @@ const faqSchema = {
       '@type': 'Question',
       name: 'Do I need a bank account to accept payments?',
       acceptedAnswer: { '@type': 'Answer', text: 'Yes. You need a bank account linked to a UPI ID in India. ToroPay works with any UPI ID from any bank.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can customers pay by link without an app?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Customers pay by link using any UPI app on their phone — Google Pay, PhonePe, Paytm, or BHIM. When they tap your payment link, it opens their UPI app with the amount pre-filled.' },
     },
   ],
 }
@@ -63,14 +73,15 @@ export default function LandingPage() {
 
       <section className="mx-auto max-w-5xl px-6 pt-24 pb-32 text-center">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-1.5 text-sm font-medium text-primary-600">
-          Free UPI Payment Pages for India
+          Free UPI payment link generator for India
         </div>
         <h1 className="text-5xl font-extrabold leading-tight tracking-tight sm:text-6xl">
           Your brand, your UPI ID,<br />
           <span className="text-primary-500">your payment pages</span>
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500">
-          Create branded UPI payment links, QR codes, and hosted checkout pages using your own UPI ID.
+          ToroPay is the easiest way to pay by link in India. Create branded UPI payment links, QR codes, and
+          hosted checkout pages using your own UPI ID — a full payment gateway without a website, no coding needed.
           100% free — unlimited links, zero transaction fees, no hidden charges.
         </p>
         <div className="mt-8 flex justify-center gap-4">
@@ -97,7 +108,7 @@ export default function LandingPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-32">
-        <h2 className="mb-16 text-center text-3xl font-bold tracking-tight">Everything you need</h2>
+        <h2 className="mb-16 text-center text-3xl font-bold tracking-tight">Everything you need in a payment link generator</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             'Branded checkout pages', 'Dynamic QR codes', 'UPI app deep links', 'Transaction tracking',
@@ -113,7 +124,7 @@ export default function LandingPage() {
         <h2 className="mb-12 text-center text-3xl font-bold tracking-tight">Who is ToroPay for</h2>
         <div className="grid gap-6 sm:grid-cols-2">
           {[
-            { t: 'Small business owners', d: 'Restaurants, salons, clinics, and local shops can accept UPI payments via a branded checkout page without building a website.' },
+            { t: 'Small business owners', d: 'Restaurants, salons, clinics, and local shops can accept UPI payments via a branded checkout page — no payment gateway, no website, no fees.' },
             { t: 'Freelancers & creators', d: 'Designers, writers, tutors, and influencers can share a payment link with clients and get paid instantly to their UPI ID.' },
             { t: 'Solopreneurs & coaches', d: 'Fitness trainers, consultants, and course creators can collect payments with custom fields for bookings and notes.' },
             { t: 'Indian startups', d: 'Early-stage businesses can set up payment pages for MVPs, event registrations, or pre-orders without any payment gateway integration.' },
@@ -173,10 +184,12 @@ export default function LandingPage() {
           <div className="mt-8 space-y-4">
             {[
               { q: 'Is ToroPay really free?', a: 'Yes, ToroPay is 100% free. There are no paid plans, no transaction fees, no hidden charges. You get unlimited payment links, pages, and QR codes at no cost.' },
+              { q: 'How is ToroPay a payment gateway without a website?', a: 'ToroPay hosts a branded checkout page for you. You just create a payment link generator link, share it on WhatsApp, Instagram, or email, and your customer pays you directly via UPI. No website, no coding, no gateway setup.' },
               { q: 'How do I get paid?', a: 'Payments go directly to your own UPI ID. ToroPay does not handle, process, or store any payment funds. Your customers pay you directly via any UPI app — Google Pay, PhonePe, Paytm, BHIM, or any other.' },
               { q: 'What can I create with ToroPay?', a: 'You can create branded hosted checkout pages with your logo and colors, shareable payment links with custom button text, dynamic QR codes with preset amounts, and multi-product order forms with custom fields.' },
               { q: 'Who is ToroPay for?', a: 'ToroPay is built for Indian businesses, freelancers, creators, solopreneurs, coaches, and anyone who needs to accept UPI payments without building a website or writing any code.' },
               { q: 'Do I need a website to use ToroPay?', a: 'No. ToroPay generates a hosted checkout page for you. Just share the link or QR code with your customers. No website, no coding required.' },
+              { q: 'Can customers pay by link without an app?', a: 'Customers pay by link using any UPI app on their phone — Google Pay, PhonePe, Paytm, or BHIM. When they tap your payment link, it opens their UPI app with the amount pre-filled.' },
               { q: 'Can I customize the checkout page?', a: 'Yes. You can upload your logo, set brand colors, add a background image, change button text, and choose a page theme. The checkout page reflects your brand identity.' },
               { q: 'Which UPI apps are supported?', a: 'All of them. Google Pay, PhonePe, Paytm, BHIM, Amazon Pay, CRED, and any app that supports UPI payments. Your customers can pay using their preferred app.' },
             ].map(({ q, a }) => (
