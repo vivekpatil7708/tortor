@@ -27,7 +27,7 @@ export default function LinksPage() {
           <h1 className="text-2xl font-bold tracking-tight">Payment Links</h1>
           <p className="text-sm text-gray-500">Create and manage your payment links.</p>
         </div>
-        <Link href="/dashboard/links/new" className="inline-flex items-center gap-2 rounded-xl bg-charcoal px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">
+        <Link href="/dashboard/links/new" data-tour="tour-create-link" className="inline-flex items-center gap-2 rounded-xl bg-charcoal px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">
           <Plus className="h-4 w-4" /> Create Link
         </Link>
       </div>

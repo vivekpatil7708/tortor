@@ -64,7 +64,7 @@ export default function BrandingPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-6">
+      <div data-tour="tour-branding" className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Branding</h1>
         <p className="text-sm text-gray-500">Customize how your payment pages look to customers.</p>
       </div>

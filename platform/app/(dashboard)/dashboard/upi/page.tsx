@@ -41,7 +41,7 @@ export default function UpiPage() {
         <p className="text-sm text-gray-500">Add the UPI IDs you want to receive payments on.</p>
       </div>
 
-      <div className="mb-6 flex gap-3">
+      <div data-tour="tour-upi" className="mb-6 flex gap-3">
         <input value={newVpa} onChange={e => setNewVpa(e.target.value)} placeholder="merchant@paytm"
           className="flex-1 rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
         <Button onClick={addUpi} disabled={adding}>{adding ? 'Adding...' : 'Add UPI ID'}</Button>

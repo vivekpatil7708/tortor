@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { HeartHandshake } from 'lucide-react'
+import { HeartHandshake, Compass } from 'lucide-react'
 import DonateWidget from '@/components/donate-widget'
 
 export default function SupportPage() {
@@ -21,9 +21,13 @@ export default function SupportPage() {
     }).catch(() => {})
   }, [])
 
+  function startTour() {
+    window.dispatchEvent(new CustomEvent('toropay:start-tour'))
+  }
+
   return (
     <div>
-      <div className="mb-8 flex items-center gap-3">
+      <div className="mb-6 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50">
           <HeartHandshake className="h-5 w-5 text-primary-500" />
         </div>
@@ -31,6 +35,22 @@ export default function SupportPage() {
           <h1 className="text-2xl font-bold tracking-tight">Support ToroPay</h1>
           <p className="text-sm text-gray-500">Help keep the platform free for everyone</p>
         </div>
+      </div>
+
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 rounded-2xl border border-white/70 bg-white/60 p-5 backdrop-blur-sm sm:flex-row sm:items-center">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-beige">
+            <Compass className="h-5 w-5 text-primary-600" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-charcoal">Getting started</p>
+            <p className="text-xs text-gray-500">New here? Reopen the short guided tour of the dashboard anytime.</p>
+          </div>
+        </div>
+        <button onClick={startTour}
+          className="shrink-0 rounded-xl bg-charcoal px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90">
+          Take product tour
+        </button>
       </div>
 
       {stats && stats.total_txns >= 3 && (

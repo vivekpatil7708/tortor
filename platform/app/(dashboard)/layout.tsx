@@ -1,5 +1,6 @@
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { DonationPrompt } from '@/components/dashboard/donation-prompt'
+import { OnboardingTour } from '@/components/dashboard/onboarding-tour'
 import { ToastProvider } from '@/components/toast'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -11,6 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="mx-auto max-w-6xl px-4 py-4 sm:px-8 sm:py-8">{children}</div>
         </main>
         <DonationPrompt />
+        <OnboardingTour />
       </div>
     </ToastProvider>
   )

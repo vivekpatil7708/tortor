@@ -107,7 +107,7 @@ export default function TransactionsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div data-tour="tour-transactions" className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
           <p className="text-sm text-gray-500">All payment transactions made through your links.</p>
