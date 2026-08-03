@@ -26,7 +26,7 @@ export default function LinkDetailPage() {
   function renderOrderDetails(t: Record<string, unknown>) {
     const cfv = t.custom_field_values as Record<string, unknown> | undefined
     if (!cfv) return null
-    const products = cfv._selected_products as Array<{ name: string; price: string; category: string }> | undefined
+    const products = cfv._selected_products as Array<{ name: string; price: string; category: string; quantity?: number }> | undefined
     const note = t.customer_note as string | null
     const otherFields = Object.entries(cfv).filter(([k]) => k !== '_selected_products')
     if (!products?.length && !otherFields.length && !note) return null
@@ -37,8 +37,8 @@ export default function LinkDetailPage() {
             <p className="text-xs font-semibold text-gray-400">Products</p>
             {products.map((p, i) => (
               <div key={i} className="flex items-center justify-between rounded bg-gray-100 px-3 py-1 text-xs">
-                <span>{p.name}{p.category ? ` (${p.category})` : ''}</span>
-                <span className="font-medium">₹{p.price}</span>
+                <span>{p.name}{p.category ? ` (${p.category})` : ''}{p.quantity && p.quantity > 1 ? ` × ${p.quantity}` : ''}</span>
+                <span className="font-medium">₹{Number(p.price) * (p.quantity || 1)}</span>
               </div>
             ))}
           </div>

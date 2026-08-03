@@ -27,7 +27,7 @@ export default function TransactionsPage() {
   function renderOrderDetails(t: Record<string, unknown>) {
     const cfv = t.custom_field_values as Record<string, unknown> | undefined
     if (!cfv) return null
-    const products = cfv._selected_products as Array<{ name: string; price: string; category: string }> | undefined
+    const products = cfv._selected_products as Array<{ name: string; price: string; category: string; quantity?: number }> | undefined
     const note = t.customer_note as string | null
     const otherFields = Object.entries(cfv).filter(([k]) => k !== '_selected_products')
     if (!products && otherFields.length === 0 && !note) return null
@@ -38,8 +38,8 @@ export default function TransactionsPage() {
             <p className="mb-1 text-xs font-semibold opacity-70">Ordered Products</p>
             {products.map((p, i) => (
               <div key={i} className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-1.5 text-xs">
-                <span>{p.name}{p.category ? ` (${p.category})` : ''}</span>
-                <span className="font-semibold">₹{p.price}</span>
+                <span>{p.name}{p.category ? ` (${p.category})` : ''}{p.quantity && p.quantity > 1 ? ` × ${p.quantity}` : ''}</span>
+                <span className="font-semibold">₹{Number(p.price) * (p.quantity || 1)}</span>
               </div>
             ))}
           </div>

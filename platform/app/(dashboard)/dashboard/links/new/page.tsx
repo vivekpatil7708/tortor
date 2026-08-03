@@ -24,6 +24,7 @@ interface ProductItem {
   delivery: string
   availability: string
   image?: string
+  quantity?: number
 }
 
 const emptyProduct = (): ProductItem => ({
@@ -52,6 +53,7 @@ export default function NewLinkPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [previewQty, setPreviewQty] = useState(1)
 
   useEffect(() => {
     api.me().then(({ merchant: m }) => setMerchant(m)).catch(() => {})
@@ -103,7 +105,11 @@ export default function NewLinkPage() {
 
   function updateProduct(i: number, key: string, val: string) {
     const updated = [...products]
-    ;(updated[i] as any)[key] = val
+    if (key === 'quantity') {
+      ;(updated[i] as any)[key] = val ? Math.max(1, parseInt(val, 10) || 1) : undefined
+    } else {
+      ;(updated[i] as any)[key] = val
+    }
     setProducts(updated)
   }
 
@@ -165,7 +171,20 @@ export default function NewLinkPage() {
     setError('')
     try {
       const customFields: CustomField[] = [...fields]
-      if (products.length > 0) {
+      if (mode === 'sell' && sell.customer_updates_qty) {
+        customFields.push({
+          _type: 'products', name: '', label: '', type: '', required: false,
+          items: [{
+            name: form.title || 'Item',
+            category: '',
+            description: form.description || '',
+            price: String(unitPrice),
+            delivery: 'delivery',
+            availability: 'in-stock',
+            quantity,
+          }],
+        })
+      } else if (products.length > 0) {
         customFields.push({ _type: 'products', name: '', label: '', type: '', required: false, items: products })
       }
       const payload: Record<string, unknown> = {
@@ -173,9 +192,9 @@ export default function NewLinkPage() {
         title: form.title,
         description: form.description || null,
         amount: mode === 'quick' ? (form.amount ? Number(form.amount) : null) : (sell.customer_updates_qty ? null : sellTotal),
-        amount_flexible: mode === 'sell' ? sell.customer_updates_qty : form.amount_flexible,
-        min_amount: mode === 'sell' ? (sell.customer_updates_qty ? unitPrice : null) : (form.min_amount ? Number(form.min_amount) : null),
-        max_amount: mode === 'sell' ? (sell.customer_updates_qty ? sellTotal : null) : (form.max_amount ? Number(form.max_amount) : null),
+        amount_flexible: mode === 'quick' ? form.amount_flexible : false,
+        min_amount: mode === 'quick' ? (form.min_amount ? Number(form.min_amount) : null) : null,
+        max_amount: mode === 'quick' ? (form.max_amount ? Number(form.max_amount) : null) : null,
         button_text: form.button_text || null,
         custom_fields: customFields.filter(f => f._type === 'products' || (f.name && f.label)),
         redirect_url: form.redirect_url || null,
@@ -199,9 +218,11 @@ export default function NewLinkPage() {
     if (mode === 'sell') {
       if (!sell.unit_price) return { main: '₹___', sub: 'Enter unit price' }
       if (sell.customer_updates_qty) {
+        const qty = Math.min(Math.max(1, previewQty), Math.max(1, quantity))
+        const total = unitPrice * qty
         return {
-          main: `From ₹${unitPrice.toLocaleString('en-IN')}`,
-          sub: `Customer can pay for up to ${quantity} item${quantity > 1 ? 's' : ''} · ₹${unitPrice} × ${quantity} = ₹${sellTotal.toLocaleString('en-IN')}`,
+          main: `₹${total.toLocaleString('en-IN')}`,
+          sub: `${qty} × ₹${unitPrice.toLocaleString('en-IN')} · up to ${quantity} item${quantity > 1 ? 's' : ''}`,
         }
       }
       return {
@@ -215,6 +236,8 @@ export default function NewLinkPage() {
   }
 
   const preview = previewAmount()
+  const showPreviewQty = mode === 'sell' && sell.customer_updates_qty
+  const effectiveQty = Math.min(Math.max(1, previewQty), Math.max(1, quantity))
 
   return (
     <div className="mx-auto max-w-xl pb-24 md:pb-0">
@@ -249,6 +272,15 @@ export default function NewLinkPage() {
             <div className="text-4xl font-extrabold tracking-tight" style={{ color: secondaryColor }}>{preview.main}</div>
             {preview.sub && <p className="mt-1 text-xs text-gray-400">{preview.sub}</p>}
           </div>
+          {showPreviewQty && unitPrice > 0 && (
+            <div className="mx-auto mb-3 flex w-fit items-center gap-3 rounded-full border border-gray-200 bg-gray-50 px-2 py-1">
+              <button type="button" onClick={() => setPreviewQty(prev => Math.max(1, prev - 1))}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-base font-bold text-charcoal shadow-sm">−</button>
+              <span className="min-w-6 text-center text-sm font-bold">{effectiveQty}</span>
+              <button type="button" onClick={() => setPreviewQty(prev => Math.min(Math.max(1, quantity), prev + 1))}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-base font-bold text-charcoal shadow-sm">+</button>
+            </div>
+          )}
           <button type="button" className={`w-full py-3 text-base font-bold text-white ${btnRadius}`} style={{ backgroundColor: primaryColor }}>
             {buttonText}
           </button>
@@ -318,17 +350,17 @@ export default function NewLinkPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Quantity <span className="text-red-400">*</span></label>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">{sell.customer_updates_qty ? 'Max Quantity' : 'Quantity'} <span className="text-red-400">*</span></label>
                 <input type="number" min="1" inputMode="numeric" value={sell.quantity}
                   onChange={e => { setSell({ ...sell, quantity: e.target.value }); setTouched({ ...touched, quantity: true }) }}
                   className={inputClass} />
                 {touched.quantity && quantityError() && <p className="mt-1.5 text-xs text-red-500">{quantityError()}</p>}
-                {!touched.quantity && <p className="mt-1.5 text-xs text-gray-400">How many items this link sells.</p>}
+                {!touched.quantity && <p className="mt-1.5 text-xs text-gray-400">{sell.customer_updates_qty ? `The most a customer can buy. Total is price × quantity, updated live.` : 'How many items this link sells.'}</p>}
               </div>
 
               <div className="rounded-xl border border-primary-500/20 bg-primary-50/60 px-4 py-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-700">Total</span>
+                  <span className="text-sm font-semibold text-gray-700">{sell.customer_updates_qty ? 'Max total' : 'Total'}</span>
                   <span className="text-xl font-extrabold tracking-tight" style={{ color: secondaryColor }}>
                     {unitPrice > 0 ? `₹${sellTotal.toLocaleString('en-IN')}` : '₹0'}
                   </span>
@@ -341,7 +373,7 @@ export default function NewLinkPage() {
               <div className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white/70 p-4">
                 <div>
                   <p className="text-sm font-semibold text-gray-700">Customer can update quantity</p>
-                  <p className="mt-0.5 text-xs text-gray-400">Let buyers choose how many units to pay for (₹{unitPrice > 0 ? unitPrice : '—'} to ₹{sellTotal > 0 ? sellTotal.toLocaleString('en-IN') : '—'}).</p>
+                  <p className="mt-0.5 text-xs text-gray-400">Fixed unit price. Let buyers choose how many items to pay for at checkout (up to {quantity >= 1 ? quantity : '—'}).</p>
                 </div>
                 <button type="button" role="switch" aria-checked={sell.customer_updates_qty}
                   onClick={() => setSell({ ...sell, customer_updates_qty: !sell.customer_updates_qty })}
@@ -447,6 +479,8 @@ export default function NewLinkPage() {
                           <input placeholder="Category" value={p.category} onChange={e => updateProduct(i, 'category', e.target.value)}
                             className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
                           <input type="number" placeholder="Price (₹)" value={p.price} onChange={e => updateProduct(i, 'price', e.target.value)}
+                            className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
+                          <input type="number" min="1" placeholder="Max qty (optional)" value={p.quantity || ''} onChange={e => updateProduct(i, 'quantity', e.target.value)}
                             className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
                           <textarea placeholder="Description" value={p.description} onChange={e => updateProduct(i, 'description', e.target.value)} rows={2}
                             className="col-span-2 rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none resize-none" />

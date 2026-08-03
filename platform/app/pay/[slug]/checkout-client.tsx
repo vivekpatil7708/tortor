@@ -55,6 +55,7 @@ export default function CheckoutClient({ data }: Props) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [confirming, setConfirming] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set())
+  const [quantities, setQuantities] = useState<Record<number, number>>({})
 
   const primaryColor = merchant.brand_color_primary || '#7bb86c'
   const secondaryColor = merchant.brand_color_secondary || '#2c2c2c'
@@ -115,7 +116,7 @@ export default function CheckoutClient({ data }: Props) {
     if (nameErr) { setError(nameErr); return }
     const phoneErr = validatePhone(customerPhone)
     if (phoneErr) { setError(phoneErr); return }
-    if (hasProducts && selectedProducts.size === 0) {
+    if (hasProducts && !isAnyProductSelected) {
       setError('Please select at least one product')
       return
     }
@@ -167,12 +168,21 @@ export default function CheckoutClient({ data }: Props) {
           ...Object.fromEntries(
             Object.entries(fieldValues).map(([k, v]) => [k, Array.isArray(v) ? v.join(', ') : v])
           ),
-          ...(hasProducts && selectedProducts.size > 0 ? {
-            _selected_products: Array.from(selectedProducts).map(i => ({
-              name: productItems[i]?.name || `Item ${i + 1}`,
-              price: productItems[i]?.price || '0',
-              category: productItems[i]?.category || '',
-            }))
+          ...(hasProducts && isAnyProductSelected ? {
+            _selected_products: (hasQuantityProducts
+              ? productItems.map((p: any, i: number) => ({
+                  name: p?.name || `Item ${i + 1}`,
+                  price: p?.price || '0',
+                  category: p?.category || '',
+                  quantity: qtyOf(i),
+                }))
+              : Array.from(selectedProducts).map(i => ({
+                  name: productItems[i]?.name || `Item ${i + 1}`,
+                  price: productItems[i]?.price || '0',
+                  category: productItems[i]?.category || '',
+                  quantity: 1,
+                }))
+            )
           } : {}),
         },
       }),
@@ -295,12 +305,25 @@ export default function CheckoutClient({ data }: Props) {
   const customFields = allFields.filter((f: any) => f._type !== 'products')
   const productItems = allFields.find((f: any) => f._type === 'products')?.items || []
 
-  const productSubtotal = Array.from(selectedProducts).reduce((sum, i) => {
-    const price = parseFloat(productItems[i]?.price)
-    return sum + (isNaN(price) ? 0 : price)
+  const hasQuantityProducts = productItems.some((p: any) => p.quantity && Number(p.quantity) > 1)
+  const maxQtyOf = (i: number) => {
+    const q = productItems[i]?.quantity
+    return q && Number(q) > 0 ? Number(q) : 1
+  }
+  const qtyOf = (i: number) => Math.min(Math.max(1, quantities[i] || 1), maxQtyOf(i))
+
+  const productSubtotal = productItems.reduce((sum: number, p: any, i: number) => {
+    const price = parseFloat(p?.price)
+    const base = isNaN(price) ? 0 : price
+    if (hasQuantityProducts) {
+      const q = maxQtyOf(i) > 1 ? qtyOf(i) : 1
+      return sum + base * q
+    }
+    return sum + (selectedProducts.has(i) ? base : 0)
   }, 0)
   const hasProducts = productItems.length > 0
-  const displayAmount = hasProducts && selectedProducts.size > 0 ? productSubtotal : (hasProducts ? 0 : amount)
+  const isAnyProductSelected = hasQuantityProducts || selectedProducts.size > 0
+  const displayAmount = hasProducts && isAnyProductSelected ? productSubtotal : (hasProducts ? 0 : amount)
 
   function toggleProduct(i: number) {
     setSelectedProducts(prev => {
@@ -380,32 +403,57 @@ export default function CheckoutClient({ data }: Props) {
           {productItems.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-semibold opacity-70">Products / Services</p>
-              {productItems.map((p: any, i: number) => {
-                const sel = selectedProducts.has(i)
-                return (
-                  <label key={i} className={`flex cursor-pointer gap-3 rounded-xl border p-3 backdrop-blur-sm transition-all ${sel ? 'border-white/40 bg-white/20' : 'border-white/20 bg-white/10 hover:bg-white/15'}`}>
-                    {p.image && <img src={p.image} className="h-14 w-14 flex-shrink-0 rounded-lg object-cover" alt="" />}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
+              {hasQuantityProducts ? (
+                productItems.map((p: any, i: number) => (
+                  <div key={i} className="rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+                    <div className="flex items-start gap-3">
+                      {p.image && <img src={p.image} className="h-12 w-12 flex-shrink-0 rounded-lg object-cover" alt="" />}
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold">{p.name}</p>
-                        <input type="checkbox" checked={sel} onChange={() => toggleProduct(i)}
-                          className="mt-0.5 h-4 w-4 flex-shrink-0 rounded" />
+                        {p.description && <p className="mt-0.5 text-xs opacity-60 line-clamp-2">{p.description}</p>}
+                        <p className="mt-1 text-sm font-semibold">₹{p.price}</p>
                       </div>
-                      {p.category && <p className="text-xs opacity-60">{p.category}</p>}
-                      {p.description && <p className="mt-1 text-xs opacity-70 line-clamp-2">{p.description}</p>}
-                      <div className="mt-1 flex items-center justify-between">
-                        {p.price && <p className="text-sm font-semibold">₹{p.price}</p>}
-                        <span className={`text-xs ${p.availability === 'in-stock' ? 'text-green-400' : p.availability === 'out-of-stock' ? 'text-red-400' : 'text-amber-400'}`}>
-                          {p.availability === 'in-stock' ? 'In Stock' : p.availability === 'out-of-stock' ? 'Out of Stock' : 'Pre-order'}
-                        </span>
+                      <div className="flex flex-shrink-0 items-center gap-2 rounded-full border border-white/25 bg-white/10 px-1 py-1">
+                        <button type="button" onClick={() => setQuantities({ ...quantities, [i]: qtyOf(i) - 1 })}
+                          disabled={qtyOf(i) <= 1}
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-base font-bold disabled:opacity-30">−</button>
+                        <span className="w-6 text-center text-sm font-bold">{qtyOf(i)}</span>
+                        <button type="button" onClick={() => setQuantities({ ...quantities, [i]: qtyOf(i) + 1 })}
+                          disabled={qtyOf(i) >= maxQtyOf(i)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-base font-bold disabled:opacity-30">+</button>
                       </div>
                     </div>
-                  </label>
-                )
-              })}
-              {selectedProducts.size > 0 && (
+                    <p className="mt-2 text-right text-xs opacity-50">Up to {maxQtyOf(i)} available</p>
+                  </div>
+                ))
+              ) : (
+                productItems.map((p: any, i: number) => {
+                  const sel = selectedProducts.has(i)
+                  return (
+                    <label key={i} className={`flex cursor-pointer gap-3 rounded-xl border p-3 backdrop-blur-sm transition-all ${sel ? 'border-white/40 bg-white/20' : 'border-white/20 bg-white/10 hover:bg-white/15'}`}>
+                      {p.image && <img src={p.image} className="h-14 w-14 flex-shrink-0 rounded-lg object-cover" alt="" />}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-bold">{p.name}</p>
+                          <input type="checkbox" checked={sel} onChange={() => toggleProduct(i)}
+                            className="mt-0.5 h-4 w-4 flex-shrink-0 rounded" />
+                        </div>
+                        {p.category && <p className="text-xs opacity-60">{p.category}</p>}
+                        {p.description && <p className="mt-1 text-xs opacity-70 line-clamp-2">{p.description}</p>}
+                        <div className="mt-1 flex items-center justify-between">
+                          {p.price && <p className="text-sm font-semibold">₹{p.price}</p>}
+                          <span className={`text-xs ${p.availability === 'in-stock' ? 'text-green-400' : p.availability === 'out-of-stock' ? 'text-red-400' : 'text-amber-400'}`}>
+                            {p.availability === 'in-stock' ? 'In Stock' : p.availability === 'out-of-stock' ? 'Out of Stock' : 'Pre-order'}
+                          </span>
+                        </div>
+                      </div>
+                    </label>
+                  )
+                })
+              )}
+              {displayAmount > 0 && (
                 <div className="flex items-center justify-between rounded-xl border border-white/30 bg-white/20 p-3 backdrop-blur-sm">
-                  <span className="text-xs font-semibold opacity-70">Subtotal ({selectedProducts.size} item{selectedProducts.size > 1 ? 's' : ''})</span>
+                  <span className="text-xs font-semibold opacity-70">{hasQuantityProducts ? 'Order total' : `Subtotal (${selectedProducts.size} item${selectedProducts.size > 1 ? 's' : ''})`}</span>
                   <span className="text-lg font-bold">₹{productSubtotal.toFixed(2)}</span>
                 </div>
               )}
