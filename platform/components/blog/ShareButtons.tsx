@@ -1,5 +1,5 @@
 export default function ShareButtons({ title, slug }: { title: string; slug: string }) {
-  const url = `https://toropay.co.in/blog/${slug}`
+  const url = `https://www.toropay.co.in/blog/${slug}`
   const encoded = encodeURIComponent(title)
   const encodedUrl = encodeURIComponent(url)
 

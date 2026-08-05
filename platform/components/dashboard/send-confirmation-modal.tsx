@@ -34,7 +34,7 @@ export default function SendConfirmationModal({ txn, onClose, onSent }: Props) {
     order_amount: String(txn.amount || ''),
     currency: 'INR',
     payment_status: txn.status || 'Confirmed',
-    payment_link: txn.payment_link?.slug ? `https://toropay.co.in/pay/${txn.payment_link.slug}` : '',
+    payment_link: txn.payment_link?.slug ? `https://www.toropay.co.in/pay/${txn.payment_link.slug}` : '',
     delivery_eta: '3-5 business days',
     support_email: txn.merchant?.email || '',
     support_phone: txn.merchant?.phone || '',

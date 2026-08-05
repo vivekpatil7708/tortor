@@ -15,7 +15,7 @@ export function renderOrderConfirmationEmail({
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
     <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;border:1px solid rgba(255,255,255,0.6);padding:40px;">
       <tr><td style="text-align:center;padding-bottom:16px;">
-        <a href="https://toropay.co.in" style="text-decoration:none;display:inline-block;">          <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#7bb86c;">Pay</span>        </a>
+        <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;">          <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#7bb86c;">Pay</span>        </a>
       </td></tr>
       <tr><td style="padding-bottom:24px;">
         <h1 style="font-size:18px;font-weight:700;color:#2c2c2c;margin:0;">${subject}</h1>
@@ -38,7 +38,7 @@ export function renderResetEmail({ resetLink, businessName }: { resetLink: strin
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
     <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;border:1px solid rgba(255,255,255,0.6);padding:40px;">
       <tr><td style="text-align:center;padding-bottom:8px;">
-        <a href="https://toropay.co.in" style="text-decoration:none;display:inline-block;">          <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#7bb86c;">Pay</span>        </a>
+        <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;">          <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#7bb86c;">Pay</span>        </a>
       </td></tr>
       <tr><td style="padding-bottom:24px;text-align:center;">
         <h1 style="font-size:20px;font-weight:700;color:#2c2c2c;margin:0;">Reset your password</h1>

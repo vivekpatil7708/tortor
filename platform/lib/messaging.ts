@@ -40,7 +40,7 @@ export const SAMPLE_DATA: SampleData = {
   order_amount: '1,500.00',
   currency: 'INR',
   payment_status: 'Confirmed',
-  payment_link: 'https://toropay.co.in/pay/sample-slug',
+  payment_link: 'https://www.toropay.co.in/pay/sample-slug',
   delivery_eta: '3-5 business days',
   support_email: 'support@mystore.com',
   support_phone: '+91-9876543210',

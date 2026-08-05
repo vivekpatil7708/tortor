@@ -25,11 +25,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: post.title,
     description: post.description,
-    alternates: { canonical: `https://toropay.co.in/blog/${post.slug}` },
+    alternates: { canonical: `https://www.toropay.co.in/blog/${post.slug}` },
     openGraph: {
       title: post.title,
       description: post.description,
-      url: `https://toropay.co.in/blog/${post.slug}`,
+      url: `https://www.toropay.co.in/blog/${post.slug}`,
       siteName: 'ToroPay',
       type: 'article',
       publishedTime: post.publishedAt,
@@ -65,11 +65,11 @@ export default function BlogPostPage({ params }: Props) {
     publisher: {
       '@type': 'Organization',
       name: 'ToroPay',
-      url: 'https://toropay.co.in',
+      url: 'https://www.toropay.co.in',
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://toropay.co.in/blog/${post.slug}`,
+      '@id': `https://www.toropay.co.in/blog/${post.slug}`,
     },
     keywords: post.tags.join(', '),
   }

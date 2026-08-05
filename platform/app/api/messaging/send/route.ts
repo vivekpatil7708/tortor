@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       support_email: session.email || '',
       support_phone: session.phone || '',
       currency: 'INR',
-      payment_link: orderId ? `https://toropay.co.in/pay/${orderId}` : '',
+      payment_link: orderId ? `https://www.toropay.co.in/pay/${orderId}` : '',
       ...data,
     }
 

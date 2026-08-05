@@ -9,4 +9,4 @@ Disallow: /signup
 Disallow: /forgot-password
 Disallow: /reset-password
 
-Sitemap: https://toropay.co.in/sitemap.xml
+Sitemap: https://www.toropay.co.in/sitemap.xml

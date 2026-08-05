@@ -7,8 +7,8 @@ const organizationSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'ToroPay',
-  url: 'https://toropay.co.in/',
-  logo: 'https://toropay.co.in/favicon.svg',
+  url: 'https://www.toropay.co.in/',
+  logo: 'https://www.toropay.co.in/favicon.svg',
   description: 'Free UPI payment link generator and payment gateway without a website — pay by link in India with branded checkout pages and QR codes.',
   foundingDate: '2024',
   sameAs: [
@@ -58,7 +58,7 @@ const faqSchema = {
   ],
 }
 
-const baseUrl = 'https://toropay.co.in'
+const baseUrl = 'https://www.toropay.co.in'
 
 const qrPattern = [
   '111111001',
@@ -143,7 +143,7 @@ export default function LandingPage() {
                 </div>
                 <p className="text-xs font-bold text-charcoal">Payment link ready</p>
               </div>
-              <p className="truncate rounded-lg bg-gray-50 px-2.5 py-2 font-mono text-[10px] text-gray-500">toropay.co.in/pay/yourstore</p>
+              <p className="truncate rounded-lg bg-gray-50 px-2.5 py-2 font-mono text-[10px] text-gray-500">www.toropay.co.in/pay/yourstore</p>
               <div className="mt-2 rounded-lg bg-[#25D366] px-2.5 py-1.5 text-center text-[10px] font-bold text-white">Share on WhatsApp</div>
             </div>
           </div>

@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${category} — ToroPay Blog`,
     description: getCategoryDescription(category),
-    alternates: { canonical: `https://toropay.co.in/blog/category/${params.category}` },
+    alternates: { canonical: `https://www.toropay.co.in/blog/category/${params.category}` },
   }
 }
 

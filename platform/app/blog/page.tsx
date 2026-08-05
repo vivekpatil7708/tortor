@@ -12,7 +12,7 @@ import SearchBar from '@/components/blog/SearchBar'
 export const metadata: Metadata = {
   title: 'Blog — ToroPay',
   description: 'Guides, comparisons, and tips for Indian businesses on UPI payments, payment links, and digital payment strategies.',
-  alternates: { canonical: 'https://toropay.co.in/blog' },
+  alternates: { canonical: 'https://www.toropay.co.in/blog' },
 }
 
 export default function BlogPage() {

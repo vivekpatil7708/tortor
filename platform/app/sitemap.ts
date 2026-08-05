@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 import { BLOG_POSTS, getBlogCategories, getBlogAuthors, getPostsByAuthor } from '@/lib/blog-data'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = 'https://toropay.co.in'
+  const base = 'https://www.toropay.co.in'
 
   const blogEntries = BLOG_POSTS.map(post => ({
     url: `${base}/blog/${post.slug}/`,
