@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Play } from 'lucide-react'
 
-const VIDEO_ID = 'REPLACE_WITH_YOUR_VIDEO_ID'
+const VIDEO_ID = '6HERU_CQ-wg'
 
 export function VideoEmbed() {
   const [playing, setPlaying] = useState(false)
