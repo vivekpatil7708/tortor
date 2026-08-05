@@ -77,15 +77,22 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-cream to-beige">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <header className="sticky top-0 z-30 mx-auto flex max-w-6xl items-center justify-between bg-cream/80 px-6 py-5 backdrop-blur-md">
-        <div className="text-2xl font-extrabold tracking-tight">Toro<span className="text-primary-500">Pay</span></div>
-        <div className="flex items-center gap-4">
-          <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-charcoal">Log in</Link>
-          <Link href="/signup" className="rounded-xl bg-charcoal px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">Get started</Link>
+      <header className="fixed inset-x-0 top-4 z-30 flex justify-center px-4">
+        <div className="flex w-full max-w-3xl items-center justify-between rounded-full border border-white/60 bg-white/70 py-2 pl-6 pr-2 shadow-lg backdrop-blur-xl">
+          <div className="text-xl font-extrabold tracking-tight">Toro<span className="text-primary-500">Pay</span></div>
+          <nav className="hidden items-center gap-1 md:flex">
+            <a href="#how" className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-primary-50 hover:text-primary-600">How it works</a>
+            <a href="#features" className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-primary-50 hover:text-primary-600">Features</a>
+            <a href="#faq" className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-primary-50 hover:text-primary-600">FAQ</a>
+          </nav>
+          <div className="flex items-center gap-1.5">
+            <Link href="/login" className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-charcoal">Log in</Link>
+            <Link href="/signup" className="rounded-full bg-charcoal px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">Get started</Link>
+          </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-5xl px-6 pt-20 pb-10 text-center">
+      <section className="mx-auto max-w-5xl px-6 pt-28 pb-10 text-center">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-1.5 text-sm font-medium text-primary-600">
           Free UPI payment link generator for India
         </div>
@@ -201,7 +208,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="how" className="mx-auto max-w-6xl px-6 pb-32">
+      <section id="how" className="mx-auto max-w-6xl scroll-mt-28 px-6 pb-32">
         <h2 className="mb-16 text-center text-3xl font-bold tracking-tight">How it works</h2>
         <div className="grid gap-6 sm:grid-cols-3">
           {[
@@ -218,7 +225,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-32">
+      <section id="features" className="mx-auto max-w-6xl scroll-mt-28 px-6 pb-32">
         <h2 className="mb-16 text-center text-3xl font-bold tracking-tight">Everything you need in a payment link generator</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
@@ -289,7 +296,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-6 pb-10">
+      <section id="faq" className="mx-auto max-w-4xl scroll-mt-28 px-6 pb-10">
         <div className="rounded-3xl border border-white/60 bg-white/40 p-8 backdrop-blur-xl sm:p-12">
           <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">Frequently asked questions</h2>
           <div className="mt-8 space-y-4">
