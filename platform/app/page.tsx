@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import DonateWidget from '@/components/donate-widget'
+import { VideoEmbed } from '@/components/landing/video-embed'
+import { Link2, QrCode } from 'lucide-react'
 
 const organizationSchema = {
   '@context': 'https://schema.org',
@@ -58,12 +60,24 @@ const faqSchema = {
 
 const baseUrl = 'https://toropay.co.in'
 
+const qrPattern = [
+  '111111001',
+  '100001010',
+  '101111010',
+  '101111011',
+  '100001001',
+  '111111010',
+  '001010001',
+  '010110101',
+  '101001001',
+]
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream to-beige">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+      <header className="sticky top-0 z-30 mx-auto flex max-w-6xl items-center justify-between bg-cream/80 px-6 py-5 backdrop-blur-md">
         <div className="text-2xl font-extrabold tracking-tight">Toro<span className="text-primary-500">Pay</span></div>
         <div className="flex items-center gap-4">
           <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-charcoal">Log in</Link>
@@ -71,7 +85,7 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <section className="mx-auto max-w-5xl px-6 pt-24 pb-32 text-center">
+      <section className="mx-auto max-w-5xl px-6 pt-20 pb-10 text-center">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-1.5 text-sm font-medium text-primary-600">
           Free UPI payment link generator for India
         </div>
@@ -84,9 +98,106 @@ export default function LandingPage() {
           hosted checkout pages using your own UPI ID — a full payment gateway without a website, no coding needed.
           100% free — unlimited links, zero transaction fees, no hidden charges.
         </p>
-        <div className="mt-8 flex justify-center gap-4">
+        <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
           <Link href="/signup" className="rounded-xl bg-charcoal px-8 py-3.5 text-base font-semibold text-white hover:opacity-90">Create free account</Link>
           <a href="#how" className="rounded-xl border border-gray-200 bg-white/60 px-8 py-3.5 text-base font-semibold text-charcoal hover:bg-white">See how it works</a>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-24">
+        <div className="relative mx-auto flex max-w-3xl items-center justify-center">
+          <div className="absolute right-full top-28 hidden w-44 sm:block">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xl">
+              <div className="mb-2 flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50">
+                  <QrCode className="h-4 w-4 text-primary-600" />
+                </div>
+                <p className="text-xs font-bold text-charcoal">Dynamic QR code</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white p-2.5">
+                <div className="grid h-20 w-20 grid-cols-9 gap-[1px]">
+                  {qrPattern.flatMap((row, r) =>
+                    row.split('').map((c, i) => (
+                      <div key={`${r}-${i}`} className={c === '1' ? 'bg-charcoal' : 'bg-white'} />
+                    ))
+                  )}
+                </div>
+              </div>
+              <p className="mt-2 text-center text-[10px] font-semibold text-gray-400">Scan to pay instantly</p>
+            </div>
+          </div>
+
+          <div className="absolute left-full top-40 hidden w-48 sm:block">
+            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xl">
+              <div className="mb-2 flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50">
+                  <Link2 className="h-4 w-4 text-primary-600" />
+                </div>
+                <p className="text-xs font-bold text-charcoal">Payment link ready</p>
+              </div>
+              <p className="truncate rounded-lg bg-gray-50 px-2.5 py-2 font-mono text-[10px] text-gray-500">toropay.co.in/pay/yourstore</p>
+              <div className="mt-2 rounded-lg bg-[#25D366] px-2.5 py-1.5 text-center text-[10px] font-bold text-white">Share on WhatsApp</div>
+            </div>
+          </div>
+
+          <div className="relative w-72 overflow-hidden rounded-[2.5rem] border-[6px] border-charcoal bg-white shadow-2xl">
+            <div className="absolute left-1/2 top-3 h-1.5 w-16 -translate-x-1/2 rounded-full bg-gray-300" />
+            <div className="px-6 pb-8 pt-14">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ backgroundColor: '#7bb86c' }}>T</div>
+                <div>
+                  <p className="text-sm font-bold text-charcoal">Your Business</p>
+                  <p className="text-[10px] text-gray-400">Branded checkout · Powered by ToroPay</p>
+                </div>
+              </div>
+              <div className="mt-6 text-center">
+                <p className="text-xs font-medium text-gray-400">Amount to pay</p>
+                <p className="mt-1 text-4xl font-extrabold tracking-tight text-charcoal">₹1,299</p>
+              </div>
+              <div className="mt-6">
+                <div className="w-full rounded-2xl py-3.5 text-center text-sm font-bold text-white" style={{ backgroundColor: '#7bb86c' }}>
+                  Continue to Pay
+                </div>
+              </div>
+              <div className="mt-5 flex items-center justify-center gap-2">
+                {['GPay', 'PhonePe', 'Paytm', 'BHIM'].map(a => (
+                  <span key={a} className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-500">{a}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-4xl px-6 pb-24">
+        <div className="mb-8 text-center">
+          <h2 className="text-3xl font-bold tracking-tight">See ToroPay in action</h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm text-gray-500">
+            Watch how fast it is to create a branded payment link and get paid straight to your UPI ID.
+          </p>
+        </div>
+        <VideoEmbed />
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-24">
+        <div className="rounded-3xl bg-charcoal px-8 py-12 text-white sm:px-12">
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-bold tracking-tight">Free for every business, big or small</h2>
+            <p className="mt-3 text-sm text-gray-300">No plans, no fees, no hidden charges — ever.</p>
+          </div>
+          <div className="grid gap-8 text-center sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { v: '100%', l: 'Free forever' },
+              { v: '₹0', l: 'Transaction fees' },
+              { v: 'Unlimited', l: 'Links, pages & QR codes' },
+              { v: 'All UPI apps', l: 'GPay, PhonePe, Paytm, BHIM' },
+            ].map(({ v, l }) => (
+              <div key={l}>
+                <p className="text-3xl font-extrabold tracking-tight text-primary-500">{v}</p>
+                <p className="mt-1.5 text-sm text-gray-300">{l}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
