@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
 
 const COOKIE_NAME = 'toropay_session'
+const IMPERSONATE_COOKIE = 'toropay_impersonate'
 
 function getSecret() {
   const secret = process.env.JWT_SECRET
@@ -37,45 +38,99 @@ export async function createSession(merchantId: string, email: string) {
 
 export async function destroySession() {
   cookies().delete(COOKIE_NAME)
+  cookies().delete(IMPERSONATE_COOKIE)
 }
 
-export async function getSession() {
-  const token = cookies().get(COOKIE_NAME)?.value
+async function getImpersonationInfo(token: string) {
+  const { payload } = await jwtVerify(token, getSecret())
+  if (payload.typ !== 'impersonate') return null
+  const merchantId = payload.sub as string | undefined
+  const adminEmail = payload.admin_email as string | undefined
+  if (!merchantId || !adminEmail) return null
+  return { merchantId, adminEmail }
+}
+
+export async function getImpersonation() {
+  const token = cookies().get(IMPERSONATE_COOKIE)?.value
   if (!token) return null
-
   try {
-    const { payload } = await jwtVerify(token, getSecret())
-    const merchantId = payload.sub as string
-    if (!merchantId) return null
-
-    const merchant = await prisma.merchant.findUnique({
-      where: { id: merchantId },
-      select: {
-        id: true,
-        email: true,
-        phone: true,
-        name: true,
-        provider: true,
-        businessName: true,
-        businessLogoUrl: true,
-        brandColorPrimary: true,
-        brandColorSecondary: true,
-        brandFont: true,
-        buttonStyle: true,
-        pageTheme: true,
-        customDomain: true,
-        bgImageUrl: true,
-        status: true,
-        onboardingComplete: true,
-        createdAt: true,
-      },
-    })
-
-    if (!merchant || merchant.status === 'suspended') return null
-    return merchant
+    return await getImpersonationInfo(token)
   } catch {
     return null
   }
+}
+
+export async function createImpersonationSession(merchantId: string, adminEmail: string) {
+  const token = await new SignJWT({ typ: 'impersonate', admin_email: adminEmail })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setSubject(merchantId)
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(getSecret())
+
+  cookies().set(IMPERSONATE_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60,
+  })
+}
+
+export async function clearImpersonation() {
+  cookies().delete(IMPERSONATE_COOKIE)
+}
+
+export async function getSession() {
+  let merchantId: string | null = null
+
+  const impToken = cookies().get(IMPERSONATE_COOKIE)?.value
+  if (impToken) {
+    try {
+      const info = await getImpersonationInfo(impToken)
+      if (info) merchantId = info.merchantId
+    } catch {
+      merchantId = null
+    }
+  }
+
+  if (!merchantId) {
+    const token = cookies().get(COOKIE_NAME)?.value
+    if (!token) return null
+    try {
+      const { payload } = await jwtVerify(token, getSecret())
+      merchantId = payload.sub as string
+      if (!merchantId) return null
+    } catch {
+      return null
+    }
+  }
+
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    select: {
+      id: true,
+      email: true,
+      phone: true,
+      name: true,
+      provider: true,
+      businessName: true,
+      businessLogoUrl: true,
+      brandColorPrimary: true,
+      brandColorSecondary: true,
+      brandFont: true,
+      buttonStyle: true,
+      pageTheme: true,
+      customDomain: true,
+      bgImageUrl: true,
+      status: true,
+      onboardingComplete: true,
+      createdAt: true,
+    },
+  })
+
+  if (!merchant || merchant.status === 'suspended') return null
+  return merchant
 }
 
 export async function requireSession() {

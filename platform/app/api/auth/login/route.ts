@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createSession, merchantToJson, verifyPassword } from '@/lib/auth'
+import { clearImpersonation, createSession, merchantToJson, verifyPassword } from '@/lib/auth'
 
 const MAX_LOGIN_ATTEMPTS = 5
 const LOCK_DURATION_MIN = 15
@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    await clearImpersonation()
     await createSession(merchant.id, merchant.email)
     return NextResponse.json({ success: true, merchant: merchantToJson(merchant) })
   } catch (err: unknown) {

@@ -14,6 +14,13 @@ export async function GET() {
       },
     })
 
+    const emailCounts = await prisma.messageLog.groupBy({
+      by: ['merchantId'],
+      where: { channel: 'email' },
+      _count: { _all: true },
+    })
+    const emailCountMap = new Map(emailCounts.map(e => [e.merchantId, e._count._all]))
+
     return NextResponse.json({
       merchants: merchants.map(m => ({
         id: m.id,
@@ -25,6 +32,7 @@ export async function GET() {
         created_at: m.createdAt.toISOString(),
         transaction_count: m._count.transactions,
         revenue: m.transactions.reduce((a, t) => a + t.amount, 0),
+        emails_sent: emailCountMap.get(m.id) || 0,
       })),
     })
   } catch (err: unknown) {

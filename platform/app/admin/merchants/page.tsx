@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { exportToCSV } from '@/lib/export-csv'
 
 interface Merchant {
@@ -13,11 +14,14 @@ interface Merchant {
   created_at: string
   transaction_count: number
   revenue: number
+  emails_sent: number
 }
 
 export default function AdminMerchants() {
+  const router = useRouter()
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [search, setSearch] = useState('')
+  const [accessing, setAccessing] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/admin/merchants').then(r => r.json()).then(d => setMerchants(d.merchants || [])).catch(() => {})
@@ -37,9 +41,28 @@ export default function AdminMerchants() {
       { key: 'status', label: 'Status' },
       { key: 'onboarding_complete', label: 'Onboarding Complete' },
       { key: 'transaction_count', label: 'Transactions' },
+      { key: 'emails_sent', label: 'Emails Sent' },
       { key: 'revenue', label: 'Revenue' },
       { key: 'created_at', label: 'Joined Date' },
     ], filtered)
+  }
+
+  async function handleAccess(id: string) {
+    setAccessing(id)
+    try {
+      const res = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ merchantId: id }),
+      })
+      if (!res.ok) {
+        alert('Could not open merchant dashboard')
+        return
+      }
+      router.push('/dashboard')
+    } finally {
+      setAccessing(null)
+    }
   }
 
   return (
@@ -65,8 +88,10 @@ export default function AdminMerchants() {
               <th className="px-5 py-3 font-semibold text-gray-500">Phone</th>
               <th className="px-5 py-3 font-semibold text-gray-500">Status</th>
               <th className="px-5 py-3 font-semibold text-gray-500">Txns</th>
+              <th className="px-5 py-3 font-semibold text-gray-500">Emails</th>
               <th className="px-5 py-3 font-semibold text-gray-500">Revenue</th>
               <th className="px-5 py-3 font-semibold text-gray-500">Joined</th>
+              <th className="px-5 py-3 font-semibold text-gray-500"></th>
             </tr>
           </thead>
           <tbody>
@@ -81,12 +106,19 @@ export default function AdminMerchants() {
                   </span>
                 </td>
                 <td className="px-5 py-3">{m.transaction_count}</td>
+                <td className="px-5 py-3">{m.emails_sent}</td>
                 <td className="px-5 py-3 font-medium">{'\u20B9'}{m.revenue.toLocaleString('en-IN')}</td>
                 <td className="px-5 py-3 text-gray-400">{new Date(m.created_at).toLocaleDateString('en-IN')}</td>
+                <td className="px-5 py-3">
+                  <button onClick={() => handleAccess(m.id)} disabled={accessing === m.id}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 disabled:opacity-40">
+                    {accessing === m.id ? 'Opening...' : 'Access dashboard'}
+                  </button>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-5 py-8 text-center text-gray-400">No merchants found</td></tr>
+              <tr><td colSpan={8} className="px-5 py-8 text-center text-gray-400">No merchants found</td></tr>
             )}
           </tbody>
         </table>
