@@ -12,6 +12,8 @@ interface Stats {
   total_pageviews: number
   pageviews_today: number
   unique_visitors_today: number
+  total_emails_sent: number
+  emails_sent_today: number
   recent_signups: Array<{ email: string; business_name: string; created_at: string }>
 }
 
@@ -34,6 +36,8 @@ export default function AdminOverview() {
     { label: 'Total Visits', value: stats.total_pageviews.toLocaleString('en-IN'), color: 'bg-rose-50 text-rose-700' },
     { label: 'Visits Today', value: stats.pageviews_today.toLocaleString('en-IN'), color: 'bg-cyan-50 text-cyan-700' },
     { label: 'Unique Visitors Today', value: stats.unique_visitors_today.toLocaleString('en-IN'), color: 'bg-orange-50 text-orange-700' },
+    { label: 'Emails Today', value: stats.emails_sent_today.toLocaleString('en-IN'), color: 'bg-sky-50 text-sky-700' },
+    { label: 'Total Emails Sent', value: stats.total_emails_sent.toLocaleString('en-IN'), color: 'bg-teal-50 text-teal-700' },
   ]
 
   return (

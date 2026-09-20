@@ -9,7 +9,7 @@ export async function GET() {
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-    const [totalMerchants, totalTransactions, revenueResult, signupsToday, revenueToday, activeMerchants, recentSignups, totalPageviews, pageviewsToday, uniqueVisitorsToday] = await Promise.all([
+    const [totalMerchants, totalTransactions, revenueResult, signupsToday, revenueToday, activeMerchants, recentSignups, totalPageviews, pageviewsToday, uniqueVisitorsToday, totalEmails, emailsToday] = await Promise.all([
       prisma.merchant.count(),
       prisma.transaction.count(),
       prisma.transaction.aggregate({ where: { status: 'success' }, _sum: { amount: true } }),
@@ -20,6 +20,8 @@ export async function GET() {
       prisma.pageView.count(),
       prisma.pageView.count({ where: { createdAt: { gte: todayStart } } }),
       prisma.pageView.groupBy({ by: ['ipAddress'], where: { createdAt: { gte: todayStart }, ipAddress: { not: null } }, _count: { ipAddress: true } }),
+      prisma.messageLog.count({ where: { channel: 'email' } }),
+      prisma.messageLog.count({ where: { channel: 'email', createdAt: { gte: todayStart } } }),
     ])
 
     return NextResponse.json({
@@ -32,6 +34,8 @@ export async function GET() {
       total_pageviews: totalPageviews,
       pageviews_today: pageviewsToday,
       unique_visitors_today: uniqueVisitorsToday.length,
+      total_emails_sent: totalEmails,
+      emails_sent_today: emailsToday,
       recent_signups: recentSignups.map(s => ({ email: s.email, business_name: s.businessName, created_at: s.createdAt.toISOString() })),
     })
   } catch (err: unknown) {
