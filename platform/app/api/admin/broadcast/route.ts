@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await requireAdmin()
-    const { subject, body } = await req.json()
+    const { subject, body, merchantIds } = await req.json()
 
     if (!subject || !body) {
       return NextResponse.json({ error: 'Subject and body are required' }, { status: 400 })
@@ -47,8 +47,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Resend is not configured' }, { status: 503 })
     }
 
+    const targetIds = Array.isArray(merchantIds) && merchantIds.length > 0
+      ? merchantIds.filter((id: unknown): id is string => typeof id === 'string')
+      : null
+
     const merchants = await prisma.merchant.findMany({
-      where: { status: 'active' },
+      where: {
+        status: 'active',
+        ...(targetIds ? { id: { in: targetIds } } : {}),
+      },
       select: { id: true, email: true, businessName: true, phone: true },
     })
 

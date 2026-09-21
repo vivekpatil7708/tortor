@@ -1,12 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DEFAULT_BROADCAST_TEMPLATE, SAMPLE_DATA, renderTemplate, SUPPORTED_VARIABLES } from '@/lib/messaging'
+
+interface Merchant {
+  id: string
+  email: string
+  business_name: string
+  status: string
+}
 
 export default function AdminMessaging() {
   const [subject, setSubject] = useState(DEFAULT_BROADCAST_TEMPLATE.subject)
   const [body, setBody] = useState(DEFAULT_BROADCAST_TEMPLATE.body)
-  const [recipientCount, setRecipientCount] = useState<number | null>(null)
+  const [merchants, setMerchants] = useState<Merchant[]>([])
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [search, setSearch] = useState('')
+  const [mode, setMode] = useState<'all' | 'selected'>('all')
   const [showPreview, setShowPreview] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [sending, setSending] = useState(false)
@@ -16,17 +26,46 @@ export default function AdminMessaging() {
 
   useEffect(() => {
     fetch('/api/admin/merchants').then(r => r.json()).then(d => {
-      const active = (d.merchants || []).filter((m: { status: string }) => m.status === 'active')
-      setRecipientCount(active.length)
+      const active = (d.merchants || []).filter((m: Merchant) => m.status === 'active')
+      setMerchants(active)
+      setSelected(new Set(active.map((m: Merchant) => m.id)))
     }).catch(() => {})
     fetch('/api/admin/broadcast?limit=20').then(r => r.json()).then(d => {
       if (d.logs) setLogs(d.logs)
     }).catch(() => {})
   }, [])
 
+  const filtered = useMemo(
+    () => merchants.filter(m =>
+      m.email.toLowerCase().includes(search.toLowerCase()) ||
+      m.business_name.toLowerCase().includes(search.toLowerCase())
+    ),
+    [merchants, search]
+  )
+
+  const recipientCount = mode === 'all' ? merchants.length : selected.size
+
   const sampleData: Record<string, string> = { ...(SAMPLE_DATA as unknown as Record<string, string>) }
   const renderedSubject = renderTemplate(subject || DEFAULT_BROADCAST_TEMPLATE.subject, sampleData)
   const renderedBody = renderTemplate(body || DEFAULT_BROADCAST_TEMPLATE.body, sampleData)
+
+  function toggleMerchant(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAllVisible() {
+    setSelected(prev => {
+      const next = new Set(prev)
+      const allVisibleSelected = filtered.every(m => next.has(m.id))
+      filtered.forEach(m => { if (allVisibleSelected) next.delete(m.id); else next.add(m.id) })
+      return next
+    })
+  }
 
   function resetTemplate() {
     setSubject(DEFAULT_BROADCAST_TEMPLATE.subject)
@@ -40,13 +79,19 @@ export default function AdminMessaging() {
       setError('Subject and body are required.')
       return
     }
+    if (mode === 'selected' && selected.size === 0) {
+      setError('Select at least one merchant.')
+      return
+    }
     setSending(true)
     setError(null)
     try {
+      const payload: { subject: string; body: string; merchantIds?: string[] } = { subject, body }
+      if (mode === 'selected') payload.merchantIds = Array.from(selected)
       const res = await fetch('/api/admin/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, body }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to send')
@@ -67,7 +112,7 @@ export default function AdminMessaging() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Email Merchants</h1>
         <p className="text-sm text-gray-500">
-          Send a broadcast email to {recipientCount !== null ? <strong>{recipientCount}</strong> : 'all'} active merchants.
+          Send an email to {recipientCount > 0 ? <strong>{recipientCount}</strong> : 'all'} {mode === 'all' ? 'active' : 'selected'} merchant{recipientCount === 1 ? '' : 's'}.
         </p>
       </div>
 
@@ -84,8 +129,45 @@ export default function AdminMessaging() {
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
       )}
 
+      <div className="mb-6 flex gap-2">
+        <button onClick={() => setMode('all')}
+          className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${mode === 'all' ? 'bg-charcoal text-white' : 'border border-gray-200 bg-white text-gray-500 hover:text-charcoal'}`}>
+          All active merchants
+        </button>
+        <button onClick={() => setMode('selected')}
+          className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${mode === 'selected' ? 'bg-charcoal text-white' : 'border border-gray-200 bg-white text-gray-500 hover:text-charcoal'}`}>
+          Choose individual merchants{mode === 'selected' ? ` (${selected.size})` : ''}
+        </button>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">
+          {mode === 'selected' && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search merchants..."
+                  className="w-56 rounded-xl border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-gray-400" />
+                <button onClick={toggleAllVisible}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50">
+                  Select / clear shown
+                </button>
+              </div>
+              <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-100">
+                {filtered.map(m => (
+                  <label key={m.id} className="flex cursor-pointer items-center gap-3 border-b border-gray-50 px-3 py-2.5 hover:bg-gray-50">
+                    <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggleMerchant(m.id)}
+                      className="h-4 w-4 accent-[#7bb86c]" />
+                    <span className="flex-1">
+                      <span className="block text-sm font-medium">{m.business_name}</span>
+                      <span className="block text-xs text-gray-400">{m.email}</span>
+                    </span>
+                  </label>
+                ))}
+                {filtered.length === 0 && <p className="px-3 py-6 text-center text-sm text-gray-400">No merchants match your search</p>}
+              </div>
+            </div>
+          )}
+
           <div>
             <p className="mb-1 text-xs font-semibold text-gray-500">Subject Line</p>
             <input value={subject} onChange={e => setSubject(e.target.value)}
@@ -108,9 +190,9 @@ export default function AdminMessaging() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => setShowConfirm(true)} disabled={sending}
+            <button onClick={() => setShowConfirm(true)} disabled={sending || recipientCount === 0}
               className="flex items-center gap-1.5 rounded-xl bg-[#7bb86c] px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">
-              {sending ? 'Sending...' : `Send to ${recipientCount ?? 'N'} merchants`}
+              {sending ? 'Sending...' : `Send to ${recipientCount} merchant${recipientCount === 1 ? '' : 's'}`}
             </button>
             <button onClick={resetTemplate}
               className="rounded-xl border border-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-500 hover:text-charcoal">
@@ -124,8 +206,8 @@ export default function AdminMessaging() {
 
           {showConfirm && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-              <p className="font-semibold text-amber-800">Send to {recipientCount ?? 'N'} merchants?</p>
-              <p className="mt-1 text-sm text-amber-700">This sends the email immediately to all active merchants. This cannot be undone.</p>
+              <p className="font-semibold text-amber-800">Send to {recipientCount} merchant{recipientCount === 1 ? '' : 's'}?</p>
+              <p className="mt-1 text-sm text-amber-700">This sends the email immediately. This cannot be undone.</p>
               <div className="mt-3 flex gap-2">
                 <button onClick={handleSend} disabled={sending}
                   className="rounded-xl bg-charcoal px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">
