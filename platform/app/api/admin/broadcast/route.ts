@@ -7,6 +7,7 @@ import { renderBroadcastEmail } from '@/lib/email'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const fromAddress = process.env.RESEND_FROM || 'ToroPay <onboarding@resend.dev>'
+const replyToAddress = process.env.RESEND_REPLY_TO || process.env.ADMIN_EMAIL || 'support@toropay.co.in'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.toropay.co.in'
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
         const result = await resend.emails.send({
           from: fromAddress,
           to: merchant.email,
+          replyTo: replyToAddress,
           subject: renderedSubject,
           html,
           text: renderedBody,
