@@ -13,6 +13,7 @@ export const SUPPORTED_VARIABLES = [
   'support_email',
   'support_phone',
   'custom_note',
+  'feedback_form_link',
 ] as const
 
 export type TemplateVariable = typeof SUPPORTED_VARIABLES[number]
@@ -30,6 +31,7 @@ export interface SampleData {
   support_email: string
   support_phone: string
   custom_note: string
+  feedback_form_link: string
 }
 
 export const SAMPLE_DATA: SampleData = {
@@ -45,6 +47,7 @@ export const SAMPLE_DATA: SampleData = {
   support_email: 'support@mystore.com',
   support_phone: '+91-9876543210',
   custom_note: 'Handle with care',
+  feedback_form_link: 'https://www.toropay.co.in/feedback',
 }
 
 export const DEFAULT_TEMPLATES: Record<string, { subject: string; body: string }> = {
@@ -76,6 +79,25 @@ Thank you.`,
     subject: '',
     body: `Hi {{customer_name}}, your order {{order_id}} with {{merchant_name}} is confirmed. Amount: {{currency}} {{order_amount}}. Payment status: {{payment_status}}.`,
   },
+}
+
+export const DEFAULT_BROADCAST_TEMPLATE = {
+  subject: "We'd love your feedback on ToroPay",
+  body: `Hi {{merchant_name}},
+
+Thank you for using ToroPay for your business. We're constantly working to make collecting payments simpler and more reliable for you, and we'd love to hear directly from you about how we're doing.
+
+This short survey takes about two minutes to complete. Your answers will help us improve payment collection, shape upcoming product features, and strengthen the support we provide to merchants like you.
+
+Share Your Feedback: {{feedback_form_link}}
+
+While you're at it, your ToroPay payment page is live and ready to share with customers any time your customers pay online: {{payment_link}}
+
+Thank you for helping us build a better ToroPay.
+
+Warm regards,
+The ToroPay Team
+ToroPay.co.in`,
 }
 
 export function renderTemplate(template: string, data: Record<string, string>): string {

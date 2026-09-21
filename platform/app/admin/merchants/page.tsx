@@ -72,6 +72,10 @@ export default function AdminMerchants() {
         <div className="flex items-center gap-3">
           <input type="text" placeholder="Search merchants..." value={search} onChange={e => setSearch(e.target.value)}
             className="w-64 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400" />
+          <button onClick={() => router.push('/admin/messaging')}
+            className="rounded-xl bg-[#7bb86c] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90">
+            Send Email to Merchants
+          </button>
           <button onClick={handleExport} disabled={filtered.length === 0}
             className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-charcoal transition-colors hover:bg-gray-50 disabled:opacity-40">
             Export to Excel
@@ -118,7 +122,7 @@ export default function AdminMerchants() {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="px-5 py-8 text-center text-gray-400">No merchants found</td></tr>
+              <tr><td colSpan={9} className="px-5 py-8 text-center text-gray-400">No merchants found</td></tr>
             )}
           </tbody>
         </table>

@@ -260,3 +260,21 @@ model AuditLog {
 
   @@map("audit_logs")
 }
+
+model FeedbackResponse {
+  id            String   @id @default(uuid())
+  merchantName  String   @map("merchant_name")
+  satisfaction  Int      // 1-5
+  easeOfUse     Int      @map("ease_of_use") // 1-5
+  usefulParts   String   @default("[]") @map("useful_parts") // JSON array
+  easeCollecting String  @map("ease_collecting")
+  likesMost     String?  @map("likes_most")
+  issues        String?  @map("issues")
+  improvement   String?  @map("improvement")
+  npsScore      Int      @map("nps_score") // 0-10
+  followUp      Boolean  @map("follow_up")
+  contact       String?  @map("contact")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("feedback_responses")
+}
