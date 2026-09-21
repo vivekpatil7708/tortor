@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
+import { ensureFeedbackTable } from '@/lib/feedback-schema'
 
 export async function GET() {
   try {
     await requireAdmin()
+    await ensureFeedbackTable()
 
     const responses = await prisma.feedbackResponse.findMany({ orderBy: { createdAt: 'desc' } })
 

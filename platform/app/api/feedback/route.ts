@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { ensureFeedbackTable } from '@/lib/feedback-schema'
 
 const USEFUL_PARTS = [
   'Creating payment links',
@@ -49,6 +50,8 @@ export async function POST(req: NextRequest) {
     if (followUp && !contact) {
       return NextResponse.json({ error: 'Contact is required when opting in for follow-up' }, { status: 400 })
     }
+
+    await ensureFeedbackTable()
 
     const response = await prisma.feedbackResponse.create({
       data: {
