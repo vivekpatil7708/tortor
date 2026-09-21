@@ -40,12 +40,19 @@ export default function AdminFeedback() {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [responses, setResponses] = useState<FeedbackResponse[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/admin/feedback').then(r => r.json()).then(d => {
+    fetch('/api/admin/feedback').then(async r => {
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'Failed to load feedback')
+      return data
+    }).then(d => {
       setSummary(d.summary)
       setResponses(d.responses || [])
-    }).catch(() => {})
+    }).catch(e => {
+      setError(e instanceof Error ? e.message : 'Failed to load feedback')
+    })
   }, [])
 
   function handleExport() {
@@ -64,6 +71,13 @@ export default function AdminFeedback() {
       { key: 'contact', label: 'Contact' },
     ], responses.map(r => ({ ...r, useful_parts: r.useful_parts.join('; '), follow_up: r.follow_up ? 'Yes' : 'No' })))
   }
+
+  if (error) return (
+    <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+      <p className="font-semibold text-red-700">Could not load feedback</p>
+      <p className="mt-1 text-sm text-red-600">{error}</p>
+    </div>
+  )
 
   if (!summary) return <p className="text-sm text-gray-400">Loading...</p>
 

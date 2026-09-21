@@ -67,8 +67,10 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({ success: true, id: response.id })
-  } catch {
-    return NextResponse.json({ error: 'Invalid submission' }, { status: 500 })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    console.error('Feedback submit failed:', err)
+    return NextResponse.json({ error: `Submission failed: ${msg}` }, { status: 500 })
   }
 }
 
