@@ -7,6 +7,117 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================
+// ENUMS
+// ============================================================
+
+// Products
+enum ProductType {
+  physical
+  digital
+  service
+}
+
+enum ProductStatus {
+  active
+  draft
+  archived
+}
+
+// Orders
+enum OrderSource {
+  manual_order
+  payment_link
+  website_api
+  instagram
+  whatsapp
+  imported
+  other
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  expired
+  refunded
+}
+
+enum OrderStatus {
+  pending_payment
+  new
+  processing
+  on_hold
+  completed
+  cancelled
+}
+
+enum FulfillmentSummaryStatus {
+  unfulfilled
+  partially_fulfilled
+  fulfilled
+  partially_delivered
+  delivered
+  attention_required
+  returned
+  cancelled
+}
+
+// Fulfillments & delivery
+enum FulfillmentType {
+  shipping
+  local_delivery
+  pickup
+  digital
+  service
+}
+
+enum FulfillmentStatus {
+  unfulfilled
+  processing
+  packed
+  shipped
+  in_transit
+  out_for_delivery
+  delivered
+  delivery_failed
+  returned
+  cancelled
+}
+
+enum PackageStatus {
+  not_shipped
+  shipped
+  in_transit
+  out_for_delivery
+  delivered
+  delivery_failed
+  returned
+  cancelled
+}
+
+enum ShipmentEventSource {
+  merchant
+  system
+}
+
+enum StatusHistoryType {
+  payment
+  order
+  fulfillment
+  shipment
+}
+
+enum ChangedByType {
+  merchant
+  system
+  admin
+}
+
+// ============================================================
+// MERCHANTS
+// ============================================================
+
 model Merchant {
   id                   String   @id @default(uuid())
   email                String   @unique
@@ -33,6 +144,13 @@ model Merchant {
   createdAt            DateTime @default(now()) @map("created_at")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
+  // Phase 1 merchant operations fields
+  supportEmail    String? @map("support_email")
+  supportPhone    String? @map("support_phone")
+  address         String? @map("address")
+  defaultCurrency String  @default("INR") @map("default_currency")
+  timezone        String  @default("Asia/Kolkata") @map("timezone")
+
   upiIds        UpiId[]
   paymentLinks  PaymentLink[]
   transactions  Transaction[]
@@ -44,7 +162,315 @@ model Merchant {
   messageLogs     MessageLog[]
   channelConnections ChannelConnection[]
 
+  // Phase 1 merchant operations relations
+  merchantUsers      MerchantUser[]
+  customers          Customer[]
+  customerAddresses  CustomerAddress[]
+  products           Product[]
+  orders             Order[]
+  fulfillments       Fulfillment[]
+  packages           Package[]
+  shipmentEvents     ShipmentEvent[]
+  orderStatusHistory OrderStatusHistory[]
+  auditLogs          AuditLog[]
+
   @@map("merchants")
+}
+
+model MerchantUser {
+  id            String   @id @default(uuid())
+  merchantId    String   @map("merchant_id")
+  name          String
+  email         String
+  passwordHash  String?  @map("password_hash")
+  role          String   @default("owner") // owner / admin / staff
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, email])
+  @@map("merchant_users")
+}
+
+// ============================================================
+// CUSTOMERS
+// ============================================================
+
+model Customer {
+  id          String    @id @default(uuid())
+  merchantId  String    @map("merchant_id")
+  fullName    String    @map("full_name")
+  phone       String?
+  email       String?
+  tags        Json?     @default("[]")
+  notes       String?
+  totalOrders Int       @default(0) @map("total_orders")
+  totalSpent  Float     @default(0) @map("total_spent")
+  lastOrderAt DateTime? @map("last_order_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  merchant  Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  addresses CustomerAddress[]
+  orders    Order[]
+
+  @@index([merchantId, fullName])
+  @@index([merchantId, phone])
+  @@index([merchantId, email])
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id            String  @id @default(uuid())
+  merchantId    String  @map("merchant_id")
+  customerId    String  @map("customer_id")
+  label         String?
+  recipientName String  @map("recipient_name")
+  phone         String?
+  line1         String
+  line2         String?
+  city          String
+  state         String
+  pincode       String
+  country       String  @default("India")
+  isDefault     Boolean @default(false) @map("is_default")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, customerId])
+  @@map("customer_addresses")
+}
+
+// ============================================================
+// PRODUCTS
+// ============================================================
+
+model Product {
+  id               String        @id @default(uuid())
+  merchantId       String        @map("merchant_id")
+  name             String
+  description      String?
+  sku              String?
+  price            Decimal       @db.Decimal(10, 2)
+  compareAtPrice   Decimal?      @db.Decimal(10, 2) @map("compare_at_price")
+  imageUrl         String?       @map("image_url")
+  productType      ProductType   @map("product_type")
+  status           ProductStatus @default(active)
+  stockQuantity    Int?          @map("stock_quantity")
+  lowStockThreshold Int?         @map("low_stock_threshold")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  merchant     Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  orderItems   OrderItem[]
+
+  @@index([merchantId, status])
+  @@map("products")
+}
+
+// ============================================================
+// ORDERS
+// ============================================================
+
+model Order {
+  id                       String                  @id @default(uuid())
+  merchantId               String                  @map("merchant_id")
+  customerId               String?                 @map("customer_id")
+  orderNumber              String                  @map("order_number")
+  source                   OrderSource             @default(manual_order)
+  currency                 String                  @default("INR")
+  subtotalAmount           Decimal                 @db.Decimal(10, 2) @map("subtotal_amount")
+  discountAmount           Decimal                 @default(0) @db.Decimal(10, 2) @map("discount_amount")
+  shippingAmount           Decimal                 @default(0) @db.Decimal(10, 2) @map("shipping_amount")
+  taxAmount                Decimal                 @default(0) @db.Decimal(10, 2) @map("tax_amount")
+  totalAmount              Decimal                 @db.Decimal(10, 2) @map("total_amount")
+  paymentStatus            PaymentStatus           @default(pending) @map("payment_status")
+  orderStatus              OrderStatus             @default(new) @map("order_status")
+  fulfillmentSummaryStatus FulfillmentSummaryStatus @default(unfulfilled) @map("fulfillment_summary_status")
+  shippingAddressSnapshot  Json?                   @map("shipping_address_snapshot")
+  billingAddressSnapshot   Json?                   @map("billing_address_snapshot")
+  internalNotes            String?                 @map("internal_notes")
+  customerNote             String?                 @map("customer_note")
+  trackingToken            String?                 @unique @map("tracking_token")
+  createdAt                DateTime                @default(now()) @map("created_at")
+  paidAt                   DateTime?               @map("paid_at")
+  cancelledAt              DateTime?               @map("cancelled_at")
+  completedAt              DateTime?               @map("completed_at")
+  updatedAt                DateTime                @updatedAt @map("updated_at")
+
+  merchant            Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer            Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  orderItems          OrderItem[]
+  fulfillments        Fulfillment[]
+  statusHistory       OrderStatusHistory[]
+
+  @@unique([merchantId, orderNumber])
+  @@index([merchantId, createdAt])
+  @@index([merchantId, paymentStatus])
+  @@index([merchantId, orderStatus])
+  @@index([merchantId, fulfillmentSummaryStatus])
+  @@index([merchantId, source])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                 String   @id @default(uuid())
+  orderId            String   @map("order_id")
+  productId          String?  @map("product_id")
+  productNameSnapshot String  @map("product_name_snapshot")
+  skuSnapshot        String?  @map("sku_snapshot")
+  unitPrice          Decimal  @db.Decimal(10, 2) @map("unit_price")
+  quantityOrdered    Int      @map("quantity_ordered")
+  quantityFulfilled  Int      @default(0) @map("quantity_fulfilled")
+  quantityCancelled  Int      @default(0) @map("quantity_cancelled")
+  quantityReturned   Int      @default(0) @map("quantity_returned")
+  lineTotal          Decimal  @db.Decimal(10, 2) @map("line_total")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  order            Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
+  fulfillmentItems FulfillmentItem[]
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// ============================================================
+// FULFILLMENTS, PACKAGES & SHIPMENTS
+// ============================================================
+
+model Fulfillment {
+  id                String            @id @default(uuid())
+  merchantId        String            @map("merchant_id")
+  orderId           String            @map("order_id")
+  fulfillmentNumber String            @map("fulfillment_number")
+  fulfillmentType   FulfillmentType   @default(shipping) @map("fulfillment_type")
+  status            FulfillmentStatus @default(unfulfilled)
+  createdAt         DateTime          @default(now()) @map("created_at")
+  processingAt      DateTime?         @map("processing_at")
+  packedAt          DateTime?         @map("packed_at")
+  shippedAt         DateTime?         @map("shipped_at")
+  deliveredAt       DateTime?         @map("delivered_at")
+  cancelledAt       DateTime?         @map("cancelled_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  merchant     Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  order        Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items        FulfillmentItem[]
+  packages     Package[]
+  statusHistory OrderStatusHistory[]
+
+  @@unique([merchantId, fulfillmentNumber])
+  @@index([merchantId, orderId])
+  @@map("fulfillments")
+}
+
+model FulfillmentItem {
+  id            String   @id @default(uuid())
+  fulfillmentId String   @map("fulfillment_id")
+  orderItemId   String   @map("order_item_id")
+  quantity      Int
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  fulfillment Fulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Cascade)
+  orderItem   OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@unique([fulfillmentId, orderItemId])
+  @@index([orderItemId])
+  @@map("fulfillment_items")
+}
+
+model Package {
+  id                String          @id @default(uuid())
+  merchantId        String          @map("merchant_id")
+  fulfillmentId     String          @map("fulfillment_id")
+  courierProvider   String?         @map("courier_provider")
+  trackingNumber    String?         @map("tracking_number")
+  trackingUrl       String?         @map("tracking_url")
+  packageStatus     PackageStatus   @default(not_shipped) @map("package_status")
+  estimatedDeliveryAt DateTime?     @map("estimated_delivery_at")
+  shippedAt         DateTime?       @map("shipped_at")
+  deliveredAt       DateTime?       @map("delivered_at")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  merchant   Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  fulfillment Fulfillment    @relation(fields: [fulfillmentId], references: [id], onDelete: Cascade)
+  events     ShipmentEvent[]
+
+  @@index([merchantId, fulfillmentId])
+  @@map("packages")
+}
+
+model ShipmentEvent {
+  id          String              @id @default(uuid())
+  merchantId  String              @map("merchant_id")
+  packageId   String              @map("package_id")
+  eventLabel  String              @map("event_label")
+  eventStatus String              @map("event_status")
+  location    String?
+  eventAt     DateTime            @map("event_at")
+  source      ShipmentEventSource @default(merchant)
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  package Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, packageId])
+  @@map("shipment_events")
+}
+
+// ============================================================
+// STATUS HISTORY & AUDIT
+// ============================================================
+
+model OrderStatusHistory {
+  id            String          @id @default(uuid())
+  merchantId    String          @map("merchant_id")
+  orderId       String          @map("order_id")
+  fulfillmentId String?         @map("fulfillment_id")
+  packageId     String?         @map("package_id")
+  previousStatus String?        @map("previous_status")
+  newStatus     String          @map("new_status")
+  statusType    StatusHistoryType @map("status_type")
+  changedByUserId String?       @map("changed_by_user_id")
+  changedByType ChangedByType   @default(merchant) @map("changed_by_type")
+  changeReason  String?         @map("change_reason")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  merchant    Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fulfillment Fulfillment? @relation(fields: [fulfillmentId], references: [id], onDelete: SetNull)
+
+  @@index([merchantId, orderId])
+  @@map("order_status_history")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  merchantId String?  @map("merchant_id")
+  email      String
+  action     String   // signup, login, logout, order_created, ...
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Phase 1 merchant operations audit fields
+  actorUserId String? @map("actor_user_id")
+  entityType  String? @map("entity_type")
+  entityId    String? @map("entity_id")
+  metadata    Json?   @map("metadata")
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
 }
 
 model UpiId {
@@ -247,18 +673,6 @@ model MerchantSettings {
   merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@map("merchant_settings")
-}
-
-model AuditLog {
-  id         String   @id @default(uuid())
-  merchantId String?  @map("merchant_id")
-  email      String
-  action     String   // signup, login, logout
-  ipAddress  String?  @map("ip_address")
-  userAgent  String?  @map("user_agent")
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  @@map("audit_logs")
 }
 
 model FeedbackResponse {

@@ -37,7 +37,7 @@ export default function TemplatesPage() {
     load()
   }
 
-  async function useTemplate(t: Record<string, unknown>) {
+  async function applyTemplate(t: Record<string, unknown>) {
     const config = t.config as Record<string, unknown>
     sessionStorage.setItem('toropay_template', JSON.stringify(config))
     router.push('/dashboard/links/new?from=template')
@@ -64,7 +64,7 @@ export default function TemplatesPage() {
               <p className="text-xs text-gray-400">{(t.config as Record<string, unknown>)?.title as string}</p>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => useTemplate(t)}>Use template</Button>
+              <Button size="sm" onClick={() => applyTemplate(t)}>Use template</Button>
               <Button size="sm" variant="ghost" className="text-red-500"
                 onClick={() => api.deleteTemplate(t.id as string).then(load)}>Delete</Button>
             </div>

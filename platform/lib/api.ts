@@ -113,4 +113,89 @@ export const api = {
 
   getChannelStatus: () =>
     request<{ channels: Record<string, { status: string; provider: string; description: string }> }>('/api/integrations/channels/status'),
+
+  // ==================== Phase 1 operations ====================
+  getOverview: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) => request<T>(`/api/overview${params || ''}`),
+
+  getProducts: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
+    request<{ products: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/products${params || ''}`),
+
+  getProduct: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
+    request<{ product: T }>(`/api/products/${id}`),
+
+  createProduct: <T extends Record<string, unknown> = Record<string, unknown>>(body: Record<string, unknown>) =>
+    request<{ product: T }>('/api/products', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateProduct: (id: string, body: Record<string, unknown>) =>
+    request<{ product: Record<string, unknown> }>(`/api/products/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  archiveProduct: (id: string) =>
+    request<{ success: boolean }>(`/api/products/${id}`, { method: 'DELETE' }),
+
+  getCustomers: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
+    request<{ customers: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/customers${params || ''}`),
+
+  getCustomer: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
+    request<{ customer: T; addresses: Record<string, unknown>[]; orders: Record<string, unknown>[] }>(`/api/customers/${id}`),
+
+  createCustomer: <T extends Record<string, unknown> = Record<string, unknown>>(body: Record<string, unknown>) =>
+    request<{ customer: T }>('/api/customers', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateCustomer: (id: string, body: Record<string, unknown>) =>
+    request<{ customer: Record<string, unknown> }>(`/api/customers/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteCustomer: (id: string) =>
+    request<{ success: boolean }>(`/api/customers/${id}`, { method: 'DELETE' }),
+
+  addAddress: (customerId: string, body: Record<string, unknown>) =>
+    request<{ address: Record<string, unknown> }>(`/api/customers/${customerId}/addresses`, { method: 'POST', body: JSON.stringify(body) }),
+
+  updateAddress: (customerId: string, addressId: string, body: Record<string, unknown>) =>
+    request<{ address: Record<string, unknown> }>(`/api/customers/${customerId}/addresses/${addressId}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteAddress: (customerId: string, addressId: string) =>
+    request<{ success: boolean }>(`/api/customers/${customerId}/addresses/${addressId}`, { method: 'DELETE' }),
+
+  getOrders: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
+    request<{ orders: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/orders${params || ''}`),
+
+  getOrder: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
+    request<{ order: T }>(`/api/orders/${id}`),
+
+  createOrder: <T extends Record<string, unknown> = Record<string, unknown>>(body: Record<string, unknown>) =>
+    request<{ order: T }>('/api/orders', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateOrder: (id: string, body: Record<string, unknown>) =>
+    request<{ order: Record<string, unknown> }>(`/api/orders/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  cancelOrder: (id: string, body: Record<string, unknown> = {}) =>
+    request<{ success: boolean }>(`/api/orders/${id}/cancel`, { method: 'POST', body: JSON.stringify(body) }),
+
+  createFulfillment: (orderId: string, body: Record<string, unknown>) =>
+    request<{ fulfillment: Record<string, unknown> }>(`/api/orders/${orderId}/fulfillments`, { method: 'POST', body: JSON.stringify(body) }),
+
+  updateFulfillment: (id: string, body: Record<string, unknown>) =>
+    request<{ fulfillment: Record<string, unknown>; summary: string }>(`/api/fulfillments/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  addPackageTracking: (id: string, body: Record<string, unknown>) =>
+    request<{ result: Record<string, unknown> }>(`/api/fulfillments/${id}/package`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  setPackageStatus: (id: string, body: Record<string, unknown>) =>
+    request<{ result: Record<string, unknown> }>(`/api/fulfillments/${id}/package`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  addShipmentEvent: (id: string, body: Record<string, unknown>) =>
+    request<{ event: Record<string, unknown> }>(`/api/fulfillments/${id}/package`, { method: 'POST', body: JSON.stringify(body) }),
+
+  getDelivery: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
+    request<{ rows: T[]; counts: Record<string, number> }>(`/api/delivery${params || ''}`),
+
+  getMerchantProfile: () => request<{ profile: Record<string, unknown> }>('/api/merchant/profile'),
+
+  updateMerchantProfile: (body: Record<string, unknown>) =>
+    request<{ profile: Record<string, unknown> }>('/api/merchant/profile', { method: 'PATCH', body: JSON.stringify(body) }),
+
+  getTrack: <T extends Record<string, unknown> = Record<string, unknown>>(orderNumber: string, token: string) =>
+    request<T>(`/api/track/${orderNumber}?token=${encodeURIComponent(token)}`),
 }
+
+// ... existing code continues below

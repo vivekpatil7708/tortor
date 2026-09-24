@@ -19,10 +19,30 @@ export default function SettingsPage() {
     webhook_secret: '',
   })
 
+  const [profile, setProfile] = useState({
+    business_name: '', support_email: '', support_phone: '',
+    address: '', default_currency: 'INR', timezone: 'Asia/Kolkata',
+  })
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileMsg, setProfileMsg] = useState('')
+
   useEffect(() => {
     api.getSettings().then(s => setForm(f => ({ ...f, ...s }))).catch(() => {})
     api.getApiKeys().then(setApiKeys).catch(() => {})
+    api.getMerchantProfile().then(({ profile }) => setProfile(p => ({ ...p, ...profile }))).catch(() => {})
   }, [])
+
+  async function saveProfile(e: React.FormEvent) {
+    e.preventDefault()
+    setProfileSaving(true)
+    try {
+      await api.updateMerchantProfile(profile)
+      setProfileMsg('Store profile saved')
+      setTimeout(() => setProfileMsg(''), 3000)
+    } finally {
+      setProfileSaving(false)
+    }
+  }
 
   async function saveSettings(e: React.FormEvent) {
     e.preventDefault()
@@ -55,6 +75,51 @@ export default function SettingsPage() {
       </div>
 
       {msg && <div className="mb-4 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-600">{msg}</div>}
+
+      <form onSubmit={saveProfile} className="mb-6 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
+        <h2 className="mb-4 font-bold">Store profile</h2>
+        {profileMsg && <div className="mb-4 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-600">{profileMsg}</div>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500">Business name</span>
+            <input value={profile.business_name} onChange={e => setProfile({ ...profile, business_name: e.target.value })}
+              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500">Support email</span>
+            <input value={profile.support_email} onChange={e => setProfile({ ...profile, support_email: e.target.value })}
+              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500">Support phone</span>
+            <input value={profile.support_phone} onChange={e => setProfile({ ...profile, support_phone: e.target.value })}
+              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500">Default currency</span>
+            <select value={profile.default_currency} onChange={e => setProfile({ ...profile, default_currency: e.target.value })}
+              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none">
+              <option value="INR">INR — Indian Rupee</option>
+              <option value="USD">USD — US Dollar</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-gray-500">Timezone</span>
+            <select value={profile.timezone} onChange={e => setProfile({ ...profile, timezone: e.target.value })}
+              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none">
+              <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
+              <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-xs font-semibold text-gray-500">Business address</span>
+            <input value={profile.address} onChange={e => setProfile({ ...profile, address: e.target.value })}
+              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none" />
+          </label>
+        </div>
+        <Button type="submit" disabled={profileSaving}>{profileSaving ? 'Saving...' : 'Save profile'}</Button>
+      </form>
 
       <div className="mb-6 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
         <div className="flex items-center justify-between">

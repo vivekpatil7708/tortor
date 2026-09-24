@@ -49,7 +49,7 @@ export function DonationPrompt() {
         </div>
 
         <p className="mb-3 text-xs leading-relaxed text-gray-500">
-          You've received a few payments — thank you! If ToroPay helps your business,
+          You&apos;ve received a few payments — thank you! If ToroPay helps your business,
           consider donating to keep it free forever.
         </p>
 
@@ -68,7 +68,7 @@ export function DonationPrompt() {
         <div className="flex items-center justify-between">
           <button onClick={() => dismiss(true)}
             className="text-xs text-gray-400 underline hover:text-gray-600">
-            Don't show again
+            Don&apos;t show again
           </button>
           <button onClick={() => dismiss(false)}
             className="text-xs text-gray-500 hover:text-charcoal">

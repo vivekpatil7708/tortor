@@ -293,7 +293,7 @@ export default function LandingPage() {
         <div className="rounded-3xl bg-charcoal px-8 py-16 text-center text-white">
           <h2 className="text-3xl font-bold tracking-tight">Start accepting UPI payments in minutes</h2>
           <p className="mt-3 text-gray-300">Create unlimited payment links, pages, and QR codes. Completely free. No credit card needed.</p>
-          <Link href="/signup" className="mt-6 inline-block rounded-xl bg-primary-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-primary-600">Create free account — it's free</Link>
+          <Link href="/signup" className="mt-6 inline-block rounded-xl bg-primary-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-primary-600">Create free account — it&apos;s free</Link>
         </div>
       </section>
 

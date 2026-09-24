@@ -1,10 +1,10 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function exportToCSV(filename: string, columns: { key: string; label: string }[], data: any[]) {
+export function exportToCSV(filename: string, columns: { key: string; label: string }[], data: unknown[]) {
   const header = columns.map(c => `"${c.label}"`).join(',')
 
-  const rows = data.map(row =>
-    columns.map(c => {
-      const val = row[c.key]
+  const rows = data.map(row => {
+    const r = row as Record<string, unknown>
+    return columns.map(c => {
+      const val = r[c.key]
       if (val == null) return ''
       const str = String(val)
       if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -12,7 +12,7 @@ export function exportToCSV(filename: string, columns: { key: string; label: str
       }
       return str
     }).join(',')
-  )
+  })
 
   const csv = '\uFEFF' + [header, ...rows].join('\r\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })

@@ -55,7 +55,7 @@ export default function SupportPage() {
 
       {stats && stats.total_txns >= 3 && (
         <div className="mb-6 rounded-2xl border border-primary-200 bg-primary-50 px-5 py-4 text-sm text-primary-800">
-          You've processed {stats.success_txns} payments — thank you for using ToroPay!
+          You&apos;ve processed {stats.success_txns} payments — thank you for using ToroPay!
           If the platform helps your business, consider supporting it.
         </div>
       )}
