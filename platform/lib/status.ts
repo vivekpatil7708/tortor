@@ -82,12 +82,20 @@ export function canTransitionPayment(current: string, next: string): { ok: boole
 
 export function generateOrderNumber(): string {
   const year = new Date().getFullYear()
-  const seq = nanoid(4).toUpperCase().replace(/[^A-Z0-9]/g, '')
-  return `TP-${year}-${seq}`
+  let seq = ''
+  do {
+    // nanoid's alphabet includes '-' and '_'; re-roll until we have 4 alphanumerics.
+    seq = nanoid(4).toUpperCase().replace(/[^A-Z0-9]/g, '')
+  } while (seq.length < 4)
+  return `TP-${year}-${seq.slice(0, 4)}`
 }
 
 export function generateFulfillmentNumber(): string {
-  return `F-${nanoid(8).toUpperCase().replace(/[^A-Z0-9]/g, '')}`
+  let seq = ''
+  do {
+    seq = nanoid(8).toUpperCase().replace(/[^A-Z0-9]/g, '')
+  } while (seq.length < 8)
+  return `F-${seq.slice(0, 8)}`
 }
 
 export function generateTrackingToken(): string {

@@ -181,13 +181,14 @@ export function serializeOrderItem(i: OrderItem) {
   }
 }
 
-export function serializeFulfillmentItem(fi: FulfillmentItem) {
+export function serializeFulfillmentItem(fi: FulfillmentItem & { orderItem?: OrderItem | null }) {
   return {
     id: fi.id,
     fulfillment_id: fi.fulfillmentId,
     order_item_id: fi.orderItemId,
     quantity: fi.quantity,
     created_at: fi.createdAt.toISOString(),
+    order_item: fi.orderItem ? serializeOrderItem(fi.orderItem) : null,
   }
 }
 
@@ -209,7 +210,7 @@ export function serializeFulfillment(f: Fulfillment) {
   }
 }
 
-export function serializePackage(p: Package) {
+export function serializePackage(p: Package & { events?: ShipmentEvent[] }) {
   return {
     id: p.id,
     merchant_id: p.merchantId,
@@ -223,6 +224,19 @@ export function serializePackage(p: Package) {
     delivered_at: p.deliveredAt?.toISOString() ?? null,
     created_at: p.createdAt.toISOString(),
     updated_at: p.updatedAt.toISOString(),
+    // Phase 3 — provider-backed shipment details
+    provider: p.provider,
+    provider_shipment_id: p.providerShipmentId,
+    awb_number: p.awbNumber,
+    label_url: p.labelUrl,
+    pickup_scheduled_at: p.pickupScheduledAt?.toISOString() ?? null,
+    picked_up_at: p.pickedUpAt?.toISOString() ?? null,
+    rto_initiated_at: p.rtoInitiatedAt?.toISOString() ?? null,
+    rto_delivered_at: p.rtoDeliveredAt?.toISOString() ?? null,
+    return_tracking_number: p.returnTrackingNumber,
+    last_provider_sync_at: p.lastProviderSyncAt?.toISOString() ?? null,
+    provider_metadata: p.providerMetadata ?? null,
+    events: p.events ? p.events.map(serializeShipmentEvent) : undefined,
   }
 }
 
@@ -294,8 +308,8 @@ export function serializeOrder(o: Order & {
     order_items: o.orderItems?.map(serializeOrderItem),
     fulfillments: o.fulfillments?.map(f => ({
       ...serializeFulfillment(f),
-      items: f.items?.map(serializeFulfillmentItem),
-      packages: f.packages?.map(serializePackage),
+      items: f.items?.map(i => serializeFulfillmentItem(i)),
+      packages: f.packages?.map(p => serializePackage(p)),
     })),
     status_history: o.statusHistory?.map(serializeStatusHistory),
   }

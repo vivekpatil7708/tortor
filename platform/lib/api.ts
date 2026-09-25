@@ -160,7 +160,8 @@ export const api = {
     request<{ orders: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/orders${params || ''}`),
 
   getOrder: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
-    request<{ order: T }>(`/api/orders/${id}`),
+    request<{ order: Record<string, unknown> }>(`/api/orders/${id}`)
+      .then(r => ({ order: camelizeDeep<Record<string, unknown>>(r.order) }) as { order: T }),
 
   createOrder: <T extends Record<string, unknown> = Record<string, unknown>>(body: Record<string, unknown>) =>
     request<{ order: T }>('/api/orders', { method: 'POST', body: JSON.stringify(body) }),
@@ -187,7 +188,8 @@ export const api = {
     request<{ event: Record<string, unknown> }>(`/api/fulfillments/${id}/package`, { method: 'POST', body: JSON.stringify(body) }),
 
   getDelivery: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
-    request<{ rows: T[]; counts: Record<string, number> }>(`/api/delivery${params || ''}`),
+    request<{ rows: T[]; counts: Record<string, number>; pagination?: Record<string, unknown> }>(`/api/delivery${params || ''}`)
+      .then(r => ({ ...r, rows: (r.rows as Record<string, unknown>[]).map(row => camelizeDeep<Record<string, unknown>>(row)) as T[] })),
 
   getMerchantProfile: () => request<{ profile: Record<string, unknown> }>('/api/merchant/profile'),
 
@@ -196,6 +198,51 @@ export const api = {
 
   getTrack: <T extends Record<string, unknown> = Record<string, unknown>>(orderNumber: string, token: string) =>
     request<T>(`/api/track/${orderNumber}?token=${encodeURIComponent(token)}`),
+
+  // ==================== Phase 3 couriers ====================
+  getCourierConnections: <T extends Record<string, unknown> = Record<string, unknown>>() =>
+    request<{ connections: T[]; supported_couriers: Array<Record<string, unknown>> }>('/api/courier/connections'),
+
+  saveCourierConnection: (body: Record<string, unknown>) =>
+    request<{ connections: Record<string, unknown>[] }>('/api/courier/connections', { method: 'POST', body: JSON.stringify(body) }),
+
+  getCourierConnection: (provider: string) =>
+    request<{ connection: Record<string, unknown>; supported_courier: Record<string, unknown> | null }>(`/api/courier/connections/${provider}`),
+
+  testCourierConnection: (provider: string) =>
+    request<{ ok: boolean; error?: string | null }>(`/api/courier/connections/${provider}`, { method: 'PATCH', body: JSON.stringify({ action: 'test' }) }),
+
+  setCourierConnectionActive: (provider: string, active: boolean) =>
+    request<{ connection: Record<string, unknown> | null }>(`/api/courier/connections/${provider}`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+
+  updateCourierConnection: (provider: string, body: Record<string, unknown>) =>
+    request<{ connection: Record<string, unknown> }>(`/api/courier/connections/${provider}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteCourierConnection: (provider: string) =>
+    request<{ ok: boolean }>(`/api/courier/connections/${provider}`, { method: 'DELETE' }),
+
+  createProviderShipment: (orderId: string, body: Record<string, unknown>) =>
+    request<{ fulfillment: Record<string, unknown>; package: Record<string, unknown>; idempotent?: boolean }>(`/api/orders/${orderId}/shipments`, { method: 'POST', body: JSON.stringify(body) }),
+
+  courierPackageAction: (packageId: string, body: Record<string, unknown>) =>
+    request<{ ok: boolean; action: string; result: Record<string, unknown>; package: Record<string, unknown> | null }>(`/api/courier/packages/${packageId}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  runCourierSync: (body: Record<string, unknown> = {}) =>
+    request<{ scanned: number; synced: number; errors: number }>('/api/courier/sync', { method: 'POST', body: JSON.stringify(body) }),
+}
+
+function camelize(key: string): string {
+  return key.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase())
+}
+
+function camelizeDeep<T>(value: unknown): T {
+  if (Array.isArray(value)) return value.map(v => camelizeDeep(v)) as unknown as T
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value)) out[camelize(k)] = camelizeDeep(v)
+    return out as T
+  }
+  return value as T
 }
 
 // ... existing code continues below

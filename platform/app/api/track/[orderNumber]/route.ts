@@ -85,10 +85,13 @@ export async function GET(req: NextRequest, { params }: { params: { orderNumber:
       })),
       packages: f.packages.map(p => ({
         courier_provider: p.courierProvider,
-        tracking_number: p.trackingNumber,
+        provider: p.provider,
+        tracking_number: p.trackingNumber ?? p.awbNumber ?? null,
+        awb_number: p.awbNumber ?? null,
         tracking_url: p.trackingUrl,
         package_status: p.packageStatus,
         estimated_delivery_at: p.estimatedDeliveryAt?.toISOString() ?? null,
+        return_tracking_number: p.returnTrackingNumber ?? null,
         events: p.events.map(e => ({
           label: e.eventLabel,
           status: e.eventStatus,

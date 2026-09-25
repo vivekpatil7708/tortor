@@ -6,6 +6,7 @@ import {
 } from '@/lib/status'
 import { recalculateOrderFulfillmentSummary } from '@/lib/fulfillment-summary'
 import { logAudit } from '@/lib/audit'
+import { restoreStockForOrder } from '@/lib/inventory'
 import type { FulfillmentStatus, FulfillmentType, PackageStatus, ShipmentEventSource } from '@prisma/client'
 
 export interface FulfillmentItemInput {
@@ -543,7 +544,7 @@ export async function cancelOrder(params: {
 }) {
   const { merchantId, orderId, actorUserId = null, reason = null } = params
 
-  return prisma.$transaction(async (tx) => {
+  const cancelled = await prisma.$transaction(async (tx) => {
     const order = await tx.order.findFirst({
       where: { id: orderId, merchantId },
       include: { fulfillments: true, orderItems: true },
@@ -632,4 +633,7 @@ export async function cancelOrder(params: {
 
     return { order }
   })
+  // Restore previously-deducted stock when the merchant setting allows it.
+  await restoreStockForOrder({ merchantId, orderId, reason: reason ?? 'Order cancelled', actorUserId }).catch(() => {})
+  return cancelled
 }

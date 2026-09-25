@@ -40,6 +40,11 @@ export default function OrderDetailPage() {
   const [fullItems, setFullItems] = useState<Record<string, number>>({})
   const [shippedAt, setShippedAt] = useState('')
 
+  // courier shipping (Phase 3)
+  const [shipViaCourier, setShipViaCourier] = useState(true)
+  const [courierProvider, setCourierProvider] = useState('auto')
+  const [courierAction, setCourierAction] = useState<{ pkg: any; action: 'cancel' | 'return' } | null>(null)
+
   // tracking dialog
   const [trackFor, setTrackFor] = useState<{ fulfillmentId: string; packageId: string } | null>(null)
   const [trkCourier, setTrkCourier] = useState('')
@@ -136,12 +141,44 @@ export default function OrderDetailPage() {
         fulfillment_type: fullType,
         items: entries.map(([itemId, quantity]) => ({ order_item_id: itemId, quantity })),
       }
+      if (shipViaCourier) {
+        body.courier_provider = courierProvider && courierProvider !== 'auto' ? courierProvider : null
+        body.payment_mode = order.paymentStatus === 'pending' ? 'COD' : 'PREPAID'
+        const res = await api.createProviderShipment(order.id, body)
+        const tracking = res.package?.trackingNumber || res.package?.awbNumber
+        setFullOpen(false)
+        setFullItems({})
+        setShippedAt('')
+        message(`Shipment created${tracking ? ` · #${tracking}` : ''}`)
+        load()
+        return
+      }
       if (shippedAt) body.shipped_at = new Date(shippedAt).toISOString()
       const res = await api.createFulfillment(order.id, body)
       setFullOpen(false)
       setFullItems({})
       setShippedAt('')
       message(`Fulfillment ${res.fulfillment.fulfillmentNumber} created`)
+      load()
+    } catch (e) {
+      message((e as Error).message)
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  async function runCourierAction(pkg: any, action: 'label' | 'sync' | 'pickup' | 'cancel' | 'return') {
+    setActionBusy(true)
+    try {
+      const res = await api.courierPackageAction(pkg.id, {
+        action,
+        ...(action === 'pickup' ? { pickup_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() } : {}),
+      })
+      if (action === 'label' && res.result?.label_url && typeof res.result.label_url === 'string') {
+        window.open(res.result.label_url, '_blank', 'noopener,noreferrer')
+      }
+      setCourierAction(null)
+      message(`${action === 'sync' ? 'Synced' : action === 'label' ? 'Label ready' : action} · done`)
       load()
     } catch (e) {
       message((e as Error).message)
@@ -359,11 +396,36 @@ export default function OrderDetailPage() {
                               <button onClick={() => setEventFor({ fulfillmentId: f.id, packageId: pkg.id })} className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold hover:bg-gray-100">
                                 Add event
                               </button>
+                              {pkg.provider && (
+                                <>
+                                  <button onClick={() => runCourierAction(pkg, 'label')} className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold hover:bg-gray-100">
+                                    Label
+                                  </button>
+                                  <button onClick={() => runCourierAction(pkg, 'pickup')} className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold hover:bg-gray-100">
+                                    Pickup
+                                  </button>
+                                  <button onClick={() => runCourierAction(pkg, 'sync')} className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold hover:bg-gray-100">
+                                    Sync
+                                  </button>
+                                  <button onClick={() => setCourierAction({ pkg, action: 'cancel' })} className="rounded-lg border border-red-200 bg-white px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50">
+                                    Cancel
+                                  </button>
+                                  <button onClick={() => setCourierAction({ pkg, action: 'return' })} className="rounded-lg border border-amber-200 bg-white px-2 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-50">
+                                    RTO
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
 
                           {pkg.courierProvider && (
-                            <p className="mt-1 text-xs text-gray-500">{pkg.courierProvider}</p>
+                            <p className="mt-1 text-xs text-gray-500">{pkg.courierProvider}{pkg.provider && pkg.courierProvider !== pkg.provider ? ` (${pkg.provider})` : ''}</p>
+                          )}
+                          {pkg.awbNumber && pkg.awbNumber !== pkg.trackingNumber && (
+                            <p className="mt-1 text-xs text-gray-400">AWB #{pkg.awbNumber}</p>
+                          )}
+                          {pkg.returnTrackingNumber && (
+                            <p className="mt-1 text-xs font-semibold text-amber-600">Return tracking #{pkg.returnTrackingNumber}</p>
                           )}
                           {pkg.trackingUrl && (
                             <a href={pkg.trackingUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-semibold text-primary-600 hover:underline">
@@ -528,8 +590,24 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
-          <Field label="Shipped at (optional)">
-            <Input type="datetime-local" value={shippedAt} onChange={e => setShippedAt(e.target.value)} />
+          <Field label="Shipping method">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-100 px-3 py-2.5 text-sm font-medium">
+              <input type="checkbox" checked={shipViaCourier} onChange={e => setShipViaCourier(e.target.checked)} className="h-4 w-4" />
+              Ship through a courier (auto tracking + AWB)
+            </label>
+          </Field>
+          {shipViaCourier && (
+            <Field label="Courier">
+              <Select value={courierProvider} onChange={e => setCourierProvider(e.target.value)}>
+                <option value="auto">Auto (best connected courier)</option>
+                <option value="mock">Mock Courier (test mode)</option>
+                <option value="shiprocket">Shiprocket</option>
+              </Select>
+            </Field>
+          )}
+
+          <Field label="Shipped at (manual only, optional)">
+            <Input type="datetime-local" value={shippedAt} onChange={e => setShippedAt(e.target.value)} disabled={shipViaCourier} />
           </Field>
 
           <div className="flex justify-end gap-2">
@@ -611,6 +689,20 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </Dialog>
+
+      {/* Courier cancel/RTO dialog */}
+      <ConfirmDialog
+        open={!!courierAction}
+        onClose={() => setCourierAction(null)}
+        onConfirm={() => courierAction && runCourierAction(courierAction.pkg, courierAction.action)}
+        title={courierAction?.action === 'cancel' ? 'Cancel this shipment?' : 'Initiate a return?'}
+        message={courierAction?.action === 'cancel'
+          ? 'The courier will be asked to cancel this package. This is reversible only if the courier accepts the cancellation.'
+          : 'An RTO shipment will be created to return this package to you.'}
+        confirmLabel={courierAction?.action === 'cancel' ? 'Cancel shipment' : 'Start return'}
+        danger={courierAction?.action === 'cancel'}
+        busy={actionBusy}
+      />
 
       {/* Cancel dialog */}
       <ConfirmDialog

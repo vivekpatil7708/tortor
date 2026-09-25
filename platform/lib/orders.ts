@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { generateOrderNumber, generateTrackingToken } from '@/lib/status'
 import { logAudit } from '@/lib/audit'
+import { restoreStockForOrder } from '@/lib/inventory'
 import type {
   OrderSource,
   PaymentStatus,
@@ -36,6 +37,9 @@ export interface CreateOrderInput {
   customerNote?: string | null
   paymentStatus?: PaymentStatus
   orderStatus?: OrderStatus
+  testMode?: boolean
+  merchantOrderReference?: string | null
+  checkoutLinkId?: string | null
 }
 
 function round2(n: number): number {
@@ -67,6 +71,9 @@ export async function createOrder(input: CreateOrderInput) {
     customerNote = null,
     paymentStatus = 'pending',
     orderStatus = 'new',
+    testMode = false,
+    merchantOrderReference = null,
+    checkoutLinkId = null,
   } = input
 
   if (!items.length) throw new Error('Order must have at least one item')
@@ -128,6 +135,10 @@ export async function createOrder(input: CreateOrderInput) {
         customerId: resolvedCustomerId,
         orderNumber,
         source,
+        testMode,
+        merchantOrderReference,
+        checkoutLinkId,
+        currency: 'INR',
         subtotalAmount: subtotal,
         discountAmount: discount,
         shippingAmount: shipping,
@@ -232,7 +243,8 @@ export async function setOrderStatus(params: {
 }) {
   const { merchantId, orderId, actorUserId = null, nextStatus, reason = null } = params
 
-  return prisma.$transaction(async (tx) => {
+  return await (async () => {
+    const updated = await prisma.$transaction(async (tx) => {
     const order = await tx.order.findFirst({
       where: { id: orderId, merchantId },
     })
@@ -297,6 +309,11 @@ export async function setOrderStatus(params: {
 
     return updated
   })
+    if (nextStatus === 'cancelled') {
+      await restoreStockForOrder({ merchantId, orderId, reason: reason ?? 'Order cancelled', actorUserId }).catch(() => {})
+    }
+    return updated
+  })()
 }
 
 /**

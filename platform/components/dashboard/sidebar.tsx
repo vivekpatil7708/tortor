@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, PackageSearch, Users, ShoppingBag, Truck, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, LogOut, Menu, X, Globe, Code2, ChevronDown
+  LayoutDashboard, PackageSearch, Users, ShoppingBag, Truck, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, LogOut, Menu, X, Globe, Code2, ChevronDown, RotateCcw, Target
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -15,24 +15,30 @@ const mainNav = [
   { label: 'Customers', href: '/dashboard/customers', icon: Users },
   { label: 'Products', href: '/dashboard/products', icon: PackageSearch },
   { label: 'Delivery', href: '/dashboard/delivery', icon: Truck },
+  { label: 'Couriers', href: '/dashboard/couriers', icon: Truck },
 ]
 
 const paymentsNav = [
-  { label: 'Payment Links', href: '/dashboard/links', icon: Link2 },
+  { label: 'Checkout Links', href: '/dashboard/payment-links', icon: Link2 },
+  { label: 'UPI Links', href: '/dashboard/links', icon: QrCode },
   { label: 'Transactions', href: '/dashboard/transactions', icon: Banknote },
+  { label: 'Returns & Refunds', href: '/dashboard/returns', icon: RotateCcw },
   { label: 'UPI IDs', href: '/dashboard/upi', icon: QrCode },
 ]
 
 const brandNav = [
   { label: 'Branding', href: '/dashboard/branding', icon: Palette },
   { label: 'Templates', href: '/dashboard/templates', icon: FileStack },
+  { label: 'Emails', href: '/dashboard/emails', icon: MessageSquare },
+  { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
+  { label: 'Segments', href: '/dashboard/segments', icon: Target },
   { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { label: 'Messages', href: '/dashboard/settings/messaging', icon: MessageSquare },
   { label: 'Support', href: '/dashboard/support', icon: HeartHandshake },
 ]
 
 const devNav = [
   { label: 'Website Integration', href: '/dashboard/website', icon: Globe },
+  { label: 'Webhooks', href: '/dashboard/webhooks', icon: Code2 },
   { label: 'Developers', href: '/dashboard/developers', icon: Code2 },
 ]
 

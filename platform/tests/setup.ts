@@ -6,6 +6,17 @@ const prisma = new PrismaClient({
 })
 
 const TABLES = [
+  'courier_webhook_events',
+  'courier_connections',
+  'webhook_delivery_logs',
+  'webhook_endpoints',
+  'webhook_events',
+  'email_logs',
+  'email_templates',
+  'api_request_logs',
+  'api_keys',
+  'payments',
+  'checkout_links',
   'shipment_events',
   'packages',
   'fulfillment_items',
@@ -18,6 +29,16 @@ const TABLES = [
   'customers',
   'audit_logs',
   'merchant_users',
+  'merchant_settings',
+  'automation_rules',
+  'message_logs',
+  'message_templates',
+  'channel_connections',
+  'follow_up_tasks',
+  'returns',
+  'return_items',
+  'refunds',
+  'inventory_adjustments',
 ]
 
 async function resetDb() {

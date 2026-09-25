@@ -119,6 +119,38 @@ export const shipmentEventSchema = z.object({
 })
 
 // ============================================================
+// PHASE 3 — COURIER SHIPMENTS
+// ============================================================
+
+export const createProviderShipmentSchema = z.object({
+  fulfillment_type: z.enum(['shipping', 'local_delivery']).default('shipping'),
+  items: z.array(fulfillmentItemSchema).min(1, 'Select at least one item'),
+  courier_provider: z.string().max(50).optional().nullable(),
+  courier_preference: z.string().max(100).optional().nullable(),
+  weight_kg: z.number().positive().optional().nullable(),
+  length_cm: z.number().positive().optional().nullable(),
+  breadth_cm: z.number().positive().optional().nullable(),
+  height_cm: z.number().positive().optional().nullable(),
+  payment_mode: z.enum(['PREPAID', 'COD']).optional().default('PREPAID'),
+  pickup_scheduled_at: z.string().optional().nullable(),
+  request_id: z.string().max(100).optional().nullable(),
+})
+
+export const courierConnectionSchema = z.object({
+  provider: z.enum(['mock', 'shiprocket', 'delhivery']),
+  label: z.string().max(120).optional().nullable(),
+  test_mode: z.boolean().optional().default(false),
+  credentials: z.record(z.unknown()).optional().nullable(),
+  active: z.boolean().optional().default(true),
+})
+
+export const courierPackageActionSchema = z.object({
+  action: z.enum(['label', 'pickup', 'cancel', 'return', 'sync']),
+  pickup_date: z.string().optional().nullable(),
+  reason: z.string().max(500).optional().nullable(),
+})
+
+// ============================================================
 // DASHBOARD / QUERY
 // ============================================================
 

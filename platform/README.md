@@ -39,6 +39,14 @@ Open [http://localhost:3000](http://localhost:3000)
 - **Tenant isolation** — every service query is scoped to the logged-in merchant; cross-tenant access is forbidden and tested
 - **Public tracking page** — [/track/[orderNumber]](http://localhost:3000/track/[orderNumber]) secured by a secret token on the order
 
+### Pay-&-Confirm (Phase 2)
+- **Hosted checkout** — `/checkout/[session]` renders the branded order summary, collects customer details, then (via the mock provider) submits a signed webhook. The success page polls status and flips to "paid" the moment the webhook lands.
+- **Merchant API** — `/api/v1/orders` (POST) creates an order + checkout in one call; GET `/api/v1/orders/[id]` and GET `/api/v1/orders/[id]/payment-status`. Bearer auth via API keys, body-`Idempotency-Key`/`merchant_order_reference` dedupe, test/live key modes, every request logged to `api_request_logs`.
+- **Webhook processing** — `/api/webhooks/payments/[provider]` verifies an HMAC signature, persists the event (idempotent, deduped), validates provider-reported amount/currency against the payment (flags `amountMismatch` instead of marking paid), updates payment + order, and fan-outs.
+- **Outgoing webhooks** — merchants register endpoints subscribed to `payment.paid|failed`, `order.*`, `fulfillment.*` (test/live scoped); signed with a per-endpoint secret, auto-retried with backoff, logged, and retryable from the dashboard.
+- **Email confirmations** — customer + merchant transactional emails (`payment_received`, `payment_failed`, `order_confirmed`, ...), editable subject/body templates with `{{variables}}`, send logs, and a test-send button. Mock provider by default; `RESEND_API_KEY` enables real delivery.
+- **Payment links** — `/dashboard/payment-links` creates shareable `/paylink/[slug]` links (fixed or flexible amount, expiry, max-payment caps) that flow straight into the hosted checkout.
+
 ## Stack
 
 - **Frontend:** Next.js 14 (App Router), React, Tailwind CSS
@@ -46,9 +54,20 @@ Open [http://localhost:3000](http://localhost:3000)
 - **Database:** PostgreSQL via Prisma (local dev = Docker container on `localhost:5433`, all creds `toropay`; `toropay_test` DB used by the vitest suite)
 - **Auth:** JWT sessions (httpOnly cookies), `lib/auth.ts` with jose
 - **Validation:** Zod on all API routes (unified `zodMessage` errors)
-- **Tests:** Vitest — 45 integration/unit tests across `tests/` (status transitions, fulfillment-summary aggregation, order lifecycle, split shipments, tenant isolation)
+- **Tests:** Vitest — 83 integration/unit tests across `tests/` (status transitions, fulfillment-summary aggregation, order lifecycle, split shipments, tenant isolation, API-key lifecycle, checkout idempotency, payment-link limits, incoming/outgoing webhooks, email automation)
 
-## Scripts
+## Environment
+
+See `.env.example`. Phase 2 additions:
+
+| Variable | Purpose |
+|----------|---------|
+| `MOCK_WEBHOOK_SECRET` | HMAC secret for mock provider webhooks (default `toropay-mock-webhook-secret`) |
+| `API_KEY_PEPPER` | Peppers API-key hashes (falls back to `JWT_SECRET`) |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | Razorpay adapter + inbound webhook signature |
+| `CASHFREE_APP_ID` / `CASHFREE_SECRET_KEY` / `CASHFREE_WEBHOOK_SECRET` | Cashfree adapter + inbound webhook signature |
+| `RESEND_API_KEY` | Real transactional email delivery (default: mock provider, logs still stored) |
+| `NEXT_PUBLIC_APP_URL` | Base URL used for checkout / payment-link URLs |
 
 ```json
 "build":  "prisma generate && next build"

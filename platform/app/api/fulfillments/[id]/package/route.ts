@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         include: { packages: true },
       })
       if (!fulfillment) return notFound('Fulfillment not found')
-      const pkg = (fulfillment.packages ?? [])[0]
+      const pkg = resolvePackage(body, fulfillment.packages)
       if (!pkg) return notFound('No package on this fulfillment')
       if (fulfillment.fulfillmentType === 'shipping' || fulfillment.fulfillmentType === 'local_delivery') {
         const result = await addPackageTracking({
@@ -48,7 +48,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         include: { packages: true },
       })
       if (!fulfillment) return notFound('Fulfillment not found')
-      const pkg = (fulfillment.packages ?? [])[0]
+      const pkg = resolvePackage(body, fulfillment.packages)
       if (!pkg) return notFound('No package on this fulfillment')
       const result = await setPackageStatus({
         merchantId: session.id,
@@ -68,18 +68,31 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
+export type PackageRow = { id: string; trackingNumber?: string | null; tracking_number?: string | null }
+
+function resolvePackage(body: Record<string, unknown>, packages: PackageRow[]): PackageRow | undefined {
+  const requested = body.package_id ?? body.packageId ?? body.tracking_number
+  if (!requested) return (packages ?? [])[0]
+  return (packages ?? []).find(p =>
+    p.id === requested ||
+    p.trackingNumber === requested ||
+    (p as { tracking_number?: string | null }).tracking_number === requested
+  ) ?? (packages ?? [])[0]
+}
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await requireMerchant()
     const owner = await getOwnerUser(session.id)
-    const body = shipmentEventSchema.parse(await req.json())
+    const rawBody = await req.json() as Record<string, unknown>
+    const body = shipmentEventSchema.parse(rawBody)
 
     const fulfillment = await prisma.fulfillment.findFirst({
       where: { id: params.id, merchantId: session.id },
       include: { packages: true },
     })
     if (!fulfillment) return notFound('Fulfillment not found')
-    const pkg = (fulfillment.packages ?? [])[0]
+    const pkg = resolvePackage({ package_id: rawBody.package_id as string | undefined }, fulfillment.packages)
     if (!pkg) return notFound('No package on this fulfillment')
 
     const event = await addShipmentEvent({
