@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { buttonRadius } from '@/lib/utils'
 import OrderSummary from '@/components/checkout/order-summary'
@@ -17,6 +17,7 @@ export interface CheckoutView {
     expires_at: string | null
     paid_at: string | null
     payment_method: string | null
+    shopify_return_url: string | null
   }
   order: {
     id: string
@@ -140,6 +141,10 @@ export default function CheckoutFlow({ view }: Props) {
       }
       if (!data.flagged && data.status === 'paid') {
         setStep('done')
+        if (payment.shopify_return_url) {
+          window.location.href = payment.shopify_return_url
+          return
+        }
         router.push(`/checkout/${payment.checkout_session_id}/success`)
         return
       }
@@ -158,6 +163,11 @@ export default function CheckoutFlow({ view }: Props) {
   }
 
   if (lockedIn) {
+    if (payment.shopify_return_url) {
+      return (
+        <ShopifyReturning view={view} />
+      )
+    }
     return (
       <div className={`flex min-h-screen items-center justify-center ${bg} p-4`} style={bgStyle}>
         <div className={`w-full max-w-md rounded-3xl border p-8 backdrop-blur-xl ${cardBg}`}>
@@ -273,6 +283,22 @@ export default function CheckoutFlow({ view }: Props) {
         </button>
 
         <p className="mt-4 text-center text-xs opacity-50">Powered by ToroPay</p>
+      </div>
+    </div>
+  )
+}
+
+function ShopifyReturning({ view }: Props) {
+  useEffect(() => {
+    if (view.payment.shopify_return_url) {
+      window.location.href = view.payment.shopify_return_url
+    }
+  }, [view])
+  return (
+    <div className={`flex min-h-screen items-center justify-center p-4 ${view.merchant.page_theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-cream text-charcoal'}`}>
+      <div className="text-center">
+        <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-4 border-black/10 border-t-black/60" />
+        <p className="text-sm opacity-70">Payment confirmed — returning you to the store…</p>
       </div>
     </div>
   )

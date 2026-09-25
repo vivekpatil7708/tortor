@@ -1,10 +1,13 @@
 import crypto from 'crypto'
+import type { ShopifyConnection } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createCheckout, TOROPAY_PUBLIC_URL } from '@/lib/checkout'
 import { settlePaymentFromExternal } from '@/lib/payments/webhook-processor'
 import { verifyAmount } from '@/lib/pricing'
 
 export const SHOPIFY_WEBHOOK_PATH = '/api/webhooks/shopify'
+export const SHOPIFY_INSTALL_PATH = '/api/integrations/shopify/app'
+export const SHOPIFY_GATEWAY_PATH = '/api/shopify/gateway'
 
 export interface ShopifyConnectionView {
   connected: boolean
@@ -17,6 +20,14 @@ export interface ShopifyConnectionView {
   last_event_at: string | null
   last_error: string | null
   created_at: string
+  app_configured: boolean
+  gateway_installed: boolean
+  installed_at: string | null
+  gateway_install_url: string | null
+  payment_session_url: string
+  refund_session_url: string
+  capture_session_url: string
+  void_session_url: string
 }
 
 export function generateShopifyWebhookSecret(): string {
@@ -42,21 +53,12 @@ export async function getShopifyConnectionByStoreDomain(storeDomain: string) {
   return prisma.shopifyConnection.findUnique({ where: { storeDomain: normalized } })
 }
 
-export function serializeShopifyConnection(conn: {
-  id: string
-  merchantId: string
-  storeDomain: string
-  webhookSecret: string
-  topicOrdersCreate: boolean
-  topicOrdersPaid: boolean
-  enabled: boolean
-  lastEventAt: Date | null
-  lastError: string | null
-  createdAt: Date
-}): ShopifyConnectionView {
+export function serializeShopifyConnection(conn: ShopifyConnection): ShopifyConnectionView {
+  const appConfigured = Boolean(process.env.SHOPIFY_API_KEY && process.env.SHOPIFY_API_SECRET)
+  const storeDomain = conn.storeDomain
   return {
     connected: conn.enabled,
-    store_domain: conn.storeDomain,
+    store_domain: storeDomain,
     webhook_secret: conn.webhookSecret,
     topic_orders_create: conn.topicOrdersCreate,
     topic_orders_paid: conn.topicOrdersPaid,
@@ -65,6 +67,40 @@ export function serializeShopifyConnection(conn: {
     last_event_at: conn.lastEventAt?.toISOString() ?? null,
     last_error: conn.lastError,
     created_at: conn.createdAt.toISOString(),
+    app_configured: appConfigured,
+    gateway_installed: Boolean(conn.accessToken),
+    installed_at: conn.installedAt?.toISOString() ?? null,
+    gateway_install_url: appConfigured && storeDomain
+      ? `${TOROPAY_PUBLIC_URL}${SHOPIFY_INSTALL_PATH}/install?shop=${encodeURIComponent(storeDomain)}`
+      : null,
+    payment_session_url: `${TOROPAY_PUBLIC_URL}${SHOPIFY_GATEWAY_PATH}/session`,
+    refund_session_url: `${TOROPAY_PUBLIC_URL}${SHOPIFY_GATEWAY_PATH}/refund`,
+    capture_session_url: `${TOROPAY_PUBLIC_URL}${SHOPIFY_GATEWAY_PATH}/capture`,
+    void_session_url: `${TOROPAY_PUBLIC_URL}${SHOPIFY_GATEWAY_PATH}/void`,
+  }
+}
+
+export function serializeShopifyDisconnected(): ShopifyConnectionView {
+  const appConfigured = Boolean(process.env.SHOPIFY_API_KEY && process.env.SHOPIFY_API_SECRET)
+  return {
+    connected: false,
+    store_domain: null,
+    webhook_secret: null,
+    topic_orders_create: true,
+    topic_orders_paid: true,
+    enabled: true,
+    webhook_url: `${TOROPAY_PUBLIC_URL}${SHOPIFY_WEBHOOK_PATH}`,
+    last_event_at: null,
+    last_error: null,
+    created_at: '',
+    app_configured: appConfigured,
+    gateway_installed: false,
+    installed_at: null,
+    gateway_install_url: null,
+    payment_session_url: `${TOROPAY_PUBLIC_URL}${SHOPIFY_GATEWAY_PATH}/session`,
+    refund_session_url: `${TOROPAY_PUBLIC_URL}${SHOPIFY_GATEWAY_PATH}/refund`,
+    capture_session_url: `${TOROPAY_PUBLIC_URL}${SHOPIFY_GATEWAY_PATH}/capture`,
+    void_session_url: `${TOROPAY_PUBLIC_URL}${SHOPIFY_GATEWAY_PATH}/void`,
   }
 }
 

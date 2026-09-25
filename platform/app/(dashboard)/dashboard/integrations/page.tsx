@@ -14,6 +14,12 @@ interface ShopifyState {
   webhook_url: string
   last_event_at: string | null
   last_error: string | null
+  app_configured: boolean
+  gateway_installed: boolean
+  installed_at: string | null
+  gateway_install_url: string | null
+  payment_session_url: string
+  refund_session_url: string
 }
 
 const INITIAL: ShopifyState = {
@@ -26,6 +32,12 @@ const INITIAL: ShopifyState = {
   webhook_url: '',
   last_event_at: null,
   last_error: null,
+  app_configured: false,
+  gateway_installed: false,
+  installed_at: null,
+  gateway_install_url: null,
+  payment_session_url: '',
+  refund_session_url: '',
 }
 
 export default function IntegrationsPage() {
@@ -240,6 +252,61 @@ export default function IntegrationsPage() {
           </Button>
         </div>
       )}
+
+      <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
+        <div className="flex items-start gap-3">
+          <div className={`rounded-xl p-2.5 ${state.gateway_installed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="font-bold">ToroPay Payments app</p>
+            <p className="text-xs text-gray-500">
+              Lets Shopify shoppers pay with ToroPay at checkout — the secure checkout is hosted on ToroPay and the order is confirmed back to Shopify automatically.
+            </p>
+            <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${state.gateway_installed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+              {state.gateway_installed
+                ? `Installed${state.installed_at ? ` · ${new Date(state.installed_at).toLocaleDateString()}` : ''}`
+                : state.app_configured
+                  ? 'Not installed'
+                  : 'Not configured'}
+            </span>
+          </div>
+        </div>
+
+        {!state.app_configured && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+            <p className="font-bold">Shopify app credentials are not configured yet</p>
+            <p className="mt-1">
+              Set <code>SHOPIFY_API_KEY</code> and <code>SHOPIFY_API_SECRET</code> in the platform&apos;s environment, then
+              reload this page to install the app.
+            </p>
+          </div>
+        )}
+        {state.app_configured && !state.gateway_installed && (
+          <Button type="button" className="mt-4 w-full" onClick={() => window.scrollTo(0, 0)} disabled={!state.gateway_install_url}>
+            <a href={state.gateway_install_url || '#'} className="flex w-full items-center justify-center">
+              <ExternalLink className="mr-1.5 h-4 w-4" /> Install on a Shopify store
+            </a>
+          </Button>
+        )}
+        {state.gateway_installed && (
+          <div className="mt-4 space-y-3">
+            <p className="text-xs text-gray-500">
+              Connected store: <b>{state.store_domain}</b>. Put these URLs in the payments extension you deploy in
+              Shopify Partner (see the <code>shopify-app/extensions/toropay-payments</code> config in this repo).
+            </p>
+            {[
+              { label: 'Payment session URL', value: state.payment_session_url },
+              { label: 'Refund session URL', value: state.refund_session_url },
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-xl border border-gray-200 bg-white/50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</p>
+                <code className="mt-1 block truncate rounded-lg bg-gray-100 px-3 py-2 font-mono text-xs text-gray-700">{value}</code>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,0 +1,22 @@
+[payments]
+name = "ToroPay Payments"
+handle = "toropay"
+supports_3ds = false
+supports_installments = false
+supports_deferred_payments = false
+supported_countries = ["IN"]
+#
+# Icons live in the Shopify platform's payments_icons.yml. "upi" is the
+# standard id for UPI; upload a matching brand asset before deploying, or
+# Lighthouse will reject the extension at submit time.
+supported_payment_methods = ["upi"]
+test_mode_available = true
+merchant_label = "ToroPay"
+buyer_label = "ToroPay (UPI)"
+#
+# These must be public HTTPS endpoints on the ToroPay platform:
+# - payment_session_url  Shopify POSTs an offsite payment request here; ToroPay
+#                        replies { "redirect_url": <hosted checkout> }.
+# - refund_session_url   Shopify POSTs refund requests here.
+payment_session_url = "https://checkout.toropay.co.in/api/shopify/gateway/session"
+refund_session_url = "https://checkout.toropay.co.in/api/shopify/gateway/refund"

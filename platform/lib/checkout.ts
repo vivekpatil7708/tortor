@@ -233,7 +233,10 @@ export async function createCheckout(input: CreateCheckoutInput): Promise<Create
       paymentLinkUrl: session.checkoutUrl ?? null,
       paymentMethod: 'mock',
       status: session.status,
-      providerResponse: (session.providerResponse as object) ?? undefined,
+      providerResponse:
+        metadata || session.providerResponse
+          ? { ...((session.providerResponse as object) || {}), ...(metadata ? (metadata as object) : {}) }
+          : undefined,
     },
   })
 
@@ -270,6 +273,7 @@ export interface CheckoutView {
     expires_at: string | null
     paid_at: string | null
     payment_method: string | null
+    shopify_return_url: string | null
   }
   order: {
     id: string
@@ -326,6 +330,10 @@ export async function getCheckoutView(checkoutSessionId: string): Promise<Checko
       expires_at: payment.expiresAt?.toISOString() ?? null,
       paid_at: payment.paidAt?.toISOString() ?? null,
       payment_method: payment.paymentMethod,
+      shopify_return_url:
+        (payment.providerResponse as Record<string, unknown> | null)?.['gateway'] === 'shopify'
+          ? `${TOROPAY_PUBLIC_URL}/api/shopify/gateway/return?session=${payment.checkoutSessionId}`
+          : null,
     },
     order: {
       id: o.id,

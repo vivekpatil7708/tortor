@@ -4,10 +4,9 @@ import { prisma } from '@/lib/prisma'
 import {
   getShopifyConnection,
   serializeShopifyConnection,
+  serializeShopifyDisconnected,
   generateShopifyWebhookSecret,
-  SHOPIFY_WEBHOOK_PATH,
 } from '@/lib/shopify'
-import { TOROPAY_PUBLIC_URL } from '@/lib/checkout'
 import { apiError, badRequest } from '@/lib/api-response'
 import { z } from 'zod'
 import { zodMessage } from '@/lib/zod-error'
@@ -25,12 +24,7 @@ export async function GET() {
     const session = await requireMerchant()
     const conn = await getShopifyConnection(session.id)
     if (!conn) {
-      return NextResponse.json({
-        connected: false,
-        store_domain: null,
-        webhook_secret: null,
-        webhook_url: `${TOROPAY_PUBLIC_URL}${SHOPIFY_WEBHOOK_PATH}`,
-      })
+      return NextResponse.json(serializeShopifyDisconnected())
     }
     return NextResponse.json(serializeShopifyConnection(conn))
   } catch {

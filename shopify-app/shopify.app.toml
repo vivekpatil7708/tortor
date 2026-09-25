@@ -1,0 +1,15 @@
+# ToroPay Shopify payments app (routes to the ToroPay platform gateway).
+# Scaffold: npm init @shopify/app@latest, then drop these into the app project
+# and deploy with `shopify app deploy`.
+name = "ToroPay Payments"
+application_url = "https://checkout.toropay.co.in"
+embedded = true
+api_version = "2026-07"
+
+access_scopes = [
+  "read_payment_sessions",
+  "write_payment_sessions",
+]
+
+[build]
+command = ""
