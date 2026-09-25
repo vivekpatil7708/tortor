@@ -1,8 +1,9 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { buttonRadius } from '@/lib/utils'
+import OrderSummary from '@/components/checkout/order-summary'
 
 export interface CheckoutView {
   payment: {
@@ -77,16 +78,6 @@ export default function CheckoutFlow({ view }: Props) {
     : 'bg-white/50 border-white/60 text-charcoal placeholder:text-gray-400 focus:border-white/80'
 
   const lockedIn = payment.status === 'paid'
-
-  const totalRows = useMemo(() => {
-    const rows: Array<[string, number | null]> = []
-    if (order.subtotal_amount !== order.total_amount) rows.push(['Subtotal', order.subtotal_amount])
-    if (order.discount_amount > 0) rows.push(['Discount', -order.discount_amount])
-    if (order.shipping_amount > 0) rows.push(['Shipping', order.shipping_amount])
-    if (order.tax_amount > 0) rows.push(['Tax', order.tax_amount])
-    rows.push(['Total', order.total_amount])
-    return rows
-  }, [order])
 
   function formatAmount(n: number) {
     return `${payment.currency === 'INR' ? '₹' : ''}${n.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
@@ -241,25 +232,18 @@ export default function CheckoutFlow({ view }: Props) {
           <p className="mt-1 font-mono text-xs opacity-50">Order {order.order_number}</p>
         </div>
 
-        <div className="mb-4 space-y-2">
-          {order.items.map((item, i) => (
-            <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-sm">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold">{item.name}</p>
-                {item.sku && <p className="text-xs opacity-50">{item.sku}</p>}
-                {item.quantity > 1 && <p className="text-xs opacity-50">× {item.quantity}</p>}
-              </div>
-              <p className="text-sm font-semibold">{formatAmount(item.line_total)}</p>
-            </div>
-          ))}
-          <div className="space-y-1 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm backdrop-blur-sm">
-            {totalRows.map(([label, value]) => (
-              <div key={label} className="flex items-center justify-between">
-                <span className="opacity-70">{label}</span>
-                <span className={label === 'Total' ? 'text-base font-bold' : 'font-medium'}>{formatAmount(value ?? 0)}</span>
-              </div>
-            ))}
-          </div>
+        <div className="mb-4">
+          <OrderSummary
+            items={order.items}
+            subtotal={order.subtotal_amount}
+            discount={order.discount_amount}
+            shipping={order.shipping_amount}
+            tax={order.tax_amount}
+            total={order.total_amount}
+            currency={payment.currency}
+            isDark={isDark}
+            verified
+          />
         </div>
 
         <div className="space-y-4">
@@ -285,7 +269,7 @@ export default function CheckoutFlow({ view }: Props) {
         <button onClick={beginPayment} disabled={busy}
           className={`mt-6 w-full py-3.5 text-base font-bold text-white ${btnRadius} disabled:opacity-60`}
           style={{ backgroundColor: primaryColor }}>
-          {busy ? 'Preparing payment…' : `Continue to Pay ${formatAmount(totalRows[totalRows.length - 1][1] ?? 0)}`}
+          {busy ? 'Preparing payment…' : `Continue to Pay ${formatAmount(order.total_amount)}`}
         </button>
 
         <p className="mt-4 text-center text-xs opacity-50">Powered by ToroPay</p>

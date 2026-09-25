@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireMerchant, getOwnerUser } from '@/lib/tenant'
+import { requireMerchant } from '@/lib/tenant'
 import { handleError } from '@/lib/api-response'
 
-// KPI cards: total orders, paid orders, pending payment, to pack, in transit,
-// delivered, total sales. Recent orders + needs action + low stock + quick actions.
+// KPI cards + recent orders / status breakdown / needs attention / low stock.
+// Consumed by the dashboard Overview page (camelCase shape).
 export async function GET(req: NextRequest) {
   try {
     const session = await requireMerchant()
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const since = new Date()
     since.setDate(since.getDate() - days)
 
-    const [totalOrders, paidOrders, pendingOrders, toPack, inTransit, delivered, salesAgg, recentOrders, actionOrders, lowStock, merchant] = await Promise.all([
+    const [totalOrders, paidOrders, pendingOrders, toPack, inTransit, delivered, openOrders, salesAgg, totalCustomers, activeProducts, recentOrders, actionOrders, statusGroups, lowStock, merchant] = await Promise.all([
       prisma.order.count({ where: { merchantId: session.id, createdAt: { gte: since } } }),
       prisma.order.count({ where: { merchantId: session.id, paymentStatus: 'paid', createdAt: { gte: since } } }),
       prisma.order.count({ where: { merchantId: session.id, paymentStatus: 'pending', createdAt: { gte: since } } }),
@@ -39,18 +39,29 @@ export async function GET(req: NextRequest) {
           fulfillments: { some: { status: 'delivered' } },
         },
       }),
+      prisma.order.count({ where: { merchantId: session.id, orderStatus: { notIn: ['completed', 'cancelled'] } } }),
       prisma.order.aggregate({
         where: { merchantId: session.id, createdAt: { gte: since }, orderStatus: { not: 'cancelled' }, paymentStatus: 'paid' },
         _sum: { totalAmount: true },
       }),
+      prisma.customer.count({ where: { merchantId: session.id, createdAt: { gte: since } } }),
+      prisma.product.count({ where: { merchantId: session.id, status: 'active' } }),
       prisma.order.findMany({
         where: { merchantId: session.id },
         orderBy: { createdAt: 'desc' },
         take: 6,
-        include: {
-          customer: true,
+        select: {
+          id: true,
+          orderNumber: true,
+          currency: true,
+          totalAmount: true,
+          paymentStatus: true,
+          orderStatus: true,
+          fulfillmentSummaryStatus: true,
+          createdAt: true,
+          source: true,
+          customer: { select: { fullName: true } },
           orderItems: { select: { quantityOrdered: true } },
-          fulfillments: { include: { packages: true } },
         },
       }),
       prisma.order.findMany({
@@ -64,7 +75,19 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { createdAt: 'asc' },
         take: 8,
-        include: { customer: true, fulfillments: true },
+        select: {
+          id: true,
+          orderNumber: true,
+          paymentStatus: true,
+          orderStatus: true,
+          fulfillmentSummaryStatus: true,
+          customer: { select: { fullName: true } },
+        },
+      }),
+      prisma.order.groupBy({
+        by: ['orderStatus'],
+        where: { merchantId: session.id, createdAt: { gte: since } },
+        _count: { _all: true },
       }),
       prisma.product.findMany({
         where: {
@@ -75,56 +98,58 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { stockQuantity: 'asc' },
         take: 5,
+        select: { id: true, name: true, stockQuantity: true },
       }),
       prisma.merchant.findUnique({ where: { id: session.id } }),
     ])
 
-    const totalSales = salesAgg._sum.totalAmount?.toNumber() ?? 0
+    const totalRevenue = salesAgg._sum.totalAmount?.toNumber() ?? 0
+
+    const statusBreakdown: Record<string, number> = {}
+    for (const g of statusGroups) statusBreakdown[g.orderStatus] = g._count._all
 
     return NextResponse.json({
-      kpis: {
-        total_orders: totalOrders,
-        paid_orders: paidOrders,
-        pending_payment_orders: pendingOrders,
-        orders_to_pack: toPack,
-        orders_in_transit: inTransit,
-        delivered_orders: delivered,
-        total_sales: totalSales,
-      },
-      recent_orders: recentOrders.map(o => ({
-        id: o.id,
-        order_number: o.orderNumber,
-        customer_name: o.customer?.fullName ?? 'Walk-in',
-        total_amount: o.totalAmount.toNumber(),
-        payment_status: o.paymentStatus,
-        order_status: o.orderStatus,
-        fulfillment_summary_status: o.fulfillmentSummaryStatus,
-        created_at: o.createdAt.toISOString(),
-        item_count: o.orderItems.reduce((s, i) => s + i.quantityOrdered, 0),
-        source: o.source,
-      })),
-      needs_action: actionOrders.map(o => ({
-        id: o.id,
-        order_number: o.orderNumber,
-        customer_name: o.customer?.fullName ?? 'Walk-in',
-        total_amount: o.totalAmount.toNumber(),
-        payment_status: o.paymentStatus,
-        order_status: o.orderStatus,
-        fulfillment_summary_status: o.fulfillmentSummaryStatus,
-        created_at: o.createdAt.toISOString(),
-      })),
-      low_stock_products: lowStock.map(p => ({
-        id: p.id,
-        name: p.name,
-        sku: p.sku,
-        stock_quantity: p.stockQuantity,
-        low_stock_threshold: p.lowStockThreshold,
-      })),
       merchant: {
         id: merchant?.id,
-        business_name: merchant?.businessName,
+        businessName: merchant?.businessName ?? '',
         email: merchant?.email,
       },
+      totals: {
+        totalRevenue,
+        totalOrders,
+        totalCustomers,
+        totalProducts: activeProducts,
+        pendingPayments: pendingOrders,
+        openOrders,
+        unfulfilledOrders: toPack,
+        shipmentsInTransit: inTransit,
+        deliveredOrders: delivered,
+        lowStockProducts: lowStock.length,
+      },
+      recentOrders: recentOrders.map(o => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        customer: { fullName: o.customer?.fullName ?? null },
+        totalAmount: o.totalAmount.toNumber(),
+        currency: o.currency,
+        paymentStatus: o.paymentStatus,
+        orderStatus: o.orderStatus,
+        fulfillmentSummaryStatus: o.fulfillmentSummaryStatus,
+        createdAt: o.createdAt.toISOString(),
+        source: o.source,
+        itemCount: o.orderItems.reduce((s, i) => s + i.quantityOrdered, 0),
+      })),
+      statusBreakdown,
+      needsAttention: actionOrders.map(o => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        paymentStatus: o.paymentStatus,
+        orderStatus: o.orderStatus,
+        fulfillmentSummaryStatus: o.fulfillmentSummaryStatus,
+        customerName: o.customer?.fullName ?? 'Walk-in',
+      })),
+      lowStock: lowStock.map(p => ({ id: p.id, name: p.name, stockQuantity: p.stockQuantity })),
+      recentActivities: [],
     })
   } catch (err) {
     return handleError(err)

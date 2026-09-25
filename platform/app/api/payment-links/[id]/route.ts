@@ -6,6 +6,14 @@ import { apiError, notFound } from '@/lib/api-response'
 import { z } from 'zod'
 import { zodMessage } from '@/lib/zod-error'
 
+const linkItemSchema = z.object({
+  product_id: z.string().max(100).optional().nullable(),
+  name: z.string().min(1).max(200),
+  sku: z.string().max(100).optional().nullable(),
+  quantity: z.number().int().positive().max(9999),
+  unit_price: z.number().nonnegative().max(1000000000),
+})
+
 const updateLinkSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(500).nullable().optional(),
@@ -16,6 +24,7 @@ const updateLinkSchema = z.object({
   max_amount: z.number().positive().nullable().optional(),
   product_name: z.string().max(200).nullable().optional(),
   product_price: z.number().positive().nullable().optional(),
+  items: z.array(linkItemSchema).max(50).nullable().optional(),
   collect_name: z.boolean().optional(),
   collect_phone: z.boolean().optional(),
   collect_email: z.boolean().optional(),
@@ -56,6 +65,15 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
       maxAmount: parsed.data.max_amount,
       productName: parsed.data.product_name,
       productPrice: parsed.data.product_price,
+      items: parsed.data.items === undefined
+        ? undefined
+        : (parsed.data.items ?? null)?.map(i => ({
+            productId: i.product_id ?? null,
+            name: i.name,
+            sku: i.sku ?? null,
+            quantity: i.quantity,
+            unitPrice: i.unit_price,
+          })) ?? null,
       collectName: parsed.data.collect_name,
       collectPhone: parsed.data.collect_phone,
       collectEmail: parsed.data.collect_email,

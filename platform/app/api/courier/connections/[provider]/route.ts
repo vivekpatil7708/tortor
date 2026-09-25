@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireMerchant } from '@/lib/tenant'
-import { testCourierConnection, deleteCourierConnection, setCourierConnectionActive, serializeCourierConnectionWithSecret, getSupportedCourierInfo } from '@/lib/couriers/connections'
+import { testCourierConnection, deleteCourierConnection, setCourierConnectionActive, serializeCourierConnectionWithSecret, getSupportedCourierInfo, serializeSupportedCourier } from '@/lib/couriers/connections'
 import { courierConnectionSchema } from '@/lib/validators'
 import { saveCourierConnection } from '@/lib/couriers/connections'
 import { notFound, badRequest, handleError } from '@/lib/api-response'
@@ -19,7 +19,7 @@ export async function GET(_req: NextRequest, { params }: { params: { provider: s
       serializeCourierConnectionWithSecret(connection),
       Promise.resolve(getSupportedCourierInfo(params.provider)),
     ])
-    return NextResponse.json({ connection: serialized, supported_courier: info ?? null })
+    return NextResponse.json({ connection: serialized, supported_courier: info ? serializeSupportedCourier(info) : null })
   } catch (err) {
     return handleError(err)
   }

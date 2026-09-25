@@ -629,6 +629,62 @@ async function notifyAfterChange(
   }
 }
 
+/**
+ * Settle a payment as paid from an external signal (e.g. a Shopify
+ * `orders/paid` webhook). Idempotent — a payment that is already paid is a
+ * no-op. Reuses the same status-apply + notification path as provider webhooks.
+ */
+export async function settlePaymentFromExternal(params: {
+  paymentId: string
+  merchantId: string
+  source: string
+  referenceId?: string | null
+}): Promise<{ ok: boolean; changed: boolean; alreadyPaid: boolean; error?: string }> {
+  const payment = await prisma.payment.findFirst({
+    where: { id: params.paymentId, merchantId: params.merchantId },
+  })
+  if (!payment) return { ok: false, changed: false, alreadyPaid: false, error: 'Payment not found' }
+  if (payment.status === 'paid') return { ok: true, changed: false, alreadyPaid: true }
+
+  try {
+    const apply = await applyPaymentStatus({
+      paymentId: payment.id,
+      merchantId: params.merchantId,
+      status: 'paid',
+      eventType: 'payment.succeeded',
+      providerEventId: `external_${params.source}_${payment.id}`.slice(0, 80),
+      amount: payment.amount.toNumber(),
+      currency: payment.currency,
+      providerResponse: { source: params.source, reference_id: params.referenceId ?? null },
+    })
+
+    if (apply.changed) {
+      const full = await prisma.payment.findUnique({ where: { id: payment.id }, include: { order: true } })
+      if (full?.order) {
+        await notifyAfterChange(full.order, full, 'payment.succeeded', apply.orderAdvanced).catch(() => {})
+      }
+      await runPostApplyHooks({
+        merchantId: params.merchantId,
+        paymentId: payment.id,
+        orderId: full?.order?.id ?? null,
+        status: 'paid',
+        provider: payment.provider,
+        rawPayload: { source: params.source, reference_id: params.referenceId ?? null },
+        amount: payment.amount.toNumber(),
+      }).catch(() => {})
+    }
+
+    return { ok: true, changed: apply.changed, alreadyPaid: false }
+  } catch (err) {
+    return {
+      ok: false,
+      changed: false,
+      alreadyPaid: false,
+      error: err instanceof Error ? err.message : 'Failed to settle payment',
+    }
+  }
+}
+
 /** Manual reconciliation for pending payments (dashboard action). */
 export async function reconcilePayment(paymentId: string, merchantId: string) {
   const payment = await prisma.payment.findFirst({ where: { id: paymentId, merchantId } })

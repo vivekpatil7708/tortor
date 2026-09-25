@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, PackageSearch, Users, ShoppingBag, Truck, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, LogOut, Menu, X, Globe, Code2, ChevronDown, RotateCcw, Target
+  LayoutDashboard, PackageSearch, Users, ShoppingBag, Truck, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, LogOut, Menu, X, Globe, Code2, ChevronDown, RotateCcw, Target, Plug
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -39,6 +39,7 @@ const brandNav = [
 const devNav = [
   { label: 'Website Integration', href: '/dashboard/website', icon: Globe },
   { label: 'Webhooks', href: '/dashboard/webhooks', icon: Code2 },
+  { label: 'Integrations', href: '/dashboard/integrations', icon: Plug },
   { label: 'Developers', href: '/dashboard/developers', icon: Code2 },
 ]
 

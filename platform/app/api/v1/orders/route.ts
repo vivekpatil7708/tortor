@@ -9,6 +9,7 @@ const itemSchema = z.object({
   name: z.string().min(1).max(200),
   quantity: z.number().int().positive(),
   unit_price: z.number().nonnegative(),
+  product_id: z.string().max(100).optional().nullable(),
   sku: z.string().max(100).optional().nullable(),
   variant_attributes: z.record(z.string(), z.unknown()).optional().nullable(),
 })
@@ -28,6 +29,11 @@ const createOrderSchema = z.object({
   discount_amount: z.number().nonnegative().optional().default(0),
   shipping_amount: z.number().nonnegative().optional().default(0),
   tax_amount: z.number().nonnegative().optional().default(0),
+  /**
+   * Optional client-computed payable. If provided, the server re-prices the
+   * items from the catalogue and rejects the checkout when this does not match.
+   */
+  total_amount: z.number().nonnegative().optional().nullable(),
   shipping_address: z.record(z.string(), z.unknown()).optional().nullable(),
   billing_address: z.record(z.string(), z.unknown()).optional().nullable(),
   success_url: z.string().url().optional().nullable(),
@@ -67,6 +73,7 @@ export async function POST(req: NextRequest) {
       merchantOrderReference: body.merchant_order_reference ?? null,
       customer: body.customer ?? null,
       items: body.items.map(i => ({
+        productId: i.product_id ?? null,
         productName: i.name,
         quantity: i.quantity,
         unitPrice: i.unit_price,
@@ -76,6 +83,7 @@ export async function POST(req: NextRequest) {
       discountAmount: body.discount_amount,
       shippingAmount: body.shipping_amount,
       taxAmount: body.tax_amount,
+      expectedTotal: body.total_amount ?? null,
       shippingAddress: body.shipping_address ?? null,
       billingAddress: body.billing_address ?? null,
       successUrl: body.success_url ?? null,
@@ -96,6 +104,13 @@ export async function POST(req: NextRequest) {
       status: result.status,
       mode: result.mode,
       reused: result.reused,
+      amount: result.amount,
+      subtotal_amount: result.subtotal_amount,
+      discount_amount: result.discount_amount,
+      shipping_amount: result.shipping_amount,
+      tax_amount: result.tax_amount,
+      currency: result.currency,
+      verified_amount: result.verified_amount,
     }
 
     await logApiRequest({

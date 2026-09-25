@@ -19,6 +19,26 @@ export function getSupportedCouriers(): SupportedCourierInfo[] {
   return providerInstances().flatMap(p => p.getSupportedCouriers())
 }
 
+/** Serialize a SupportedCourierInfo into the snake_case shape the dashboard consumes. */
+export function serializeSupportedCourier(info: SupportedCourierInfo) {
+  return {
+    id: info.id,
+    name: info.name,
+    description: info.description,
+    credential_fields: (info.credentialFields ?? []).map(f => ({
+      key: f.key,
+      label: f.label,
+      type: f.type,
+      required: f.required,
+      placeholder: f.placeholder ?? undefined,
+    })),
+    webhook_url: info.webhookUrl,
+    supports_label: info.supportsLabel,
+    supports_pickup: info.supportsPickup,
+    supports_rto: info.supportsRto,
+  }
+}
+
 export function getSupportedCourierInfo(name: string): SupportedCourierInfo | undefined {
   return getSupportedCouriers().find(c => c.id === name)
 }

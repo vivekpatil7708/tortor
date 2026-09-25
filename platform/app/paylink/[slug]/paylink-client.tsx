@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { buttonRadius } from '@/lib/utils'
+import OrderSummary from '@/components/checkout/order-summary'
 
 interface PaylinkView {
   link: {
@@ -13,6 +14,8 @@ interface PaylinkView {
     amount_flexible: boolean
     min_amount: number | null
     max_amount: number | null
+    items: Array<{ product_id: string | null; name: string; sku: string | null; quantity: number; unit_price: number; line_total: number }>
+    items_total: number
     collect_name: boolean
     collect_phone: boolean
     collect_email: boolean
@@ -57,10 +60,11 @@ export default function PaylinkClient({ view, slug }: Props) {
     ? 'bg-white/10 border-white/10 text-white placeholder:text-white/40 focus:border-white/30'
     : 'bg-white/60 border-white/80 text-charcoal placeholder:text-gray-400 focus:border-white/90'
 
-  const displayAmount = typeof amount === 'number' ? amount : 0
+  const displayAmount = typeof amount === 'number' ? amount : link.items_total || 0
+  const hasItems = link.items.length > 0
 
   function validate() {
-    if (link.amount_flexible) {
+    if (!hasItems && link.amount_flexible) {
       if (typeof amount !== 'number' || amount <= 0) return 'Enter an amount'
       if (link.min_amount !== null && amount < link.min_amount) return `Minimum amount is ₹${link.min_amount}`
       if (link.max_amount !== null && amount > link.max_amount) return `Maximum amount is ₹${link.max_amount}`
@@ -86,7 +90,7 @@ export default function PaylinkClient({ view, slug }: Props) {
           name: name.trim() || null,
           email: email.trim() || null,
           phone: phone.trim() || null,
-          amount: typeof amount === 'number' ? amount : null,
+          amount: hasItems ? null : typeof amount === 'number' ? amount : null,
         }),
       })
       const data = (await res.json()) as { error?: string; checkout_session_id?: string; checkout_url?: string }
@@ -121,7 +125,18 @@ export default function PaylinkClient({ view, slug }: Props) {
         )}
 
         <div className="space-y-4">
-          {link.amount_flexible ? (
+          {hasItems ? (
+            <div className="text-left">
+              <OrderSummary
+                items={link.items}
+                subtotal={link.items.reduce((sum, it) => sum + it.line_total, 0)}
+                total={link.items_total}
+                currency="INR"
+                isDark={isDark}
+                verified
+              />
+            </div>
+          ) : link.amount_flexible ? (
             <div>
               <label className="mb-1 block text-xs font-semibold opacity-70">Amount (₹) <span className="text-red-400">*</span></label>
               <input type="number" value={amount === '' ? '' : amount} onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))}

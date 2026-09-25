@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid'
 import { prisma } from '@/lib/prisma'
 import { createOrder, type OrderItemInput } from '@/lib/orders'
 import { getProvider } from '@/lib/payments'
+import { resolveItemPrices, computeTotals, verifyAmount } from '@/lib/pricing'
 import type { KeyMode, PaymentStatus, OrderSource } from '@prisma/client'
 
 export const TOROPAY_PUBLIC_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://checkout.toropay.co.in'
@@ -32,6 +33,12 @@ export interface CreateCheckoutInput {
   discountAmount?: number
   shippingAmount?: number
   taxAmount?: number
+  /**
+   * When provided, the server verifies its computed total against this value
+   * and rejects the checkout if they differ. Sending a client-computed total
+   * is therefore safe: the catalogue always wins.
+   */
+  expectedTotal?: number | null
   shippingAddress?: Record<string, unknown> | null
   billingAddress?: Record<string, unknown> | null
   successUrl?: string | null
@@ -53,10 +60,16 @@ export interface CreateCheckoutResult {
   status: PaymentStatus
   mode: KeyMode
   reused: boolean
-}
-
-function round2(n: number): number {
-  return Math.round(n * 100) / 100
+  /** Authoritative payable amount created on the backend. */
+  amount: number
+  /** Authoritative amounts for the order summary (server-computed). */
+  subtotal_amount: number
+  discount_amount: number
+  shipping_amount: number
+  tax_amount: number
+  currency: string
+  /** Alias for `amount` — the amount that passed server-side verification. */
+  verified_amount: number
 }
 
 function buildCheckoutUrl(sessionId: string): string {
@@ -92,6 +105,7 @@ export async function createCheckout(input: CreateCheckoutInput): Promise<Create
     checkoutLinkId = null,
     idempotencyKey = null,
     provider = 'mock',
+    expectedTotal = null,
   } = input
 
   if (!items.length) throw new Error('Order must have at least one item')
@@ -107,6 +121,13 @@ export async function createCheckout(input: CreateCheckoutInput): Promise<Create
       include: { order: true },
     })
     if (existing?.order) {
+      const amounts = {
+        amount: existing.amount.toNumber(),
+        subtotal_amount: existing.order.subtotalAmount.toNumber(),
+        discount_amount: existing.order.discountAmount.toNumber(),
+        shipping_amount: existing.order.shippingAmount.toNumber(),
+        tax_amount: existing.order.taxAmount.toNumber(),
+      }
       return {
         toropay_order_id: existing.order.id,
         order_number: existing.order.orderNumber,
@@ -116,28 +137,45 @@ export async function createCheckout(input: CreateCheckoutInput): Promise<Create
         status: existing.status,
         mode: existing.mode,
         reused: true,
+        ...amounts,
+        currency: existing.currency,
+        verified_amount: amounts.amount,
       }
     }
   }
 
-  const discount = round2(discountAmount)
-  const shipping = round2(shippingAmount)
-  const tax = round2(taxAmount)
-  let subtotal = 0
-  for (const item of items) {
-    subtotal = round2(subtotal + round2(item.unitPrice) * item.quantity)
+  // ---- authoritative pricing: catalogue wins over whatever the client sent --
+  const priced = await resolveItemPrices({ merchantId, items })
+  const totals = computeTotals({
+    items: priced.items,
+    discountAmount: discountAmount ?? 0,
+    shippingAmount: shippingAmount ?? 0,
+    taxAmount: taxAmount ?? 0,
+  })
+  if (totals.total < 0) throw new Error('Total amount cannot be negative')
+
+  if (expectedTotal !== null && expectedTotal !== undefined) {
+    if (!verifyAmount(totals.total, expectedTotal)) {
+      throw new Error(
+        `Amount verification failed: expected ${expectedTotal} but the server-computed total is ${totals.total}`
+      )
+    }
   }
-  const total = round2(subtotal - discount + shipping + tax)
-  if (total < 0) throw new Error('Total amount cannot be negative')
 
   const order = await createOrder({
     merchantId,
     customer: customer ? { fullName: customer.name || '', phone: customer.phone ?? null, email: customer.email ?? null } : null,
     source: orderSource,
-    items,
-    discountAmount: discount,
-    shippingAmount: shipping,
-    taxAmount: tax,
+    items: priced.items.map(item => ({
+      productId: item.productId,
+      productName: item.productName,
+      sku: item.sku,
+      unitPrice: item.unitPrice,
+      quantity: item.quantity,
+    })),
+    discountAmount: totals.discount,
+    shippingAmount: totals.shipping,
+    taxAmount: totals.tax,
     shippingAddress,
     billingAddress,
     customerNote: null,
@@ -161,7 +199,7 @@ export async function createCheckout(input: CreateCheckoutInput): Promise<Create
       merchantOrderReference,
       provider,
       mode,
-      amount: total,
+      amount: totals.total,
       currency,
       expiresAt,
       idempotencyKey,
@@ -176,7 +214,7 @@ export async function createCheckout(input: CreateCheckoutInput): Promise<Create
     paymentId: payment.id,
     checkoutSessionId,
     paymentReference,
-    amount: total,
+    amount: totals.total,
     currency,
     mode,
     customer,
@@ -210,6 +248,13 @@ export async function createCheckout(input: CreateCheckoutInput): Promise<Create
     status: session.status,
     mode,
     reused: false,
+    amount: totals.total,
+    subtotal_amount: totals.subtotal,
+    discount_amount: totals.discount,
+    shipping_amount: totals.shipping,
+    tax_amount: totals.tax,
+    currency,
+    verified_amount: totals.total,
   }
 }
 

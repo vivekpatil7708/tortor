@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireMerchant } from '@/lib/tenant'
 import { courierConnectionSchema } from '@/lib/validators'
-import { saveCourierConnection, listCourierConnections, getSupportedCouriers, setCourierConnectionActive } from '@/lib/couriers/connections'
+import { saveCourierConnection, listCourierConnections, getSupportedCouriers, setCourierConnectionActive, serializeSupportedCourier } from '@/lib/couriers/connections'
 import { badRequest, handleError } from '@/lib/api-response'
 import { zodMessage } from '@/lib/zod-error'
 
@@ -11,7 +11,7 @@ export async function GET() {
     const session = await requireMerchant()
     const [connections, supported] = await Promise.all([
       listCourierConnections(session.id),
-      Promise.resolve(getSupportedCouriers()),
+      Promise.resolve(getSupportedCouriers().map(serializeSupportedCourier)),
     ])
     return NextResponse.json({ connections, supported_couriers: supported })
   } catch (err) {
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     const [fresh, supported] = await Promise.all([
       listCourierConnections(session.id),
-      Promise.resolve(getSupportedCouriers()),
+      Promise.resolve(getSupportedCouriers().map(serializeSupportedCourier)),
     ])
     return NextResponse.json({ connection: fresh.find(c => c.provider === body.provider) ?? null, connections: fresh, supported_couriers: supported })
   } catch (err) {

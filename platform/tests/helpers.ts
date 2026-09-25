@@ -44,13 +44,13 @@ export async function makeCustomer(merchantId: string, overrides: CustomerOverri
 export async function makeProduct(merchantId: string, overrides: ProductOverrides = {}) {
   return prisma.product.create({
     data: {
-      ...overrides,
-      merchantId,
       name: 'Test Product',
       sku: uid('SKU'),
       price: 100,
       productType: 'physical',
       status: 'active',
+      ...overrides,
+      merchantId,
     },
   })
 }

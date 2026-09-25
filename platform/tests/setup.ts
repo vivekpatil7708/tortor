@@ -39,6 +39,7 @@ const TABLES = [
   'return_items',
   'refunds',
   'inventory_adjustments',
+  'shopify_connections',
 ]
 
 async function resetDb() {
