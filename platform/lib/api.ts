@@ -65,6 +65,11 @@ export const api = {
   updateTransaction: (txnId: string, body: Record<string, unknown>) =>
     request<{ transaction: Record<string, unknown> }>(`/api/transactions/${txnId}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
+  getPendingUpiPayments: () => request<{ payments: Array<Record<string, unknown>> }>('/api/payments/pending'),
+
+  confirmUpiPayment: (id: string) =>
+    request<{ status: string }>(`/api/payments/${id}/confirm`, { method: 'POST' }),
+
   getSettings: () => request<Record<string, unknown>>('/api/settings'),
 
   saveSettings: (body: Record<string, unknown>) =>
@@ -113,4 +118,136 @@ export const api = {
 
   getChannelStatus: () =>
     request<{ channels: Record<string, { status: string; provider: string; description: string }> }>('/api/integrations/channels/status'),
+
+  // ==================== Phase 1 operations ====================
+  getOverview: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) => request<T>(`/api/overview${params || ''}`),
+
+  getProducts: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
+    request<{ products: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/products${params || ''}`),
+
+  getProduct: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
+    request<{ product: T }>(`/api/products/${id}`),
+
+  createProduct: <T extends Record<string, unknown> = Record<string, unknown>>(body: Record<string, unknown>) =>
+    request<{ product: T }>('/api/products', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateProduct: (id: string, body: Record<string, unknown>) =>
+    request<{ product: Record<string, unknown> }>(`/api/products/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  archiveProduct: (id: string) =>
+    request<{ success: boolean }>(`/api/products/${id}`, { method: 'DELETE' }),
+
+  getCustomers: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
+    request<{ customers: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/customers${params || ''}`),
+
+  getCustomer: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
+    request<{ customer: T; addresses: Record<string, unknown>[]; orders: Record<string, unknown>[] }>(`/api/customers/${id}`),
+
+  createCustomer: <T extends Record<string, unknown> = Record<string, unknown>>(body: Record<string, unknown>) =>
+    request<{ customer: T }>('/api/customers', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateCustomer: (id: string, body: Record<string, unknown>) =>
+    request<{ customer: Record<string, unknown> }>(`/api/customers/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteCustomer: (id: string) =>
+    request<{ success: boolean }>(`/api/customers/${id}`, { method: 'DELETE' }),
+
+  addAddress: (customerId: string, body: Record<string, unknown>) =>
+    request<{ address: Record<string, unknown> }>(`/api/customers/${customerId}/addresses`, { method: 'POST', body: JSON.stringify(body) }),
+
+  updateAddress: (customerId: string, addressId: string, body: Record<string, unknown>) =>
+    request<{ address: Record<string, unknown> }>(`/api/customers/${customerId}/addresses/${addressId}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteAddress: (customerId: string, addressId: string) =>
+    request<{ success: boolean }>(`/api/customers/${customerId}/addresses/${addressId}`, { method: 'DELETE' }),
+
+  getOrders: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
+    request<{ orders: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/orders${params || ''}`),
+
+  getOrder: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
+    request<{ order: Record<string, unknown> }>(`/api/orders/${id}`)
+      .then(r => ({ order: camelizeDeep<Record<string, unknown>>(r.order) }) as { order: T }),
+
+  createOrder: <T extends Record<string, unknown> = Record<string, unknown>>(body: Record<string, unknown>) =>
+    request<{ order: T }>('/api/orders', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateOrder: (id: string, body: Record<string, unknown>) =>
+    request<{ order: Record<string, unknown> }>(`/api/orders/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  cancelOrder: (id: string, body: Record<string, unknown> = {}) =>
+    request<{ success: boolean }>(`/api/orders/${id}/cancel`, { method: 'POST', body: JSON.stringify(body) }),
+
+  createFulfillment: (orderId: string, body: Record<string, unknown>) =>
+    request<{ fulfillment: Record<string, unknown> }>(`/api/orders/${orderId}/fulfillments`, { method: 'POST', body: JSON.stringify(body) }),
+
+  updateFulfillment: (id: string, body: Record<string, unknown>) =>
+    request<{ fulfillment: Record<string, unknown>; summary: string }>(`/api/fulfillments/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  addPackageTracking: (id: string, body: Record<string, unknown>) =>
+    request<{ result: Record<string, unknown> }>(`/api/fulfillments/${id}/package`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  setPackageStatus: (id: string, body: Record<string, unknown>) =>
+    request<{ result: Record<string, unknown> }>(`/api/fulfillments/${id}/package`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  addShipmentEvent: (id: string, body: Record<string, unknown>) =>
+    request<{ event: Record<string, unknown> }>(`/api/fulfillments/${id}/package`, { method: 'POST', body: JSON.stringify(body) }),
+
+  getDelivery: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
+    request<{ rows: T[]; counts: Record<string, number>; pagination?: Record<string, unknown> }>(`/api/delivery${params || ''}`)
+      .then(r => ({ ...r, rows: (r.rows as Record<string, unknown>[]).map(row => camelizeDeep<Record<string, unknown>>(row)) as T[] })),
+
+  getMerchantProfile: () => request<{ profile: Record<string, unknown> }>('/api/merchant/profile'),
+
+  updateMerchantProfile: (body: Record<string, unknown>) =>
+    request<{ profile: Record<string, unknown> }>('/api/merchant/profile', { method: 'PATCH', body: JSON.stringify(body) }),
+
+  getTrack: <T extends Record<string, unknown> = Record<string, unknown>>(orderNumber: string, token: string) =>
+    request<T>(`/api/track/${orderNumber}?token=${encodeURIComponent(token)}`),
+
+  // ==================== Phase 3 couriers ====================
+  getCourierConnections: <T extends Record<string, unknown> = Record<string, unknown>>() =>
+    request<{ connections: T[]; supported_couriers: Array<Record<string, unknown>> }>('/api/courier/connections'),
+
+  saveCourierConnection: (body: Record<string, unknown>) =>
+    request<{ connections: Record<string, unknown>[] }>('/api/courier/connections', { method: 'POST', body: JSON.stringify(body) }),
+
+  getCourierConnection: (provider: string) =>
+    request<{ connection: Record<string, unknown>; supported_courier: Record<string, unknown> | null }>(`/api/courier/connections/${provider}`),
+
+  testCourierConnection: (provider: string) =>
+    request<{ ok: boolean; error?: string | null }>(`/api/courier/connections/${provider}`, { method: 'PATCH', body: JSON.stringify({ action: 'test' }) }),
+
+  setCourierConnectionActive: (provider: string, active: boolean) =>
+    request<{ connection: Record<string, unknown> | null }>(`/api/courier/connections/${provider}`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+
+  updateCourierConnection: (provider: string, body: Record<string, unknown>) =>
+    request<{ connection: Record<string, unknown> }>(`/api/courier/connections/${provider}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteCourierConnection: (provider: string) =>
+    request<{ ok: boolean }>(`/api/courier/connections/${provider}`, { method: 'DELETE' }),
+
+  createProviderShipment: (orderId: string, body: Record<string, unknown>) =>
+    request<{ fulfillment: Record<string, unknown>; package: Record<string, unknown>; idempotent?: boolean }>(`/api/orders/${orderId}/shipments`, { method: 'POST', body: JSON.stringify(body) }),
+
+  courierPackageAction: (packageId: string, body: Record<string, unknown>) =>
+    request<{ ok: boolean; action: string; result: Record<string, unknown>; package: Record<string, unknown> | null }>(`/api/courier/packages/${packageId}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  runCourierSync: (body: Record<string, unknown> = {}) =>
+    request<{ scanned: number; synced: number; errors: number }>('/api/courier/sync', { method: 'POST', body: JSON.stringify(body) }),
 }
+
+function camelize(key: string): string {
+  return key.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase())
+}
+
+function camelizeDeep<T>(value: unknown): T {
+  if (Array.isArray(value)) return value.map(v => camelizeDeep(v)) as unknown as T
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value)) out[camelize(k)] = camelizeDeep(v)
+    return out as T
+  }
+  return value as T
+}
+
+// ... existing code continues below

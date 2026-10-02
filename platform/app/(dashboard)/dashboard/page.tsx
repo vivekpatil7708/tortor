@@ -11,6 +11,13 @@ export default function DashboardPage() {
   const [recentTxns, setRecentTxns] = useState<Record<string, unknown>[]>([])
   const [merchant, setMerchant] = useState<Record<string, unknown> | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [pendingUpi, setPendingUpi] = useState<Record<string, unknown>[]>([])
+
+  function confirmUpi(id: string) {
+    api.confirmUpiPayment(id).then(() => {
+      api.getPendingUpiPayments().then(({ payments }) => setPendingUpi(payments)).catch(() => {})
+    }).catch(() => {})
+  }
 
   function toggleExpand(id: string) {
     setExpanded(prev => {
@@ -64,6 +71,7 @@ export default function DashboardPage() {
       setStats(s => ({ ...s, totalTxns: txns.length, totalRevenue: revenue, successRate: Math.round(success) }))
       setRecentTxns(txns.slice(0, 5))
     }).catch(() => {})
+    api.getPendingUpiPayments().then(({ payments }) => setPendingUpi(payments)).catch(() => {})
   }, [])
 
   const cards = [
@@ -93,6 +101,39 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {pendingUpi.length > 0 && (
+        <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50/60 p-6 backdrop-blur-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-bold text-amber-900">UPI payments awaiting your confirmation</h2>
+            <span className="rounded-full bg-amber-200/70 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+              {pendingUpi.length}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {pendingUpi.map(p => {
+              const pid = p.id as string
+              return (
+                <div key={pid} className="flex items-center justify-between rounded-xl border border-amber-200/60 bg-white/60 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold">{p.payment_reference as string}</p>
+                    <p className="text-xs text-gray-400">
+                      {(p.order_number as string ?? '' ? `Order ${p.order_number as string} · ` : '')}{formatDate(p.created_at as string)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm font-bold">{formatAmount(Number(p.amount))}</p>
+                    <button onClick={() => confirmUpi(pid)}
+                      className="rounded-xl bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700">
+                      Confirm paid
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
         <div className="mb-4 flex items-center justify-between">

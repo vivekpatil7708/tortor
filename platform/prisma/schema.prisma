@@ -7,44 +7,702 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Merchant {
-  id                   String   @id @default(uuid())
-  email                String   @unique
-  phone                String?  @unique
-  passwordHash         String?  @map("password_hash")
-  provider             String?  @default("email")
-  name                 String?  @default("")
-  avatarUrl            String?  @map("avatar_url")
-  businessName         String   @default("") @map("business_name")
-  businessLogoUrl      String?  @map("business_logo_url")
-  brandColorPrimary    String   @default("#7bb86c") @map("brand_color_primary")
-  brandColorSecondary  String   @default("#2c2c2c") @map("brand_color_secondary")
-  brandFont            String   @default("Inter") @map("brand_font")
-  buttonStyle          String   @default("rounded") @map("button_style")
-  pageTheme            String   @default("cream") @map("page_theme")
-  customDomain         String?  @map("custom_domain")
-  bgImageUrl           String?  @map("bg_image_url")
-  status               String   @default("active")
-  onboardingComplete   Boolean  @default(false) @map("onboarding_complete")
-  resetToken           String?  @map("reset_token")
-  resetTokenExpiry     DateTime? @map("reset_token_expiry")
-  loginAttempts        Int      @default(0) @map("login_attempts")
-  lockedUntil          DateTime? @map("locked_until")
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @updatedAt @map("updated_at")
+// ============================================================
+// ENUMS
+// ============================================================
 
-  upiIds        UpiId[]
-  paymentLinks  PaymentLink[]
-  transactions  Transaction[]
-  templates     Template[]
-  apiKeys       ApiKey[]
-  settings      MerchantSettings?
-  webhookLogs   WebhookLog[]
-  messageTemplates MessageTemplate[]
-  messageLogs     MessageLog[]
+// Products
+enum ProductType {
+  physical
+  digital
+  service
+}
+
+enum ProductStatus {
+  active
+  draft
+  archived
+}
+
+// Orders
+enum OrderSource {
+  manual_order
+  payment_link
+  website_api
+  instagram
+  whatsapp
+  imported
+  other
+}
+
+enum PaymentStatus {
+  pending
+  processing
+  paid
+  failed
+  expired
+  partially_refunded
+  refunded
+  disputed
+}
+
+enum KeyMode {
+  test
+  live
+}
+
+enum ApiKeyScope {
+  read
+  write
+  publishable
+}
+
+enum WebhookEndpointEvent {
+  payment_paid
+  payment_failed
+  order_created
+  order_paid
+  order_updated
+  fulfillment_created
+  fulfillment_shipped
+  fulfillment_delivered
+  // Phase 3 — delivery/shipment events
+  shipment_created
+  shipment_picked_up
+  shipment_in_transit
+  shipment_out_for_delivery
+  shipment_delivered
+  shipment_delivery_failed
+  shipment_rto_initiated
+}
+
+enum WebhookEventState {
+  received
+  processing
+  processed
+  failed_processing
+  duplicate
+  bad_signature
+}
+
+enum WebhookDeliveryStatus {
+  pending
+  delivered
+  failed
+  retrying
+  disabled
+}
+
+enum EmailAutomation {
+  payment_received
+  payment_failed
+  order_confirmed
+  payment_link_reminder
+  merchant_order_created
+  merchant_payment_received
+  // Phase 3 — delivery notifications
+  shipment_created
+  shipment_picked_up
+  shipment_in_transit
+  shipment_out_for_delivery
+  shipment_delivered
+  shipment_delivery_failed
+  shipment_rto_initiated
+}
+
+enum EmailLogStatus {
+  queued
+  sent
+  failed
+}
+
+enum OrderStatus {
+  pending_payment
+  new
+  processing
+  on_hold
+  completed
+  cancelled
+}
+
+enum FulfillmentSummaryStatus {
+  unfulfilled
+  partially_fulfilled
+  fulfilled
+  partially_delivered
+  delivered
+  attention_required
+  returned
+  cancelled
+}
+
+// Fulfillments & delivery
+enum FulfillmentType {
+  shipping
+  local_delivery
+  pickup
+  digital
+  service
+}
+
+enum FulfillmentStatus {
+  unfulfilled
+  processing
+  packed
+  shipped
+  in_transit
+  out_for_delivery
+  delivered
+  delivery_failed
+  returned
+  cancelled
+}
+
+enum PackageStatus {
+  not_shipped
+  shipped
+  in_transit
+  out_for_delivery
+  delivered
+  delivery_failed
+  returned
+  cancelled
+}
+
+enum ShipmentEventSource {
+  merchant
+  system
+  courier
+}
+
+enum StatusHistoryType {
+  payment
+  order
+  fulfillment
+  shipment
+}
+
+enum ChangedByType {
+  merchant
+  system
+  admin
+}
+
+// Phase 4 — returns, refunds & inventory
+enum ReturnRequestStatus {
+  requested
+  approved
+  rejected
+  return_pickup_scheduled
+  return_in_transit
+  returned_to_merchant
+  refund_pending
+  refund_initiated
+  refunded
+  closed
+}
+
+enum RefundStatus {
+  pending
+  initiated
+  completed
+  failed
+}
+
+enum InventoryAdjustmentType {
+  deduction
+  restoration
+  manual
+}
+
+// ============================================================
+// MERCHANTS
+// ============================================================
+
+model Merchant {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  phone               String?   @unique
+  passwordHash        String?   @map("password_hash")
+  provider            String?   @default("email")
+  name                String?   @default("")
+  avatarUrl           String?   @map("avatar_url")
+  businessName        String    @default("") @map("business_name")
+  businessLogoUrl     String?   @map("business_logo_url")
+  brandColorPrimary   String    @default("#7bb86c") @map("brand_color_primary")
+  brandColorSecondary String    @default("#2c2c2c") @map("brand_color_secondary")
+  brandFont           String    @default("Inter") @map("brand_font")
+  buttonStyle         String    @default("rounded") @map("button_style")
+  pageTheme           String    @default("cream") @map("page_theme")
+  customDomain        String?   @map("custom_domain")
+  bgImageUrl          String?   @map("bg_image_url")
+  status              String    @default("active")
+  onboardingComplete  Boolean   @default(false) @map("onboarding_complete")
+  resetToken          String?   @map("reset_token")
+  resetTokenExpiry    DateTime? @map("reset_token_expiry")
+  loginAttempts       Int       @default(0) @map("login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Phase 1 merchant operations fields
+  supportEmail    String? @map("support_email")
+  supportPhone    String? @map("support_phone")
+  address         String? @map("address")
+  defaultCurrency String  @default("INR") @map("default_currency")
+  timezone        String  @default("Asia/Kolkata") @map("timezone")
+
+  upiIds             UpiId[]
+  paymentLinks       PaymentLink[]
+  transactions       Transaction[]
+  templates          Template[]
+  apiKeys            ApiKey[]
+  settings           MerchantSettings?
+  shopifyConnection  ShopifyConnection?
+  webhookLogs        WebhookLog[]
+  messageTemplates   MessageTemplate[]
+  messageLogs        MessageLog[]
   channelConnections ChannelConnection[]
 
+  // Phase 1 merchant operations relations
+  merchantUsers      MerchantUser[]
+  customers          Customer[]
+  customerAddresses  CustomerAddress[]
+  products           Product[]
+  orders             Order[]
+  fulfillments       Fulfillment[]
+  packages           Package[]
+  shipmentEvents     ShipmentEvent[]
+  orderStatusHistory OrderStatusHistory[]
+  auditLogs          AuditLog[]
+
+  // Phase 2 payments relations
+  payments            Payment[]
+  checkoutLinks       CheckoutLink[]
+  webhookEndpoints    WebhookEndpoint[]
+  webhookEvents       WebhookEvent[]
+  webhookDeliveryLogs WebhookDeliveryLog[]
+  apiRequestLogs      ApiRequestLog[]
+  emailTemplates      EmailTemplate[]
+  emailLogs           EmailLog[]
+
+  // Phase 3 courier relations
+  courierConnections   CourierConnection[]
+  courierWebhookEvents CourierWebhookEvent[]
+
+  // Phase 4 relations
+  automationRules      AutomationRule[]
+  followUpTasks        FollowUpTask[]
+  returnRequests       ReturnRequest[]
+  refunds              Refund[]
+  inventoryAdjustments InventoryAdjustment[]
+
   @@map("merchants")
+}
+
+model MerchantUser {
+  id           String    @id @default(uuid())
+  merchantId   String    @map("merchant_id")
+  name         String
+  email        String
+  passwordHash String?   @map("password_hash")
+  role         String    @default("owner") // owner / admin / staff
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, email])
+  @@map("merchant_users")
+}
+
+// ============================================================
+// CUSTOMERS
+// ============================================================
+
+model Customer {
+  id               String    @id @default(uuid())
+  merchantId       String    @map("merchant_id")
+  fullName         String    @map("full_name")
+  phone            String?
+  email            String?
+  tags             Json?     @default("[]")
+  notes            String?
+  totalOrders      Int       @default(0) @map("total_orders")
+  totalSpent       Float     @default(0) @map("total_spent")
+  lastOrderAt      DateTime? @map("last_order_at")
+  // Phase 4 — messaging consent & opt-out channels (email / whatsapp / instagram)
+  marketingConsent Boolean   @default(false) @map("marketing_consent")
+  optedOutChannels Json?     @default("[]") @map("opted_out_channels")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  merchant       Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  addresses      CustomerAddress[]
+  orders         Order[]
+  // Phase 4 relations
+  followUpTasks  FollowUpTask[]
+  messageLogs    MessageLog[]
+  returnRequests ReturnRequest[]
+
+  @@index([merchantId, fullName])
+  @@index([merchantId, phone])
+  @@index([merchantId, email])
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id            String   @id @default(uuid())
+  merchantId    String   @map("merchant_id")
+  customerId    String   @map("customer_id")
+  label         String?
+  recipientName String   @map("recipient_name")
+  phone         String?
+  line1         String
+  line2         String?
+  city          String
+  state         String
+  pincode       String
+  country       String   @default("India")
+  isDefault     Boolean  @default(false) @map("is_default")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, customerId])
+  @@map("customer_addresses")
+}
+
+// ============================================================
+// PRODUCTS
+// ============================================================
+
+model Product {
+  id                String        @id @default(uuid())
+  merchantId        String        @map("merchant_id")
+  name              String
+  description       String?
+  sku               String?
+  price             Decimal       @db.Decimal(10, 2)
+  compareAtPrice    Decimal?      @map("compare_at_price") @db.Decimal(10, 2)
+  imageUrl          String?       @map("image_url")
+  productType       ProductType   @map("product_type")
+  status            ProductStatus @default(active)
+  stockQuantity     Int?          @map("stock_quantity")
+  lowStockThreshold Int?          @map("low_stock_threshold")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  merchant             Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  orderItems           OrderItem[]
+  checkoutLinks        CheckoutLink[]
+  // Phase 4 relations
+  inventoryAdjustments InventoryAdjustment[]
+
+  @@index([merchantId, status])
+  @@map("products")
+}
+
+// ============================================================
+// ORDERS
+// ============================================================
+
+model Order {
+  id                       String                   @id @default(uuid())
+  merchantId               String                   @map("merchant_id")
+  customerId               String?                  @map("customer_id")
+  orderNumber              String                   @map("order_number")
+  source                   OrderSource              @default(manual_order)
+  currency                 String                   @default("INR")
+  testMode                 Boolean                  @default(false) @map("test_mode")
+  subtotalAmount           Decimal                  @map("subtotal_amount") @db.Decimal(10, 2)
+  discountAmount           Decimal                  @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  shippingAmount           Decimal                  @default(0) @map("shipping_amount") @db.Decimal(10, 2)
+  taxAmount                Decimal                  @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  totalAmount              Decimal                  @map("total_amount") @db.Decimal(10, 2)
+  paymentStatus            PaymentStatus            @default(pending) @map("payment_status")
+  orderStatus              OrderStatus              @default(new) @map("order_status")
+  fulfillmentSummaryStatus FulfillmentSummaryStatus @default(unfulfilled) @map("fulfillment_summary_status")
+  merchantOrderReference   String?                  @map("merchant_order_reference")
+  shippingAddressSnapshot  Json?                    @map("shipping_address_snapshot")
+  billingAddressSnapshot   Json?                    @map("billing_address_snapshot")
+  internalNotes            String?                  @map("internal_notes")
+  customerNote             String?                  @map("customer_note")
+  trackingToken            String?                  @unique @map("tracking_token")
+  createdAt                DateTime                 @default(now()) @map("created_at")
+  paidAt                   DateTime?                @map("paid_at")
+  cancelledAt              DateTime?                @map("cancelled_at")
+  completedAt              DateTime?                @map("completed_at")
+  updatedAt                DateTime                 @updatedAt @map("updated_at")
+
+  merchant             Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer             Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  orderItems           OrderItem[]
+  fulfillments         Fulfillment[]
+  statusHistory        OrderStatusHistory[]
+  payments             Payment[]
+  checkoutLink         CheckoutLink?         @relation(fields: [checkoutLinkId], references: [id], onDelete: SetNull)
+  checkoutLinkId       String?               @map("checkout_link_id")
+  // Phase 4 relations
+  returns              ReturnRequest[]
+  refunds              Refund[]
+  followUpTasks        FollowUpTask[]
+  inventoryAdjustments InventoryAdjustment[]
+
+  @@unique([merchantId, orderNumber])
+  @@unique([merchantId, merchantOrderReference])
+  @@index([merchantId, createdAt])
+  @@index([merchantId, paymentStatus])
+  @@index([merchantId, orderStatus])
+  @@index([merchantId, fulfillmentSummaryStatus])
+  @@index([merchantId, source])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                  String   @id @default(uuid())
+  orderId             String   @map("order_id")
+  productId           String?  @map("product_id")
+  productNameSnapshot String   @map("product_name_snapshot")
+  skuSnapshot         String?  @map("sku_snapshot")
+  unitPrice           Decimal  @map("unit_price") @db.Decimal(10, 2)
+  quantityOrdered     Int      @map("quantity_ordered")
+  quantityFulfilled   Int      @default(0) @map("quantity_fulfilled")
+  quantityCancelled   Int      @default(0) @map("quantity_cancelled")
+  quantityReturned    Int      @default(0) @map("quantity_returned")
+  lineTotal           Decimal  @map("line_total") @db.Decimal(10, 2)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  order            Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product          Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
+  fulfillmentItems FulfillmentItem[]
+  // Phase 4 relations
+  returnItems      ReturnItem[]
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+// ============================================================
+// FULFILLMENTS, PACKAGES & SHIPMENTS
+// ============================================================
+
+model Fulfillment {
+  id                String            @id @default(uuid())
+  merchantId        String            @map("merchant_id")
+  orderId           String            @map("order_id")
+  fulfillmentNumber String            @map("fulfillment_number")
+  fulfillmentType   FulfillmentType   @default(shipping) @map("fulfillment_type")
+  status            FulfillmentStatus @default(unfulfilled)
+  createdAt         DateTime          @default(now()) @map("created_at")
+  processingAt      DateTime?         @map("processing_at")
+  packedAt          DateTime?         @map("packed_at")
+  shippedAt         DateTime?         @map("shipped_at")
+  deliveredAt       DateTime?         @map("delivered_at")
+  cancelledAt       DateTime?         @map("cancelled_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  merchant      Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  order         Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items         FulfillmentItem[]
+  packages      Package[]
+  statusHistory OrderStatusHistory[]
+
+  @@unique([merchantId, fulfillmentNumber])
+  @@index([merchantId, orderId])
+  @@map("fulfillments")
+}
+
+model FulfillmentItem {
+  id            String   @id @default(uuid())
+  fulfillmentId String   @map("fulfillment_id")
+  orderItemId   String   @map("order_item_id")
+  quantity      Int
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  fulfillment Fulfillment @relation(fields: [fulfillmentId], references: [id], onDelete: Cascade)
+  orderItem   OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@unique([fulfillmentId, orderItemId])
+  @@index([orderItemId])
+  @@map("fulfillment_items")
+}
+
+model Package {
+  id                  String        @id @default(uuid())
+  merchantId          String        @map("merchant_id")
+  fulfillmentId       String        @map("fulfillment_id")
+  courierProvider     String?       @map("courier_provider")
+  trackingNumber      String?       @map("tracking_number")
+  trackingUrl         String?       @map("tracking_url")
+  packageStatus       PackageStatus @default(not_shipped) @map("package_status")
+  estimatedDeliveryAt DateTime?     @map("estimated_delivery_at")
+  shippedAt           DateTime?     @map("shipped_at")
+  deliveredAt         DateTime?     @map("delivered_at")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  // Phase 3 — provider-backed shipments
+  provider             String?   @map("provider")
+  providerShipmentId   String?   @map("provider_shipment_id")
+  providerOrderId      String?   @map("provider_order_id")
+  awbNumber            String?   @map("awb_number")
+  labelUrl             String?   @map("label_url")
+  pickupScheduledAt    DateTime? @map("pickup_scheduled_at")
+  pickedUpAt           DateTime? @map("picked_up_at")
+  rtoInitiatedAt       DateTime? @map("rto_initiated_at")
+  rtoDeliveredAt       DateTime? @map("rto_delivered_at")
+  returnTrackingNumber String?   @map("return_tracking_number")
+  lastProviderSyncAt   DateTime? @map("last_provider_sync_at")
+  providerMetadata     Json?     @map("provider_metadata")
+
+  merchant             Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  fulfillment          Fulfillment           @relation(fields: [fulfillmentId], references: [id], onDelete: Cascade)
+  events               ShipmentEvent[]
+  courierWebhookEvents CourierWebhookEvent[]
+
+  @@index([merchantId, fulfillmentId])
+  @@index([merchantId, awbNumber])
+  @@index([provider, providerShipmentId])
+  @@index([provider, awbNumber])
+  @@map("packages")
+}
+
+model ShipmentEvent {
+  id          String              @id @default(uuid())
+  merchantId  String              @map("merchant_id")
+  packageId   String              @map("package_id")
+  eventLabel  String              @map("event_label")
+  eventStatus String              @map("event_status")
+  location    String?
+  eventAt     DateTime            @map("event_at")
+  source      ShipmentEventSource @default(merchant)
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  package  Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, packageId])
+  @@map("shipment_events")
+}
+
+// ============================================================
+// PHASE 3 — COURIER INTEGRATIONS
+// ============================================================
+
+enum CourierConnectionStatus {
+  disconnected
+  connecting
+  connected
+  error
+}
+
+enum CourierWebhookEventState {
+  received
+  processing
+  processed
+  failed_processing
+  duplicate
+  bad_signature
+  out_of_order
+}
+
+model CourierConnection {
+  id                     String                  @id @default(uuid())
+  merchantId             String                  @map("merchant_id")
+  provider               String                  @map("provider") // shiprocket | mock | delhivery
+  label                  String?                 @map("label")
+  status                 CourierConnectionStatus @default(disconnected)
+  testMode               Boolean                 @default(true) @map("test_mode")
+  credentialsEncrypted   String                  @map("credentials_encrypted") // AES-GCM payload, JSON
+  webhookSecretEncrypted String?                 @map("webhook_secret_encrypted")
+  lastTestedAt           DateTime?               @map("last_tested_at")
+  lastError              String?                 @map("last_error")
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, provider])
+  @@index([merchantId, status])
+  @@map("courier_connections")
+}
+
+model CourierWebhookEvent {
+  id               String                   @id @default(uuid())
+  provider         String                   @map("provider")
+  providerEventId  String?                  @map("provider_event_id")
+  eventType        String                   @map("event_type")
+  signatureValid   Boolean                  @default(false) @map("signature_valid")
+  payload          Json                     @default("{}")
+  processingStatus CourierWebhookEventState @default(received) @map("processing_status")
+  processingError  String?                  @map("processing_error")
+  merchantId       String?                  @map("merchant_id")
+  packageId        String?                  @map("package_id")
+  awbNumber        String?                  @map("awb_number")
+  trackingNumber   String?                  @map("tracking_number")
+  receivedAt       DateTime                 @default(now()) @map("received_at")
+  processedAt      DateTime?                @map("processed_at")
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  package  Package?  @relation(fields: [packageId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerEventId])
+  @@index([merchantId, receivedAt])
+  @@index([provider, awbNumber])
+  @@index([processingStatus])
+  @@map("courier_webhook_events")
+}
+
+// ============================================================
+// STATUS HISTORY & AUDIT
+// ============================================================
+
+model OrderStatusHistory {
+  id              String            @id @default(uuid())
+  merchantId      String            @map("merchant_id")
+  orderId         String            @map("order_id")
+  fulfillmentId   String?           @map("fulfillment_id")
+  packageId       String?           @map("package_id")
+  previousStatus  String?           @map("previous_status")
+  newStatus       String            @map("new_status")
+  statusType      StatusHistoryType @map("status_type")
+  changedByUserId String?           @map("changed_by_user_id")
+  changedByType   ChangedByType     @default(merchant) @map("changed_by_type")
+  changeReason    String?           @map("change_reason")
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  merchant    Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fulfillment Fulfillment? @relation(fields: [fulfillmentId], references: [id], onDelete: SetNull)
+
+  @@index([merchantId, orderId])
+  @@map("order_status_history")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  merchantId String?  @map("merchant_id")
+  email      String
+  action     String // signup, login, logout, order_created, ...
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Phase 1 merchant operations audit fields
+  actorUserId String? @map("actor_user_id")
+  entityType  String? @map("entity_type")
+  entityId    String? @map("entity_id")
+  metadata    Json?   @map("metadata")
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
 }
 
 model UpiId {
@@ -128,9 +786,9 @@ model Transaction {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  merchant     Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  paymentLink  PaymentLink?  @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
-  webhookLogs  WebhookLog[]
+  merchant    Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  paymentLink PaymentLink? @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
+  webhookLogs WebhookLog[]
 
   @@map("transactions")
 }
@@ -160,13 +818,18 @@ model ApiKey {
   name       String
   keyHash    String    @map("key_hash")
   keyPrefix  String    @map("key_prefix")
+  mode       KeyMode   @default(live)
   scopes     String    @default("[\"read\"]")
   expiresAt  DateTime? @map("expires_at")
   lastUsedAt DateTime? @map("last_used_at")
+  revokedAt  DateTime? @map("revoked_at")
   createdAt  DateTime  @default(now()) @map("created_at")
 
-  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchant       Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  apiRequestLogs ApiRequestLog[]
 
+  @@unique([merchantId, keyPrefix])
+  @@index([keyPrefix])
   @@map("api_keys")
 }
 
@@ -181,51 +844,84 @@ model PageView {
 }
 
 model MessageTemplate {
-  id         String   @id @default(uuid())
-  merchantId String   @map("merchant_id")
-  channel    String   // email / whatsapp / instagram
-  name       String
-  subject    String   @default("")
-  body       String
-  isDefault  Boolean  @default(false) @map("is_default")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id                   String   @id @default(uuid())
+  // nullable => global default template; merchant resolvers take merchant rows first
+  merchantId           String?  @map("merchant_id")
+  channel              String // email / whatsapp / instagram
+  name                 String
+  // Phase 4 — automation event this template is bound to (see MESSAGE_EVENTS)
+  eventType            String?  @map("event_type")
+  subject              String   @default("")
+  body                 String
+  providerTemplateName String?  @map("provider_template_name")
+  languageCode         String   @default("en") @map("language_code")
+  isDefault            Boolean  @default(false) @map("is_default")
+  isActive             Boolean  @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
-  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchant        Merchant?        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  // Phase 4 — automation rule template references
+  automationRules AutomationRule[]
 
   @@unique([merchantId, channel, name])
+  @@index([merchantId, channel, eventType])
   @@map("message_templates")
 }
 
 model MessageLog {
-  id               String   @id @default(uuid())
-  merchantId       String   @map("merchant_id")
-  orderId          String?  @map("order_id")
-  channel          String   // email / whatsapp / instagram
-  recipient        String
-  subject          String   @default("")
-  renderedBody     String   @map("rendered_body")
-  status           String   @default("pending") // pending / sent / failed
-  provider         String   @default("") // resend / twilio / meta / manual
-  providerMessageId String? @map("provider_message_id")
-  errorMessage     String?  @map("error_message")
-  createdBy        String   @map("created_by")
-  createdAt        DateTime @default(now()) @map("created_at")
+  id                String    @id @default(uuid())
+  merchantId        String    @map("merchant_id")
+  orderId           String?   @map("order_id")
+  customerId        String?   @map("customer_id")
+  fulfillmentId     String?   @map("fulfillment_id")
+  packageId         String?   @map("package_id")
+  channel           String // email / whatsapp / instagram
+  eventType         String?   @map("event_type")
+  recipient         String
+  subject           String    @default("")
+  renderedBody      String    @map("rendered_body")
+  status            String    @default("pending") // queued / sent / delivered / read / failed
+  // Provider webhook id for delivery/read receipts.
+  providerMessageId String?   @map("provider_message_id")
+  idempotencyKey    String?   @map("idempotency_key")
+  attemptCount      Int       @default(0) @map("attempt_count")
+  failureReason     String?   @map("failure_reason")
+  scheduledAt       DateTime? @map("scheduled_at")
+  provider          String    @default("") // resend / meta / mock / manual
+  errorMessage      String?   @map("error_message")
+  createdBy         String    @map("created_by")
+  sentAt            DateTime? @map("sent_at")
+  deliveredAt       DateTime? @map("delivered_at")
+  readAt            DateTime? @map("read_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchant Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
+  // At most one log row per (merchant, channel, idempotency key) — dedupe.
+  // NULL keys are never deduped (Postgres treats NULLs as distinct).
+  @@unique([merchantId, channel, idempotencyKey])
+  @@index([merchantId, channel, eventType])
+  @@index([merchantId, customerId])
+  @@index([merchantId, status])
   @@map("message_logs")
 }
 
 model ChannelConnection {
-  id         String   @id @default(uuid())
-  merchantId String   @map("merchant_id")
-  channel    String   // email / whatsapp / instagram
-  status     String   @default("disconnected") // connected / disconnected / error
-  accountId  String?  @map("account_id")
-  metadata   String   @default("{}") // JSON blob for channel-specific data
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id                     String   @id @default(uuid())
+  merchantId             String   @map("merchant_id")
+  channel                String // email / whatsapp / instagram
+  status                 String   @default("disconnected") // connected / disconnected / error
+  accountId              String?  @map("account_id")
+  metadata               String   @default("{}") // JSON blob for channel-specific data
+  // Phase 4 — provider credentials (encrypted) + signing secret for webhooks.
+  credentialsEncrypted   String?  @map("credentials_encrypted")
+  webhookSecretEncrypted String?  @map("webhook_secret_encrypted")
+  isEnabled              Boolean  @default(true) @map("is_enabled")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
 
   merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
@@ -234,47 +930,442 @@ model ChannelConnection {
 }
 
 model MerchantSettings {
-  merchantId           String   @id @map("merchant_id")
-  smsEnabled           Boolean  @default(false) @map("sms_enabled")
-  emailEnabled         Boolean  @default(false) @map("email_enabled")
-  autoSettlement       Boolean  @default(true) @map("auto_settlement")
-  settlementFrequency  String   @default("daily") @map("settlement_frequency")
-  notificationEmail    String?  @map("notification_email")
-  notificationPhone    String?  @map("notification_phone")
-  webhookSecret        String?  @map("webhook_secret")
-  updatedAt            DateTime @updatedAt @map("updated_at")
+  merchantId              String   @id @map("merchant_id")
+  smsEnabled              Boolean  @default(false) @map("sms_enabled")
+  emailEnabled            Boolean  @default(false) @map("email_enabled")
+  autoSettlement          Boolean  @default(true) @map("auto_settlement")
+  settlementFrequency     String   @default("daily") @map("settlement_frequency")
+  notificationEmail       String?  @map("notification_email")
+  notificationPhone       String?  @map("notification_phone")
+  webhookSecret           String?  @map("webhook_secret")
+  // Phase 4 — inventory behaviour
+  inventoryMode           String   @default("manual") @map("inventory_mode") // manual / on_payment / on_shipment
+  restoreStockOnCancelled Boolean  @default(true) @map("restore_stock_on_cancelled")
+  restoreStockOnReturn    Boolean  @default(true) @map("restore_stock_on_return")
+  allowOverselling        Boolean  @default(false) @map("allow_overselling")
+  // Phase 4 — saved customer segment presets (JSON array of SegmentPreset)
+  savedSegments           Json?    @map("saved_segments")
+  updatedAt               DateTime @updatedAt @map("updated_at")
 
   merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@map("merchant_settings")
 }
 
-model AuditLog {
-  id         String   @id @default(uuid())
-  merchantId String?  @map("merchant_id")
-  email      String
-  action     String   // signup, login, logout
-  ipAddress  String?  @map("ip_address")
-  userAgent  String?  @map("user_agent")
-  createdAt  DateTime @default(now()) @map("created_at")
+// ============================================================
+// PHASE 4 — RETURNS, REFUNDS, FOLLOW-UPS & INVENTORY
+// ============================================================
 
-  @@map("audit_logs")
+model ReturnRequest {
+  id              String              @id @default(uuid())
+  merchantId      String              @map("merchant_id")
+  orderId         String              @map("order_id")
+  customerId      String?             @map("customer_id")
+  returnNumber    String              @map("return_number")
+  status          ReturnRequestStatus @default(requested)
+  reason          String              @default("")
+  customerComment String?             @map("customer_comment")
+  merchantNote    String?             @map("merchant_note")
+  requestedAt     DateTime            @default(now()) @map("requested_at")
+  approvedAt      DateTime?           @map("approved_at")
+  receivedAt      DateTime?           @map("received_at")
+  closedAt        DateTime?           @map("closed_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  merchant             Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  order                Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer             Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items                ReturnItem[]
+  refunds              Refund[]
+  inventoryAdjustments InventoryAdjustment[]
+
+  @@unique([merchantId, returnNumber])
+  @@index([merchantId, status])
+  @@index([merchantId, createdAt])
+  @@map("returns")
+}
+
+model ReturnItem {
+  id             String   @id @default(uuid())
+  returnId       String   @map("return_id")
+  orderItemId    String   @map("order_item_id")
+  quantity       Int
+  reason         String   @default("")
+  conditionNotes String?  @map("condition_notes")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  returnRequest ReturnRequest @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  orderItem     OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([returnId])
+  @@index([orderItemId])
+  @@map("return_items")
+}
+
+model Refund {
+  id               String       @id @default(uuid())
+  merchantId       String       @map("merchant_id")
+  orderId          String       @map("order_id")
+  paymentId        String       @map("payment_id")
+  returnId         String?      @map("return_id")
+  refundNumber     String       @map("refund_number")
+  amount           Decimal      @db.Decimal(10, 2)
+  currency         String       @default("INR")
+  status           RefundStatus @default(pending)
+  providerRefundId String?      @map("provider_refund_id")
+  failureReason    String?      @map("failure_reason")
+  reason           String?      @map("reason")
+  initiatedAt      DateTime?    @map("initiated_at")
+  completedAt      DateTime?    @map("completed_at")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  merchant      Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment       Payment        @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  returnRequest ReturnRequest? @relation(fields: [returnId], references: [id], onDelete: SetNull)
+
+  @@unique([merchantId, refundNumber])
+  @@index([merchantId, status])
+  @@index([merchantId, paymentId])
+  @@map("refunds")
+}
+
+model AutomationRule {
+  id           String   @id @default(uuid())
+  merchantId   String   @map("merchant_id")
+  eventType    String   @map("event_type")
+  channel      String // email / whatsapp / instagram
+  templateId   String?  @map("template_id")
+  enabled      Boolean  @default(true)
+  delayMinutes Int      @default(0) @map("delay_minutes")
+  conditions   Json?    @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  merchant Merchant         @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  template MessageTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@unique([merchantId, eventType, channel])
+  @@map("automation_rules")
+}
+
+model FollowUpTask {
+  id             String    @id @default(uuid())
+  merchantId     String    @map("merchant_id")
+  customerId     String?   @map("customer_id")
+  orderId        String?   @map("order_id")
+  assignedUserId String?   @map("assigned_user_id")
+  category       String    @default("general") // payment_pending / delivery_failed / review_request / repeat_customer / return_response
+  title          String
+  notes          String?
+  status         String    @default("open") // open / completed / dismissed
+  dueAt          DateTime  @map("due_at")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  merchant Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  order    Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, status, dueAt])
+  @@index([merchantId, customerId])
+  @@map("follow_up_tasks")
+}
+
+model InventoryAdjustment {
+  id             String                  @id @default(uuid())
+  merchantId     String                  @map("merchant_id")
+  productId      String                  @map("product_id")
+  orderId        String?                 @map("order_id")
+  returnId       String?                 @map("return_id")
+  adjustmentType InventoryAdjustmentType @map("adjustment_type")
+  quantityChange Int                     @map("quantity_change")
+  reason         String                  @default("")
+  createdAt      DateTime                @default(now()) @map("created_at")
+
+  merchant      Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  product       Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order         Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  returnRequest ReturnRequest? @relation(fields: [returnId], references: [id], onDelete: SetNull)
+
+  @@index([merchantId, productId])
+  @@index([merchantId, createdAt])
+  @@map("inventory_adjustments")
 }
 
 model FeedbackResponse {
-  id            String   @id @default(uuid())
-  merchantName  String   @map("merchant_name")
-  satisfaction  Int      // 1-5
-  easeOfUse     Int      @map("ease_of_use") // 1-5
-  usefulParts   String   @default("[]") @map("useful_parts") // JSON array
-  easeCollecting String  @map("ease_collecting")
-  likesMost     String?  @map("likes_most")
-  issues        String?  @map("issues")
-  improvement   String?  @map("improvement")
-  npsScore      Int      @map("nps_score") // 0-10
-  followUp      Boolean  @map("follow_up")
-  contact       String?  @map("contact")
-  createdAt     DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  merchantName   String   @map("merchant_name")
+  satisfaction   Int // 1-5
+  easeOfUse      Int      @map("ease_of_use") // 1-5
+  usefulParts    String   @default("[]") @map("useful_parts") // JSON array
+  easeCollecting String   @map("ease_collecting")
+  likesMost      String?  @map("likes_most")
+  issues         String?  @map("issues")
+  improvement    String?  @map("improvement")
+  npsScore       Int      @map("nps_score") // 0-10
+  followUp       Boolean  @map("follow_up")
+  contact        String?  @map("contact")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   @@map("feedback_responses")
+}
+
+// ============================================================
+// PHASE 2 — PAYMENTS
+// ============================================================
+
+model Payment {
+  id                        String        @id @default(uuid())
+  merchantId                String        @map("merchant_id")
+  orderId                   String?       @map("order_id")
+  checkoutLinkId            String?       @map("checkout_link_id")
+  checkoutSessionId         String        @unique @map("checkout_session_id")
+  paymentReference          String        @unique @map("payment_reference")
+  merchantOrderReference    String?       @map("merchant_order_reference")
+  provider                  String        @default("mock")
+  providerPaymentId         String?       @map("provider_payment_id")
+  providerOrderId           String?       @map("provider_order_id")
+  providerCheckoutSessionId String?       @map("provider_checkout_session_id")
+  mode                      KeyMode       @default(live)
+  amount                    Decimal       @db.Decimal(10, 2)
+  currency                  String        @default("INR")
+  status                    PaymentStatus @default(pending)
+  paymentMethod             String?       @map("payment_method")
+  paymentLinkUrl            String?       @map("payment_link_url")
+  expiresAt                 DateTime?     @map("expires_at")
+  paidAt                    DateTime?     @map("paid_at")
+  failedAt                  DateTime?     @map("failed_at")
+  idempotencyKey            String?       @map("idempotency_key")
+  amountMismatch            Boolean       @default(false) @map("amount_mismatch")
+  providerResponse          Json?         @map("provider_response")
+  createdAt                 DateTime      @default(now()) @map("created_at")
+  updatedAt                 DateTime      @updatedAt @map("updated_at")
+
+  merchant      Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  order         Order?         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  checkoutLink  CheckoutLink?  @relation(fields: [checkoutLinkId], references: [id], onDelete: SetNull)
+  webhookEvents WebhookEvent[]
+  // Phase 4 relations
+  refunds       Refund[]
+
+  @@unique([merchantId, orderId])
+  @@unique([merchantId, providerPaymentId])
+  @@unique([merchantId, providerCheckoutSessionId])
+  @@unique([merchantId, idempotencyKey])
+  @@index([merchantId, status])
+  @@index([merchantId, mode])
+  @@index([merchantId, createdAt])
+  @@map("payments")
+}
+
+// ============================================================
+// PHASE 2 — CHECKOUT LINKS (payment links for merchants without websites)
+// ============================================================
+
+model CheckoutLink {
+  id             String    @id @default(uuid())
+  merchantId     String    @map("merchant_id")
+  slug           String    @unique
+  title          String
+  description    String?
+  mode           KeyMode   @default(live)
+  amount         Decimal?  @db.Decimal(10, 2)
+  amountFlexible Boolean   @default(false) @map("amount_flexible")
+  minAmount      Decimal?  @map("min_amount") @db.Decimal(10, 2)
+  maxAmount      Decimal?  @map("max_amount") @db.Decimal(10, 2)
+  productId      String?   @map("product_id")
+  productName    String?   @map("product_name")
+  productPrice   Decimal?  @map("product_price") @db.Decimal(10, 2)
+  itemsJson      Json?     @map("items_json") // Array of { productId?, name, sku?, quantity, unitPrice } — enables an Order Summary on the link
+  collectName    Boolean   @default(true) @map("collect_name")
+  collectPhone   Boolean   @default(true) @map("collect_phone")
+  collectEmail   Boolean   @default(true) @map("collect_email")
+  collectAddress Boolean   @default(false) @map("collect_address")
+  collectNote    Boolean   @default(false) @map("collect_note")
+  successUrl     String?   @map("success_url")
+  customMessage  String?   @map("custom_message")
+  expiryAt       DateTime? @map("expiry_at")
+  maxPayments    Int?      @map("max_payments")
+  paymentCount   Int       @default(0) @map("payment_count")
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  merchant Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  orders   Order[]
+  payments Payment[]
+
+  @@index([merchantId, active])
+  @@map("checkout_links")
+}
+
+// ============================================================
+// PHASE 8 — SHOPIFY GUIDED WEBHOOK INTEGRATION
+// ============================================================
+
+model ShopifyConnection {
+  id                String    @id @default(uuid())
+  merchantId        String    @unique @map("merchant_id")
+  storeDomain       String    @unique @map("store_domain")
+  webhookSecret     String    @map("webhook_secret")
+  accessToken       String?   @map("access_token")
+  shopId            BigInt?   @map("shop_id")
+  installedAt       DateTime? @map("installed_at")
+  uninstalledAt     DateTime? @map("uninstalled_at")
+  topicOrdersCreate Boolean   @default(true) @map("topic_orders_create")
+  topicOrdersPaid   Boolean   @default(true) @map("topic_orders_paid")
+  enabled           Boolean   @default(true)
+  lastEventAt       DateTime? @map("last_event_at")
+  lastError         String?   @map("last_error")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("shopify_connections")
+}
+
+// ============================================================
+// PHASE 2 — OUTGOING MERCHANT WEBHOOKS
+// ============================================================
+
+model WebhookEndpoint {
+  id              String    @id @default(uuid())
+  merchantId      String    @map("merchant_id")
+  url             String
+  secretEncrypted String    @map("secret_encrypted")
+  mode            KeyMode   @default(live)
+  active          Boolean   @default(true)
+  eventTypes      Json      @default("[]") @map("event_types")
+  failedCount     Int       @default(0) @map("failed_count")
+  lastDeliveryAt  DateTime? @map("last_delivery_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  merchant   Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  deliveries WebhookDeliveryLog[]
+
+  @@index([merchantId, active])
+  @@map("webhook_endpoints")
+}
+
+model WebhookDeliveryLog {
+  id           String                @id @default(uuid())
+  endpointId   String                @map("endpoint_id")
+  merchantId   String                @map("merchant_id")
+  eventId      String                @map("event_id")
+  eventType    String                @map("event_type")
+  url          String
+  payload      String                @default("{}")
+  signature    String
+  status       WebhookDeliveryStatus @default(pending)
+  responseCode Int?                  @map("response_code")
+  responseBody String?               @map("response_body")
+  errorMessage String?               @map("error_message")
+  retryCount   Int                   @default(0) @map("retry_count")
+  nextRetryAt  DateTime?             @map("next_retry_at")
+  deliveredAt  DateTime?             @map("delivered_at")
+  createdAt    DateTime              @default(now()) @map("created_at")
+
+  merchant Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, createdAt])
+  @@index([endpointId, status])
+  @@map("webhook_delivery_logs")
+}
+
+// ============================================================
+// PHASE 2 — INCOMING PROVIDER WEBHOOKS
+// ============================================================
+
+model WebhookEvent {
+  id               String            @id @default(uuid())
+  merchantId       String?           @map("merchant_id")
+  provider         String
+  providerEventId  String?           @map("provider_event_id")
+  eventType        String            @map("event_type")
+  signatureValid   Boolean           @default(false) @map("signature_valid")
+  payload          Json              @default("{}")
+  processingStatus WebhookEventState @default(received) @map("processing_status")
+  processingError  String?           @map("processing_error")
+  paymentId        String?           @map("payment_id")
+  receivedAt       DateTime          @default(now()) @map("received_at")
+  processedAt      DateTime?         @map("processed_at")
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  payment  Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerEventId])
+  @@index([merchantId, receivedAt])
+  @@index([processingStatus])
+  @@index([paymentId])
+  @@map("webhook_events")
+}
+
+// ============================================================
+// PHASE 2 — API REQUEST LOGS
+// ============================================================
+
+model ApiRequestLog {
+  id             String   @id @default(uuid())
+  merchantId     String?  @map("merchant_id")
+  apiKeyId       String?  @map("api_key_id")
+  route          String
+  method         String
+  requestId      String   @map("request_id")
+  responseStatus Int      @map("response_status")
+  durationMs     Int      @map("duration_ms")
+  ipAddress      String?  @map("ip_address")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  apiKey   ApiKey?   @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+
+  @@index([merchantId, createdAt])
+  @@map("api_request_logs")
+}
+
+// ============================================================
+// PHASE 2 — EMAILS
+// ============================================================
+
+model EmailTemplate {
+  id         String          @id @default(uuid())
+  merchantId String          @map("merchant_id")
+  key        EmailAutomation
+  subject    String          @default("")
+  body       String          @default("")
+  isActive   Boolean         @default(true) @map("is_active")
+  isDefault  Boolean         @default(false) @map("is_default")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, key])
+  @@map("email_templates")
+}
+
+model EmailLog {
+  id                String          @id @default(uuid())
+  merchantId        String          @map("merchant_id")
+  templateKey       EmailAutomation @map("template_key")
+  recipient         String
+  subject           String          @default("")
+  renderedBody      String          @map("rendered_body")
+  status            EmailLogStatus  @default(queued)
+  provider          String          @default("mock")
+  providerMessageId String?         @map("provider_message_id")
+  errorMessage      String?         @map("error_message")
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId, createdAt])
+  @@map("email_logs")
 }
