@@ -53,6 +53,8 @@ export async function POST(req: Request) {
             avatarUrl,
             provider: 'google',
             businessName: '',
+            // Google has verified this email address.
+            emailVerifiedAt: new Date(),
           },
         })
       } catch (e: any) {
@@ -69,6 +71,9 @@ export async function POST(req: Request) {
           { error: 'An account with this email already exists. Please log in with your email and password.' },
           { status: 409 }
         )
+      }
+      if (!merchant.emailVerifiedAt) {
+        merchant = await prisma.merchant.update({ where: { id: merchant.id }, data: { emailVerifiedAt: new Date() } })
       }
     }
 
@@ -96,6 +101,7 @@ export async function POST(req: Request) {
         bgImageUrl: merchant.bgImageUrl,
         status: merchant.status,
         onboardingComplete: merchant.onboardingComplete,
+        emailVerifiedAt: merchant.emailVerifiedAt,
         createdAt: merchant.createdAt,
       }),
     })

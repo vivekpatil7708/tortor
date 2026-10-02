@@ -13,7 +13,7 @@ const WINDOW_MIN = 15
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession()
-    if (!session || !isAdminEmail(session.email)) {
+    if (!session || !isAdminEmail(session.email) || !session.emailVerifiedAt) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

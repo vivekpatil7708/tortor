@@ -3,6 +3,7 @@ import { requireMerchant } from '@/lib/tenant'
 import { prisma } from '@/lib/prisma'
 import { createApiKey } from '@/lib/api-key'
 import { apiError } from '@/lib/api-response'
+import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
 
 /** List API keys for the merchant (secret hashes never leak). */
 export async function GET() {
@@ -37,6 +38,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await requireMerchant()
+    if (!session.emailVerifiedAt) return apiError(403, EMAIL_NOT_VERIFIED)
     const body = (await req.json().catch(() => ({}))) as { name?: string; mode?: string; scope?: string }
 
     const mode = body.mode === 'live' ? 'live' : 'test'

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createSession, hashPassword, merchantToJson } from '@/lib/auth'
+import { sendVerificationEmail } from '@/lib/email-verification'
 
 export async function POST(req: NextRequest) {
   try {
@@ -67,8 +68,11 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // The account can't take payments until the owner proves the email is theirs.
+    const verificationSent = await sendVerificationEmail(merchant)
+
     await createSession(merchant.id, merchant.email)
-    return NextResponse.json({ success: true, merchant: merchantToJson(merchant) })
+    return NextResponse.json({ success: true, merchant: merchantToJson(merchant), email_verification_sent: verificationSent })
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Signup failed' }, { status: 500 })
   }

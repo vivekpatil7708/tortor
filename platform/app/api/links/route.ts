@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
+import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
 import { prisma } from '@/lib/prisma'
 import { serializeLink } from '@/lib/serializers'
 import { generateSlug } from '@/lib/utils'
@@ -21,6 +22,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await requireSession()
+    if (!session.emailVerifiedAt) {
+      return NextResponse.json({ error: EMAIL_NOT_VERIFIED }, { status: 403 })
+    }
     const body = await req.json()
 
     if (!body.title || !body.upi_id) {

@@ -44,11 +44,14 @@ export async function grantAdminSecondFactor(merchantId: string) {
   })
 }
 
-/** Admin = the ADMIN_EMAIL account that also passed the authenticator-code check. */
+/**
+ * Admin = the ADMIN_EMAIL account, with a verified email (so nobody can claim
+ * it by signing up first), that also passed the authenticator-code check.
+ */
 export async function requireAdmin() {
   const session = await getSession()
   if (!session) throw new Error('Unauthorized')
-  if (!isAdminEmail(session.email) || !(await hasAdminSecondFactor(session.id))) {
+  if (!isAdminEmail(session.email) || !session.emailVerifiedAt || !(await hasAdminSecondFactor(session.id))) {
     throw new Error('Forbidden')
   }
   return session

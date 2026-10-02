@@ -131,6 +131,7 @@ export async function getSession() {
       bgImageUrl: true,
       status: true,
       onboardingComplete: true,
+      emailVerifiedAt: true,
       createdAt: true,
     },
   })
@@ -160,6 +161,7 @@ export function merchantToJson(m: {
   bgImageUrl: string | null
   status: string
   onboardingComplete: boolean
+  emailVerifiedAt?: Date | null
   createdAt: Date
 }) {
   return {
@@ -177,6 +179,7 @@ export function merchantToJson(m: {
     custom_domain: m.customDomain,
     status: m.status,
     onboarding_complete: m.onboardingComplete,
+    email_verified: Boolean(m.emailVerifiedAt),
     created_at: m.createdAt.toISOString(),
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { requireSession } from '@/lib/auth'
+import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
 import { prisma } from '@/lib/prisma'
 import { renderTemplate } from '@/lib/messaging'
 import { renderOrderConfirmationEmail } from '@/lib/email'
@@ -17,6 +18,9 @@ export async function POST(req: NextRequest) {
     session = await requireSession()
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (!session.emailVerifiedAt) {
+    return NextResponse.json({ error: EMAIL_NOT_VERIFIED }, { status: 403 })
   }
 
   try {
