@@ -29,18 +29,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { txnId: str
     const txn = await prisma.transaction.findUnique({ where: { txnId: params.txnId } })
     if (!txn) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const isMerchantAction = body.merchant_action === true
+    const allowedStatuses = ['pending', 'success', 'failed'] as const
+    const newStatus = body.status as (typeof allowedStatuses)[number] | undefined
+    if (newStatus && !allowedStatuses.includes(newStatus)) {
+      return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+    }
+
+    // Customers (unauthenticated) may only declare a payment as pending on an open
+    // transaction. Settling or failing a payment always requires the owning merchant.
+    const isMerchantAction = body.merchant_action === true || (newStatus !== undefined && newStatus !== 'pending')
     if (isMerchantAction) {
       const session = await requireSession()
       if (session.id !== txn.merchantId) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
-    }
-
-    const allowedStatuses = ['pending', 'success', 'failed'] as const
-    const newStatus = body.status as (typeof allowedStatuses)[number] | undefined
-    if (newStatus && !allowedStatuses.includes(newStatus)) {
-      return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+    } else if (txn.status === 'success' || txn.status === 'failed') {
+      return NextResponse.json({ error: 'Transaction already finalized' }, { status: 409 })
     }
 
     const updated = await prisma.transaction.update({

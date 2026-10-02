@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { serializeSettings } from '@/lib/serializers'
+import { maskSecret, serializeSettings } from '@/lib/serializers'
 
 export async function GET() {
   try {
@@ -21,6 +21,15 @@ export async function PUT(req: NextRequest) {
     const session = await requireSession()
     const body = await req.json()
 
+    // The client only ever sees the masked secret; if it sends that back unchanged
+    // (or omits the field), keep the stored secret instead of overwriting it.
+    const existing = await prisma.merchantSettings.findUnique({ where: { merchantId: session.id } })
+    const webhookSecret =
+      body.webhook_secret === undefined ||
+      (existing?.webhookSecret && body.webhook_secret === maskSecret(existing.webhookSecret))
+        ? existing?.webhookSecret ?? null
+        : body.webhook_secret || null
+
     const settings = await prisma.merchantSettings.upsert({
       where: { merchantId: session.id },
       create: {
@@ -31,7 +40,7 @@ export async function PUT(req: NextRequest) {
         settlementFrequency: body.settlement_frequency || 'daily',
         notificationEmail: body.notification_email || null,
         notificationPhone: body.notification_phone || null,
-        webhookSecret: body.webhook_secret || null,
+        webhookSecret,
       },
       update: {
         smsEnabled: Boolean(body.sms_enabled),
@@ -40,7 +49,7 @@ export async function PUT(req: NextRequest) {
         settlementFrequency: body.settlement_frequency || 'daily',
         notificationEmail: body.notification_email || null,
         notificationPhone: body.notification_phone || null,
-        webhookSecret: body.webhook_secret || null,
+        webhookSecret,
       },
     })
 

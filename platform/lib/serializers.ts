@@ -74,6 +74,10 @@ export function serializeTemplate(t: Template) {
   }
 }
 
+export function maskSecret(secret: string) {
+  return `${'*'.repeat(Math.max(0, secret.length - 4))}${secret.slice(-4)}`
+}
+
 export function serializeSettings(s: MerchantSettings) {
   return {
     merchant_id: s.merchantId,
@@ -83,7 +87,7 @@ export function serializeSettings(s: MerchantSettings) {
     settlement_frequency: s.settlementFrequency,
     notification_email: s.notificationEmail,
     notification_phone: s.notificationPhone,
-    webhook_secret: s.webhookSecret ? `${'*'.repeat(Math.max(0, s.webhookSecret.length - 4))}${s.webhookSecret.slice(-4)}` : null,
+    webhook_secret: s.webhookSecret ? maskSecret(s.webhookSecret) : null,
     updated_at: s.updatedAt.toISOString(),
   }
 }

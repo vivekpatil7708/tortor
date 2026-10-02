@@ -85,7 +85,6 @@ platform/
 | `POST /api/transactions` | Initiate payment |
 | `PATCH /api/transactions/[txnId]` | Update status |
 | `GET /api/qr` | Generate UPI QR PNG |
-| `POST /api/webhooks` | Internal status webhook |
 
 ## License
 
