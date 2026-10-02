@@ -43,17 +43,33 @@ export async function PATCH(req: NextRequest, { params }: { params: { txnId: str
       if (session.id !== txn.merchantId) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
-    } else if (txn.status === 'success' || txn.status === 'failed') {
-      return NextResponse.json({ error: 'Transaction already finalized' }, { status: 409 })
+    } else {
+      if (newStatus !== 'pending') {
+        return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+      }
+      if (txn.status === 'success' || txn.status === 'failed') {
+        return NextResponse.json({ error: 'Transaction already finalized' }, { status: 409 })
+      }
+      // Already declared: answer without re-sending the pending webhook.
+      if (txn.status === 'pending') {
+        return NextResponse.json({ success: true, status: txn.status })
+      }
     }
+
+    // Payment details (app, payer UPI ID, UTR) can only be recorded by the merchant.
+    const paymentDetails = isMerchantAction
+      ? {
+          paymentApp: body.payment_app ?? txn.paymentApp,
+          payerVpa: body.payer_vpa ?? txn.payerVpa,
+          upiTxnId: body.upi_txn_id ?? txn.upiTxnId,
+        }
+      : {}
 
     const updated = await prisma.transaction.update({
       where: { txnId: params.txnId },
       data: {
         status: newStatus ?? txn.status,
-        paymentApp: body.payment_app ?? txn.paymentApp,
-        payerVpa: body.payer_vpa ?? txn.payerVpa,
-        upiTxnId: body.upi_txn_id ?? txn.upiTxnId,
+        ...paymentDetails,
         settlementStatus: newStatus === 'success' ? 'settled' : txn.settlementStatus,
         settlementAmount: newStatus === 'success' ? txn.amount : txn.settlementAmount,
         settlementDate: newStatus === 'success' ? new Date() : txn.settlementDate,
@@ -63,6 +79,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { txnId: str
 
     if (newStatus === 'success' || newStatus === 'failed' || newStatus === 'pending') {
       await notifyPaymentStatus(updated.id, newStatus)
+    }
+
+    if (!isMerchantAction) {
+      return NextResponse.json({ success: true, status: updated.status })
     }
 
     const link = updated.paymentLinkId

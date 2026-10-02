@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { clearImpersonation, createSession, merchantToJson, verifyPassword } from '@/lib/auth'
+import { clientIp, isRateLimited, recordAttempt } from '@/lib/rate-limit'
 
 const MAX_LOGIN_ATTEMPTS = 5
 const LOCK_DURATION_MIN = 15
-const ip = (req: NextRequest) => req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip')
+const MAX_FAILURES_PER_IP = 20
+const IP_WINDOW_MIN = 15
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,6 +20,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
     }
 
+    if (await isRateLimited(req, 'login_failed', MAX_FAILURES_PER_IP, IP_WINDOW_MIN)) {
+      return NextResponse.json(
+        { error: `Too many failed logins from your network. Try again in ${IP_WINDOW_MIN} minutes.` },
+        { status: 429 }
+      )
+    }
+
     const merchant = await prisma.merchant.findUnique({ where: { email: normalizedEmail } })
 
     if (merchant?.lockedUntil && merchant.lockedUntil > new Date()) {
@@ -29,17 +38,20 @@ export async function POST(req: NextRequest) {
       if (merchant && !merchant.passwordHash) {
         return NextResponse.json({ error: 'This account uses Google Sign-In. Please log in with Google.' }, { status: 400 })
       }
+      await recordAttempt(req, 'login_failed', normalizedEmail, merchant?.id ?? null)
       if (merchant && merchant.passwordHash) {
-        await prisma.merchant.update({
+        // Increment in the database so parallel guesses can't skip the lock.
+        const { loginAttempts } = await prisma.merchant.update({
           where: { id: merchant.id },
-          data: {
-            loginAttempts: { increment: 1 },
-            ...(merchant.loginAttempts + 1 >= MAX_LOGIN_ATTEMPTS ? {
-              lockedUntil: new Date(Date.now() + LOCK_DURATION_MIN * 60 * 1000),
-              loginAttempts: 0,
-            } : {}),
-          },
+          data: { loginAttempts: { increment: 1 } },
+          select: { loginAttempts: true },
         })
+        if (loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+          await prisma.merchant.update({
+            where: { id: merchant.id },
+            data: { lockedUntil: new Date(Date.now() + LOCK_DURATION_MIN * 60 * 1000), loginAttempts: 0 },
+          })
+        }
       }
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
@@ -58,7 +70,7 @@ export async function POST(req: NextRequest) {
         merchantId: merchant.id,
         email: merchant.email,
         action: 'login',
-        ipAddress: ip(req),
+        ipAddress: clientIp(req),
         userAgent: req.headers.get('user-agent'),
       },
     })

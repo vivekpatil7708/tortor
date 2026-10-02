@@ -1,4 +1,5 @@
 import type {
+  Merchant,
   PaymentLink,
   Transaction,
   UpiId,
@@ -38,6 +39,36 @@ export function serializeLink(link: PaymentLink) {
     status: link.status,
     created_at: link.createdAt.toISOString(),
     updated_at: link.updatedAt.toISOString(),
+  }
+}
+
+/** What the public checkout page needs from a link. Never webhook or usage settings. */
+export function serializeCheckoutLink(link: PaymentLink) {
+  return {
+    id: link.id,
+    upi_id: link.upiId,
+    title: link.title,
+    description: link.description,
+    amount: link.amount,
+    amount_flexible: link.amountFlexible,
+    min_amount: link.minAmount,
+    max_amount: link.maxAmount,
+    custom_fields: JSON.parse(link.customFields || '[]'),
+    button_text: link.buttonText,
+    redirect_url: link.redirectUrl,
+    slug: link.slug,
+  }
+}
+
+/** Branding shown on the public checkout. Never the merchant's login email or phone. */
+export function serializeCheckoutMerchant(m: Merchant) {
+  return {
+    business_logo_url: m.businessLogoUrl,
+    bg_image_url: m.bgImageUrl,
+    brand_color_primary: m.brandColorPrimary,
+    brand_color_secondary: m.brandColorSecondary,
+    button_style: m.buttonStyle,
+    page_theme: m.pageTheme,
   }
 }
 

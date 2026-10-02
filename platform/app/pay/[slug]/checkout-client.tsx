@@ -10,7 +10,6 @@ import { isValidRedirectUrl } from '@/lib/validate-url'
 interface CheckoutData {
   link: {
     id: string
-    merchant_id: string
     upi_id: string
     title: string
     description?: string | null
@@ -54,6 +53,7 @@ export default function CheckoutClient({ data }: Props) {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [confirming, setConfirming] = useState(false)
+  const [starting, setStarting] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set())
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
@@ -112,6 +112,7 @@ export default function CheckoutClient({ data }: Props) {
   }
 
   async function handleProceed() {
+    if (starting) return
     const nameErr = validateName(customerName)
     if (nameErr) { setError(nameErr); return }
     const phoneErr = validatePhone(customerPhone)
@@ -147,16 +148,13 @@ export default function CheckoutClient({ data }: Props) {
     setFieldErrors({})
 
     const id = generateTxnId()
-    setTxnId(id)
-    if (hasProducts) setAmount(payAmount)
-    setStep('pay')
     setError('')
+    setStarting(true)
 
-    await fetch('/api/transactions', {
+    const res = await fetch('/api/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        merchant_id: link.merchant_id,
         payment_link_id: link.id,
         txn_id: id,
         amount: payAmount,
@@ -186,7 +184,19 @@ export default function CheckoutClient({ data }: Props) {
           } : {}),
         },
       }),
-    }).catch(() => {})
+    }).catch(() => null)
+    setStarting(false)
+
+    if (!res || !res.ok) {
+      const data = res ? await res.json().catch(() => ({})) : {}
+      setError((data as { error?: string }).error || 'Could not start the payment. Please check your connection and try again.')
+      return
+    }
+
+    // Show payment options only once the order is saved, so every payment has a record.
+    setTxnId(id)
+    if (hasProducts) setAmount(payAmount)
+    setStep('pay')
   }
 
   function openUpi(appName?: string) {
@@ -220,19 +230,6 @@ export default function CheckoutClient({ data }: Props) {
     setPaymentStatus('pending')
     setConfirming(false)
     setError('')
-  }
-
-  async function merchantConfirmSuccess() {
-    setConfirming(true)
-    const res = await fetch(`/api/transactions/${txnId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'success', merchant_action: true }),
-    })
-    const data = await res.json()
-    setConfirming(false)
-    if (data.redirect_url && isValidRedirectUrl(data.redirect_url)) window.location.href = data.redirect_url
-    else router.push(`/pay/${link.slug}/success?txn=${txnId}`)
   }
 
   const qrSrc = `/api/qr?vpa=${encodeURIComponent(link.upi_id)}&amount=${amount}&txn_id=${encodeURIComponent(txnId)}&note=${encodeURIComponent(link.title)}`
@@ -284,14 +281,6 @@ export default function CheckoutClient({ data }: Props) {
             className={`mb-2 w-full border border-white/20 bg-white/20 py-2.5 text-sm font-semibold backdrop-blur-md transition-all hover:bg-white/40 ${btnRadius} disabled:opacity-50`}>
             {confirming ? 'Updating...' : "I've completed payment"}
           </button>
-
-          <details className="mt-2">
-            <summary className="cursor-pointer text-center text-xs opacity-50">Merchant: confirm payment manually</summary>
-            <button onClick={merchantConfirmSuccess} disabled={confirming}
-              className={`mt-2 w-full bg-green-600 py-2 text-xs font-semibold text-white ${btnRadius}`}>
-              Mark as successful (demo)
-            </button>
-          </details>
 
           <p className="mt-4 text-center text-xs opacity-50">
             Pay to <span className="font-mono">{link.upi_id}</span>
@@ -490,10 +479,10 @@ export default function CheckoutClient({ data }: Props) {
 
         {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
 
-        <button onClick={handleProceed}
-          className={`mt-6 w-full py-3.5 text-base font-bold text-white ${btnRadius}`}
+        <button onClick={handleProceed} disabled={starting}
+          className={`mt-6 w-full py-3.5 text-base font-bold text-white disabled:opacity-60 ${btnRadius}`}
           style={{ backgroundColor: primaryColor }}>
-          {ctaText}
+          {starting ? 'Please wait...' : ctaText}
         </button>
 
         <p className="mt-4 text-center text-xs opacity-50">Powered by ToroPay</p>

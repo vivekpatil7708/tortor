@@ -5,23 +5,40 @@ export function signWebhookPayload(payload: string, secret: string) {
   return crypto.createHmac('sha256', secret).update(payload).digest('hex')
 }
 
+/**
+ * The merchant's webhook signing secret. Created on first use, so every webhook
+ * is signed even when the merchant never set one.
+ */
+async function getWebhookSecret(merchantId: string, current: string | null | undefined): Promise<string> {
+  if (current) return current
+  const generated = `whsec_${crypto.randomBytes(24).toString('hex')}`
+  await prisma.merchantSettings.upsert({ where: { merchantId }, create: { merchantId }, update: {} })
+  // Only fills an empty secret, so concurrent deliveries settle on one value.
+  await prisma.merchantSettings.updateMany({ where: { merchantId, webhookSecret: null }, data: { webhookSecret: generated } })
+  const settings = await prisma.merchantSettings.findUnique({ where: { merchantId } })
+  return settings?.webhookSecret || generated
+}
+
 export async function deliverMerchantWebhook(opts: {
   merchantId: string
   transactionId: string
   url: string
   event: string
   payload: Record<string, unknown>
-  secret?: string | null
+  secret: string
 }) {
+  const eventId = `evt_${crypto.randomBytes(12).toString('hex')}`
   const body = JSON.stringify({
     event: opts.event,
+    event_id: eventId,
     ...opts.payload,
     timestamp: new Date().toISOString(),
   })
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (opts.secret) {
-    headers['X-ToroPay-Signature'] = signWebhookPayload(body, opts.secret)
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-ToroPay-Signature': signWebhookPayload(body, opts.secret),
+    'X-ToroPay-Event-Id': eventId,
   }
 
   const log = await prisma.webhookLog.create({
@@ -77,7 +94,7 @@ export async function notifyPaymentStatus(transactionId: string, status: 'succes
     transactionId: txn.id,
     url: txn.paymentLink.webhookUrl,
     event: `payment.${status}`,
-    secret: txn.merchant.settings?.webhookSecret,
+    secret: await getWebhookSecret(txn.merchantId, txn.merchant.settings?.webhookSecret),
     payload: {
       txn_id: txn.txnId,
       amount: txn.amount,

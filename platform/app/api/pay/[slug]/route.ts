@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { merchantToJson } from '@/lib/auth'
-import { serializeLink } from '@/lib/serializers'
+import { serializeCheckoutLink, serializeCheckoutMerchant } from '@/lib/serializers'
 
 export async function GET(_req: Request, { params }: { params: { slug: string } }) {
   const link = await prisma.paymentLink.findFirst({
@@ -19,7 +18,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
   }
 
   return NextResponse.json({
-    link: serializeLink(link),
-    merchant: merchantToJson(merchant),
+    link: serializeCheckoutLink(link),
+    merchant: serializeCheckoutMerchant(merchant),
   })
 }

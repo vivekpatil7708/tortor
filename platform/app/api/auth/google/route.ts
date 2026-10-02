@@ -26,6 +26,10 @@ export async function POST(req: Request) {
     if (!payload || !payload.email) {
       return NextResponse.json({ error: 'Invalid Google token' }, { status: 401 })
     }
+    // Only trust the email once Google has verified the account owns it.
+    if (payload.email_verified !== true) {
+      return NextResponse.json({ error: 'Your Google email address is not verified.' }, { status: 401 })
+    }
 
     const email = String(payload.email).toLowerCase()
     const name = String(payload.name || '')
@@ -59,16 +63,12 @@ export async function POST(req: Request) {
       if (merchant.status === 'suspended') {
         return NextResponse.json({ error: 'Account suspended' }, { status: 403 })
       }
-
-      try {
-        if (!merchant.provider || merchant.provider === 'email') {
-          await prisma.merchant.update({
-            where: { id: merchant.id },
-            data: { provider: 'google' },
-          })
-        }
-      } catch (e: any) {
-        return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
+      // Never join a Google login to an email/password account automatically.
+      if (merchant.passwordHash && merchant.provider !== 'google') {
+        return NextResponse.json(
+          { error: 'An account with this email already exists. Please log in with your email and password.' },
+          { status: 409 }
+        )
       }
     }
 

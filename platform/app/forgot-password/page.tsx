@@ -8,7 +8,6 @@ const COOLDOWN = 60
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
-  const [resetLink, setResetLink] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
@@ -23,7 +22,6 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setError('')
     setMessage('')
-    setResetLink('')
     setLoading(true)
 
     try {
@@ -37,9 +35,6 @@ export default function ForgotPasswordPage() {
         setError(data.error || 'Something went wrong')
       } else {
         setMessage(data.message || 'Check your email for the reset link.')
-        if (data.reset_link) {
-          setResetLink(data.reset_link)
-        }
         setCooldown(COOLDOWN)
       }
     } catch {
@@ -70,12 +65,6 @@ export default function ForgotPasswordPage() {
 
             {error && <p className="text-sm text-red-500">{error}</p>}
             {message && <p className="text-sm text-green-600">{message}</p>}
-            {resetLink && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
-                <p className="font-medium text-amber-800">Your reset link:</p>
-                <a href={resetLink} className="mt-1 block break-all text-amber-700 underline">{resetLink}</a>
-              </div>
-            )}
 
             <button type="submit" disabled={loading || cooldown > 0}
               className="w-full rounded-xl bg-charcoal py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">

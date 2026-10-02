@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { merchantToJson } from '@/lib/auth'
-import { serializeLink } from '@/lib/serializers'
+import { serializeCheckoutLink, serializeCheckoutMerchant } from '@/lib/serializers'
 import { notFound } from 'next/navigation'
 import CheckoutClient from './checkout-client'
 
@@ -18,8 +17,8 @@ async function getLinkData(slug: string) {
   if (!merchant || merchant.status === 'suspended') return null
 
   return {
-    link: serializeLink(link),
-    merchant: merchantToJson(merchant),
+    link: serializeCheckoutLink(link),
+    merchant: serializeCheckoutMerchant(merchant),
   }
 }
 

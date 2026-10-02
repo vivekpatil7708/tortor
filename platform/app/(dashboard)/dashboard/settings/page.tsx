@@ -91,8 +91,12 @@ export default function SettingsPage() {
           <h2 className="mb-4 font-bold">Webhooks</h2>
           <label className="mb-1 block text-xs font-semibold text-gray-500">Webhook signing secret</label>
           <input value={form.webhook_secret} onChange={e => setForm({ ...form, webhook_secret: e.target.value })}
-            placeholder="Optional HMAC secret for outbound webhooks"
+            placeholder="Created automatically with your first webhook"
             className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none" />
+          <p className="mt-1.5 text-xs text-gray-500">
+            Every webhook is signed in the X-ToroPay-Signature header. To check signatures on your server,
+            enter your own secret here and use the same value there.
+          </p>
         </div>
 
         <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save Settings'}</Button>
