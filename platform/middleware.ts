@@ -2,6 +2,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
 const COOKIE_NAME = 'toropay_session'
+const IMPERSONATE_COOKIE = 'toropay_impersonate'
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
+// Admin "view as merchant" is read-only: only leaving that view (or logging in/out) may change anything.
+const IMPERSONATION_WRITES_ALLOWED = new Set([
+  '/api/admin/impersonate/exit',
+  '/api/auth/logout',
+  '/api/auth/login',
+  '/api/auth/google',
+])
 
 async function hasValidSession(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value
@@ -23,6 +32,16 @@ const CORS_ALLOWED = (process.env.CORS_ORIGINS ?? '')
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
+
+  if (pathname.startsWith('/api/')) {
+    if (req.cookies.has(IMPERSONATE_COOKIE) && !SAFE_METHODS.has(req.method) && !IMPERSONATION_WRITES_ALLOWED.has(pathname)) {
+      return NextResponse.json(
+        { error: 'Admin merchant view is read-only. Exit merchant view to make changes.' },
+        { status: 403 }
+      )
+    }
+    if (!pathname.startsWith('/api/v1')) return NextResponse.next()
+  }
 
   if (pathname.startsWith('/api/v1')) {
     const origin = req.headers.get('origin') ?? ''
@@ -71,5 +90,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*', '/onboarding', '/login', '/signup', '/api/v1/:path*'],
+  matcher: ['/dashboard/:path*', '/admin/:path*', '/admin-verify', '/onboarding', '/login', '/signup', '/api/:path*'],
 }

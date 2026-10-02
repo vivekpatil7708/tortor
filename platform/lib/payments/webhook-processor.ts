@@ -302,22 +302,23 @@ export async function processProviderWebhook(params: {
 
   const adapter = getProvider(provider as 'mock' | 'upi' | 'razorpay' | 'cashfree')
   const signatureValid = adapter.verifyWebhookSignature({ rawBody, signature, secret })
-  const rawPayload = JSON.parse(rawBody || '{}') as Record<string, unknown>
-  const fingerprints = signatureValid ? normalizeProviderEvent(provider, rawPayload) : null
+  // Drop unsigned or wrongly signed requests before touching the database, so
+  // strangers can't fill the webhook_events table.
+  if (!signatureValid) {
+    return { eventId: '', signatureValid: false, duplicate: false, paymentId: null, changed: false, flagged: false, error: 'Signature verification failed' }
+  }
 
-  const eventId = (
-    signatureValid && fingerprints?.providerEventId
-      ? fingerprints.providerEventId
-      : payloadFingerprint(rawBody)
-  ).slice(0, 80)
+  const rawPayload = JSON.parse(rawBody || '{}') as Record<string, unknown>
+  const fingerprints = normalizeProviderEvent(provider, rawPayload)
+  const eventId = (fingerprints.providerEventId || payloadFingerprint(rawBody)).slice(0, 80)
 
   // Persist the event first (source of truth for dedupe).
   const event = await prisma.webhookEvent.create({
     data: {
       provider,
       providerEventId: eventId,
-      eventType: signatureValid ? fingerprints?.eventType || 'payment.pending' : 'unknown',
-      signatureValid,
+      eventType: fingerprints.eventType || 'payment.pending',
+      signatureValid: true,
       payload: rawPayload as unknown as Prisma.InputJsonValue,
       processingStatus: 'received',
     },
@@ -341,20 +342,8 @@ export async function processProviderWebhook(params: {
 
   if (!event) throw new Error('Failed to persist webhook event')
 
-  if (!signatureValid) {
-    await prisma.webhookEvent.update({
-      where: { id: event.id },
-      data: { processingStatus: 'bad_signature', processingError: 'Signature verification failed', processedAt: new Date() },
-    })
-    return { eventId: event.id, signatureValid: false, duplicate: false, paymentId: null, changed: false, flagged: false, error: 'Signature verification failed' }
-  }
-
   if (event.processingStatus === 'duplicate') {
     return { eventId: event.id, signatureValid: true, duplicate: true, paymentId: event.paymentId, changed: false, flagged: false }
-  }
-
-  if (!fingerprints) {
-    return { eventId: event.id, signatureValid: true, duplicate: false, paymentId: null, changed: false, flagged: false, error: 'Unparseable event' }
   }
 
   await prisma.webhookEvent.update({

@@ -5,6 +5,8 @@ import { prisma } from './prisma'
 
 const COOKIE_NAME = 'toropay_session'
 const IMPERSONATE_COOKIE = 'toropay_impersonate'
+/** Set once the admin passes the authenticator-code check (see lib/admin-auth.ts). */
+export const ADMIN_SECOND_FACTOR_COOKIE = 'toropay_admin_2fa'
 
 function getSecret() {
   const secret = process.env.JWT_SECRET
@@ -39,6 +41,7 @@ export async function createSession(merchantId: string, email: string) {
 export async function destroySession() {
   cookies().delete(COOKIE_NAME)
   cookies().delete(IMPERSONATE_COOKIE)
+  cookies().delete(ADMIN_SECOND_FACTOR_COOKIE)
 }
 
 async function getImpersonationInfo(token: string) {
@@ -99,6 +102,9 @@ export async function getSession() {
     if (!token) return null
     try {
       const { payload } = await jwtVerify(token, getSecret())
+      // Other tokens signed with the same secret (impersonation, admin code,
+      // email verification) carry a type and never count as a login.
+      if (payload.typ || payload.purpose) return null
       merchantId = payload.sub as string
       if (!merchantId) return null
     } catch {

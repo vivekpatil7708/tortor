@@ -1,3 +1,13 @@
+/** Escape text placed into email HTML: names and notes are typed by customers and merchants. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export function renderOrderConfirmationEmail({
   subject,
   body,
@@ -7,7 +17,9 @@ export function renderOrderConfirmationEmail({
   body: string
   merchantName: string
 }): string {
-  const bodyParagraphs = body.split('\n').filter(Boolean)
+  subject = escapeHtml(subject)
+  merchantName = escapeHtml(merchantName)
+  const bodyParagraphs = body.split('\n').filter(Boolean).map(escapeHtml)
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -43,7 +55,8 @@ export function renderBroadcastEmail({
 }): string {
   const linkify = (text: string) =>
     text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#5c9a4e;font-weight:600;">$1</a>')
-  const formattedBody = body.split('\n').filter(Boolean)
+  subject = escapeHtml(subject)
+  const formattedBody = body.split('\n').filter(Boolean).map(escapeHtml)
   const cta = ctaUrl || 'https://www.toropay.co.in/feedback'
 
   return `<!DOCTYPE html>
@@ -87,7 +100,7 @@ export function renderResetEmail({ resetLink, businessName }: { resetLink: strin
         <h1 style="font-size:20px;font-weight:700;color:#2c2c2c;margin:0;">Reset your password</h1>
       </td></tr>
       <tr><td style="padding-bottom:16px;color:#6b7280;font-size:14px;line-height:1.6;">
-        Hi${businessName ? ` ${businessName}` : ''},
+        Hi${businessName ? ` ${escapeHtml(businessName)}` : ''},
       </td></tr>
       <tr><td style="padding-bottom:16px;color:#6b7280;font-size:14px;line-height:1.6;">
         We received a request to reset your ToroPay account password. Click the button below to set a new password. This link expires in 1 hour.

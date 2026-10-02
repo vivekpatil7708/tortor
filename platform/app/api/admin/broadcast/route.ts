@@ -7,7 +7,9 @@ import { renderBroadcastEmail } from '@/lib/email'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const fromAddress = process.env.RESEND_FROM || 'ToroPay <onboarding@resend.dev>'
-const replyToAddress = process.env.RESEND_REPLY_TO || process.env.ADMIN_EMAIL || 'support@toropay.co.in'
+// A public support address: never the admin login email, which would make the admin account a target.
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@toropay.co.in'
+const replyToAddress = process.env.RESEND_REPLY_TO || SUPPORT_EMAIL
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.toropay.co.in'
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
@@ -77,7 +79,7 @@ export async function POST(req: NextRequest) {
         merchant_name: merchant.businessName || merchant.email || 'Merchant',
         payment_link: paymentLinkMap.get(merchant.id) || `${APP_URL}`,
         feedback_form_link: `${APP_URL}/feedback`,
-        support_email: process.env.ADMIN_EMAIL || 'support@toropay.co.in',
+        support_email: SUPPORT_EMAIL,
         support_phone: merchant.phone || '',
         currency: 'INR',
       }
@@ -117,7 +119,7 @@ export async function POST(req: NextRequest) {
           provider: 'resend',
           providerMessageId,
           errorMessage,
-          createdBy: process.env.ADMIN_EMAIL || 'admin',
+          createdBy: 'admin',
         },
       })
 

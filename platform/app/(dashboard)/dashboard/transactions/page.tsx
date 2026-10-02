@@ -4,9 +4,24 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { formatAmount, formatDate, statusColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { exportToCSV } from '@/lib/export-csv'
 import { Send } from 'lucide-react'
 import SendConfirmationModal from '@/components/dashboard/send-confirmation-modal'
+
+type StatusAction = { txn: Record<string, unknown>; status: 'success' | 'failed' }
+
+function actionMessage({ txn, status }: StatusAction): string {
+  const amount = formatAmount(Number(txn.amount))
+  const customer = (txn.customer_name as string) || 'this customer'
+  if (status === 'failed') {
+    return `Mark ${amount} from ${customer} as failed? Do this only if the money did not arrive.`
+  }
+  const notDeclared = txn.status === 'initiated'
+    ? ' The customer has NOT marked this payment as sent.'
+    : ''
+  return `Only confirm if ${amount} from ${customer} has reached your bank or UPI app.${notDeclared}`
+}
 
 export default function TransactionsPage() {
   const [txns, setTxns] = useState<Record<string, unknown>[]>([])
@@ -15,6 +30,9 @@ export default function TransactionsPage() {
   const [toDate, setToDate] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [sendTxn, setSendTxn] = useState<Record<string, any> | null>(null)
+  const [pendingAction, setPendingAction] = useState<StatusAction | null>(null)
+  const [updating, setUpdating] = useState(false)
+  const [actionError, setActionError] = useState('')
 
   function toggleExpand(id: string) {
     setExpanded(prev => {
@@ -69,9 +87,24 @@ export default function TransactionsPage() {
 
   useEffect(() => { load() }, [])
 
-  async function updateStatus(txnId: string, status: string) {
-    await api.updateTransaction(txnId, { status, merchant_action: true })
-    load()
+  function askStatus(txn: Record<string, unknown>, status: StatusAction['status']) {
+    setActionError('')
+    setPendingAction({ txn, status })
+  }
+
+  async function applyStatus() {
+    if (!pendingAction || updating) return
+    setUpdating(true)
+    setActionError('')
+    try {
+      await api.updateTransaction(pendingAction.txn.txn_id as string, { status: pendingAction.status, merchant_action: true })
+      setPendingAction(null)
+      load()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not update the payment')
+    } finally {
+      setUpdating(false)
+    }
   }
 
   const filtered = txns.filter(t => {
@@ -175,8 +208,8 @@ export default function TransactionsPage() {
                     )}
                     {(t.status === 'pending' || t.status === 'initiated') && (
                       <>
-                        <Button size="sm" onClick={() => updateStatus(txnId, 'success')}>Confirm</Button>
-                        <Button size="sm" variant="danger" onClick={() => updateStatus(txnId, 'failed')}>Reject</Button>
+                        <Button size="sm" onClick={() => askStatus(t, 'success')}>Confirm</Button>
+                        <Button size="sm" variant="danger" onClick={() => askStatus(t, 'failed')}>Reject</Button>
                       </>
                     )}
                   </div>
@@ -198,6 +231,18 @@ export default function TransactionsPage() {
       )}
 
       {sendTxn && <SendConfirmationModal txn={sendTxn} onClose={() => setSendTxn(null)} onSent={() => { setSendTxn(null); load() }} />}
+      {pendingAction && (
+        <ConfirmDialog
+          open
+          onClose={() => { if (!updating) setPendingAction(null) }}
+          onConfirm={applyStatus}
+          title={pendingAction.status === 'success' ? 'Confirm payment?' : 'Reject payment?'}
+          message={actionMessage(pendingAction) + (actionError ? ` Error: ${actionError}` : '')}
+          confirmLabel={pendingAction.status === 'success' ? 'Yes, I received it' : 'Reject payment'}
+          danger={pendingAction.status === 'failed'}
+          busy={updating}
+        />
+      )}
     </div>
   )
 }

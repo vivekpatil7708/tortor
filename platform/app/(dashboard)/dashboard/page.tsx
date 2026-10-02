@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { formatAmount, formatDate, statusColor } from '@/lib/utils'
 import { Link2, Banknote, TrendingUp, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
+import { ConfirmDialog } from '@/components/ui/dialog'
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({ totalLinks: 0, totalTxns: 0, totalRevenue: 0, successRate: 0 })
@@ -12,11 +13,23 @@ export default function DashboardPage() {
   const [merchant, setMerchant] = useState<Record<string, unknown> | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [pendingUpi, setPendingUpi] = useState<Record<string, unknown>[]>([])
+  const [confirmTarget, setConfirmTarget] = useState<Record<string, unknown> | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [confirmError, setConfirmError] = useState('')
 
-  function confirmUpi(id: string) {
-    api.confirmUpiPayment(id).then(() => {
+  async function confirmUpi() {
+    if (!confirmTarget || confirming) return
+    setConfirming(true)
+    setConfirmError('')
+    try {
+      await api.confirmUpiPayment(confirmTarget.id as string)
+      setConfirmTarget(null)
       api.getPendingUpiPayments().then(({ payments }) => setPendingUpi(payments)).catch(() => {})
-    }).catch(() => {})
+    } catch (err) {
+      setConfirmError(err instanceof Error ? err.message : 'Could not confirm the payment')
+    } finally {
+      setConfirming(false)
+    }
   }
 
   function toggleExpand(id: string) {
@@ -123,7 +136,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="text-sm font-bold">{formatAmount(Number(p.amount))}</p>
-                    <button onClick={() => confirmUpi(pid)}
+                    <button onClick={() => { setConfirmError(''); setConfirmTarget(p) }}
                       className="rounded-xl bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700">
                       Confirm paid
                     </button>
@@ -175,6 +188,17 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+      {confirmTarget && (
+        <ConfirmDialog
+          open
+          onClose={() => { if (!confirming) setConfirmTarget(null) }}
+          onConfirm={confirmUpi}
+          title="Confirm payment?"
+          message={`Only confirm if ${formatAmount(Number(confirmTarget.amount))} for ${confirmTarget.payment_reference as string} has reached your bank or UPI app.` + (confirmError ? ` Error: ${confirmError}` : '')}
+          confirmLabel="Yes, I received it"
+          busy={confirming}
+        />
+      )}
     </div>
   )
 }

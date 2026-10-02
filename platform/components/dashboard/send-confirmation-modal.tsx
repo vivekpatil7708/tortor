@@ -77,8 +77,8 @@ export default function SendConfirmationModal({ txn, onClose, onSent }: Props) {
       })
       setSent(true)
       setTimeout(() => { onSent() }, 1500)
-    } catch {
-      alert('Failed to send message.')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to send message.')
     } finally {
       setSending(false)
     }

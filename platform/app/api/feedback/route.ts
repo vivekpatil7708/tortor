@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ensureFeedbackTable } from '@/lib/feedback-schema'
+import { isRateLimited, recordAttempt } from '@/lib/rate-limit'
+
+const MAX_NAME_LENGTH = 100
+const MAX_ANSWER_LENGTH = 2000
+const MAX_CONTACT_LENGTH = 200
+const MAX_SUBMISSIONS_PER_IP = 5
+const IP_WINDOW_MIN = 60
 
 const USEFUL_PARTS = [
   'Creating payment links',
@@ -50,6 +57,18 @@ export async function POST(req: NextRequest) {
     if (followUp && !contact) {
       return NextResponse.json({ error: 'Contact is required when opting in for follow-up' }, { status: 400 })
     }
+    if (
+      merchantName.length > MAX_NAME_LENGTH ||
+      [likesMost, issues, improvement].some(answer => answer && answer.length > MAX_ANSWER_LENGTH) ||
+      (contact && contact.length > MAX_CONTACT_LENGTH)
+    ) {
+      return NextResponse.json({ error: 'Some answers are too long. Please shorten them.' }, { status: 400 })
+    }
+
+    if (await isRateLimited(req, 'feedback_submitted', MAX_SUBMISSIONS_PER_IP, IP_WINDOW_MIN)) {
+      return NextResponse.json({ error: 'Too many submissions. Please try again later.' }, { status: 429 })
+    }
+    await recordAttempt(req, 'feedback_submitted', '')
 
     await ensureFeedbackTable()
 
@@ -71,9 +90,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, id: response.id })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
     console.error('Feedback submit failed:', err)
-    return NextResponse.json({ error: `Submission failed: ${msg}` }, { status: 500 })
+    return NextResponse.json({ error: 'Submission failed. Please try again.' }, { status: 500 })
   }
 }
 

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
+import { hasAdminSecondFactor, isAdminEmail } from '@/lib/admin-auth'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -8,10 +9,12 @@ export const metadata: Metadata = {
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession()
-  const adminEmail = process.env.ADMIN_EMAIL
 
-  if (!session || !adminEmail || session.email !== adminEmail) {
+  if (!session || !isAdminEmail(session.email)) {
     redirect('/dashboard')
+  }
+  if (!(await hasAdminSecondFactor(session.id))) {
+    redirect('/admin-verify')
   }
 
   return (

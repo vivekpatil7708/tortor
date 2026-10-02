@@ -130,6 +130,13 @@ export async function processCourierWebhook(params: {
     packageId = pkg?.id ?? null
   }
 
+  // Verify before storing anything, and answer unknown and unsigned events the
+  // same way so replies can't be used to probe tracking or order numbers.
+  const secret = packageId && merchantId ? await getCourierWebhookSecret(merchantId, provider) : null
+  if (!packageId || !merchantId || !secret || !providerValidates(provider, rawBody, signature, secret)) {
+    return { eventId: '', signatureValid: false, duplicate: false, applied: false, changed: false, outOfOrder: false, error: 'Rejected' }
+  }
+
   const providerEventId = pick(shipment, 'event_id', 'id', 'webhook_id') || payloadFingerprint(rawBody)
 
   // Persist source-of-truth event for dedupe.
@@ -143,7 +150,8 @@ export async function processCourierWebhook(params: {
       packageId,
       awbNumber,
       trackingNumber,
-      processingStatus: 'received',
+      signatureValid: true,
+      processingStatus: 'processing',
     },
   }).catch(async (err: unknown) => {
     const isDuplicate = typeof err === 'object' && err !== null && (err as { code?: string }).code === 'P2002'
@@ -165,26 +173,6 @@ export async function processCourierWebhook(params: {
 
   if (event.processingStatus === 'duplicate') {
     return { eventId: event.id, signatureValid: true, duplicate: true, applied: false, changed: false, outOfOrder: false, packageId, merchantId }
-  }
-
-  if (!packageId || !merchantId) {
-    await prisma.courierWebhookEvent.update({
-      where: { id: event.id },
-      data: { processingStatus: 'failed_processing', processingError: 'No matching package found for the shipped AWB/shipment', processedAt: new Date() },
-    })
-    return { eventId: event.id, signatureValid: false, duplicate: false, applied: false, changed: false, outOfOrder: false, error: 'Package not found', packageId, merchantId }
-  }
-
-  const secret = await getCourierWebhookSecret(merchantId, provider)
-  const signatureValid = Boolean(secret) && providerValidates(provider, rawBody, signature, secret as string)
-
-  await prisma.courierWebhookEvent.update({
-    where: { id: event.id },
-    data: { signatureValid, processingStatus: signatureValid ? 'processing' : 'bad_signature', processingError: signatureValid ? null : 'Signature verification failed' },
-  })
-
-  if (!signatureValid) {
-    return { eventId: event.id, signatureValid: false, duplicate: false, applied: false, changed: false, outOfOrder: false, error: 'Signature verification failed', packageId, merchantId }
   }
 
   try {
