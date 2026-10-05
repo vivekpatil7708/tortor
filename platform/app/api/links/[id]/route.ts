@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { serializeLink } from '@/lib/serializers'
-import { isValidRedirectUrl, isValidWebhookUrl } from '@/lib/validate-url'
+import { isValidRedirectUrl } from '@/lib/validate-url'
+import { isValidWebhookUrl } from '@/lib/safe-fetch'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBlockedAddress, postWebhook, UnsafeWebhookUrlError } from './safe-fetch'
-import { isValidWebhookUrl } from './validate-url'
+import { isBlockedAddress, isValidWebhookUrl, postWebhook, UnsafeWebhookUrlError } from './safe-fetch'
 
 describe('isBlockedAddress', () => {
   it('blocks private, loopback, link-local and reserved IPv4', () => {

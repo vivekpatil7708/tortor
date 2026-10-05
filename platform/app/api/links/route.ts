@@ -4,7 +4,8 @@ import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
 import { prisma } from '@/lib/prisma'
 import { serializeLink } from '@/lib/serializers'
 import { generateSlug } from '@/lib/utils'
-import { isValidRedirectUrl, isValidWebhookUrl } from '@/lib/validate-url'
+import { isValidRedirectUrl } from '@/lib/validate-url'
+import { isValidWebhookUrl } from '@/lib/safe-fetch'
 
 export async function GET() {
   try {

@@ -6,6 +6,7 @@ import net from 'net'
  * Outgoing webhooks to merchant-supplied URLs. Only public https addresses are
  * reached: the IP the request actually connects to is checked (so a domain
  * pointing at a private address is refused), and redirects are never followed.
+ * Server only: uses Node's network modules.
  */
 
 // Separate lists: a single BlockList also matches IPv4 addresses against
@@ -59,6 +60,24 @@ export function isBlockedAddress(address: string): boolean {
   if (family === 4) return BLOCKED_V4.check(ip, 'ipv4')
   if (family === 6) return BLOCKED_V6.check(ip, 'ipv6')
   return true
+}
+
+/**
+ * Save-time check for webhook URLs: https, and not an obviously private address
+ * or name. Delivery checks the resolved address again (postWebhook).
+ */
+export function isValidWebhookUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'https:') return false
+    const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '')
+    if (net.isIP(host)) return !isBlockedAddress(host)
+    // Single-label names and these suffixes only mean something inside a private network.
+    if (!host.includes('.') || /\.(localhost|local|internal|lan|home|corp|intranet)$/.test(host)) return false
+    return true
+  } catch {
+    return false
+  }
 }
 
 /** The URL can never be delivered to, so retrying is pointless. */
