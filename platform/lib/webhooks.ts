@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 import { prisma } from './prisma'
 import { postWebhook, UnsafeWebhookUrlError } from './safe-fetch'
-import { nextWebhookAttemptAt } from './webhook-retry'
+import { nextWebhookAttemptAt, retryWindowStart } from './webhook-retry'
 
 export function signWebhookPayload(payload: string, secret: string) {
   return crypto.createHmac('sha256', secret).update(payload).digest('hex')
@@ -98,7 +98,7 @@ export async function deliverMerchantWebhook(opts: {
  */
 export async function retryDueWebhookLogs({ deadline = Infinity, limit = 25 } = {}): Promise<number> {
   const due = await prisma.webhookLog.findMany({
-    where: { status: 'failed', nextRetryAt: { lte: new Date() } },
+    where: { status: 'failed', nextRetryAt: { lte: new Date(), gte: retryWindowStart() } },
     orderBy: { nextRetryAt: 'asc' },
     take: limit,
   })

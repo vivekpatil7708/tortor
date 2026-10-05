@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import { nanoid } from 'nanoid'
 import { prisma } from '@/lib/prisma'
 import { postWebhook, UnsafeWebhookUrlError } from '@/lib/safe-fetch'
-import { nextWebhookAttemptAt } from '@/lib/webhook-retry'
+import { nextWebhookAttemptAt, retryWindowStart } from '@/lib/webhook-retry'
 import type { KeyMode, WebhookDeliveryStatus } from '@prisma/client'
 
 export const OUTGOING_WEBHOOK_EVENTS = [
@@ -212,7 +212,7 @@ export async function retryWebhookDelivery(logId: string): Promise<WebhookDelive
 /** Re-attempt deliveries whose retry time has come (run by /api/cron/webhook-retries). Returns how many were attempted. */
 export async function processDueWebhookRetries({ deadline = Infinity, limit = 25 } = {}): Promise<number> {
   const due = await prisma.webhookDeliveryLog.findMany({
-    where: { status: 'retrying', nextRetryAt: { lte: new Date() } },
+    where: { status: 'retrying', nextRetryAt: { lte: new Date(), gte: retryWindowStart() } },
     orderBy: { nextRetryAt: 'asc' },
     take: limit,
   })
