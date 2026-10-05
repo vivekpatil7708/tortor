@@ -3,12 +3,16 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import Link from 'next/link'
 import { MessageSquare } from 'lucide-react'
 
 export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
+  const [signOutError, setSignOutError] = useState('')
   const [newApiKeyName, setNewApiKeyName] = useState('')
   const [createdKey, setCreatedKey] = useState('')
   const [apiKeys, setApiKeys] = useState<Record<string, unknown>[]>([])
@@ -44,6 +48,21 @@ export default function SettingsPage() {
       api.getApiKeys().then(setApiKeys)
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed')
+    }
+  }
+
+  async function signOutOtherDevices() {
+    setSigningOut(true)
+    setSignOutError('')
+    try {
+      await api.logoutOtherDevices()
+      setConfirmSignOut(false)
+      setMsg('Signed out on all other devices')
+      setTimeout(() => setMsg(''), 4000)
+    } catch (err: unknown) {
+      setSignOutError(err instanceof Error ? err.message : 'Could not sign out other devices')
+    } finally {
+      setSigningOut(false)
     }
   }
 
@@ -123,6 +142,30 @@ export default function SettingsPage() {
           </div>
         ))}
       </div>
+
+      <div className="mt-6 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
+        <h2 className="mb-1 font-bold">Security</h2>
+        <p className="mb-4 text-xs text-gray-500">
+          Logged in on a phone or computer you no longer use, or think someone else knows your password?
+          Sign out everywhere else. You stay logged in here.
+        </p>
+        <Button type="button" variant="danger" onClick={() => { setSignOutError(''); setConfirmSignOut(true) }}>
+          Sign out other devices
+        </Button>
+      </div>
+
+      {confirmSignOut && (
+        <ConfirmDialog
+          open
+          onClose={() => { if (!signingOut) setConfirmSignOut(false) }}
+          onConfirm={signOutOtherDevices}
+          title="Sign out other devices?"
+          message={'Everyone using this account on another phone or computer will need to log in again.' + (signOutError ? ` Error: ${signOutError}` : '')}
+          confirmLabel="Sign out other devices"
+          danger
+          busy={signingOut}
+        />
+      )}
     </div>
   )
 }

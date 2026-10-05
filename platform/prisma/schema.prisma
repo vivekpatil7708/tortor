@@ -241,6 +241,7 @@ model Merchant {
   resetToken          String?   @map("reset_token")
   resetTokenExpiry    DateTime? @map("reset_token_expiry")
   emailVerifiedAt     DateTime? @map("email_verified_at")
+  sessionVersion      Int       @default(0) @map("session_version")
   loginAttempts       Int       @default(0) @map("login_attempts")
   lockedUntil         DateTime? @map("locked_until")
   createdAt           DateTime  @default(now()) @map("created_at")

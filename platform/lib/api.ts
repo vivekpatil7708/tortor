@@ -21,6 +21,7 @@ export const api = {
     request<{ success: boolean }>('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
 
   logout: () => request<{ success: boolean }>('/api/auth/logout', { method: 'POST' }),
+  logoutOtherDevices: () => request<{ success: boolean }>('/api/auth/logout-all', { method: 'POST' }),
 
   google: (body: { credential: string }) =>
     request<{ success: boolean; isNewUser: boolean; merchant: Record<string, unknown> }>('/api/auth/google', { method: 'POST', body: JSON.stringify(body) }),

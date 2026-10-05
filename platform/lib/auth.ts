@@ -23,7 +23,10 @@ export async function verifyPassword(password: string, hash: string) {
 }
 
 export async function createSession(merchantId: string, email: string) {
-  const token = await new SignJWT({ sub: merchantId, email })
+  // The login carries the account's session version; raising the version
+  // (password reset, "sign out other devices") ends every older login.
+  const account = await prisma.merchant.findUnique({ where: { id: merchantId }, select: { sessionVersion: true } })
+  const token = await new SignJWT({ sub: merchantId, email, sv: account?.sessionVersion ?? 0 })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -42,6 +45,11 @@ export async function destroySession() {
   cookies().delete(COOKIE_NAME)
   cookies().delete(IMPERSONATE_COOKIE)
   cookies().delete(ADMIN_SECOND_FACTOR_COOKIE)
+}
+
+/** Ends every existing login for this account, on all devices. */
+export async function endAllSessions(merchantId: string) {
+  await prisma.merchant.update({ where: { id: merchantId }, data: { sessionVersion: { increment: 1 } } })
 }
 
 async function getImpersonationInfo(token: string) {
@@ -86,6 +94,8 @@ export async function clearImpersonation() {
 
 export async function getSession() {
   let merchantId: string | null = null
+  // Session version in the login cookie; null for admin "view as merchant".
+  let tokenVersion: number | null = null
 
   const impToken = cookies().get(IMPERSONATE_COOKIE)?.value
   if (impToken) {
@@ -107,6 +117,8 @@ export async function getSession() {
       if (payload.typ || payload.purpose) return null
       merchantId = payload.sub as string
       if (!merchantId) return null
+      // Logins made before this change carry no version and count as 0.
+      tokenVersion = typeof payload.sv === 'number' ? payload.sv : 0
     } catch {
       return null
     }
@@ -132,12 +144,16 @@ export async function getSession() {
       status: true,
       onboardingComplete: true,
       emailVerifiedAt: true,
+      sessionVersion: true,
       createdAt: true,
     },
   })
 
   if (!merchant || merchant.status === 'suspended') return null
-  return merchant
+  // Signed out everywhere (password reset or "sign out other devices") since this login was made.
+  if (tokenVersion !== null && tokenVersion !== merchant.sessionVersion) return null
+  const { sessionVersion, ...session } = merchant
+  return session
 }
 
 export async function requireSession() {

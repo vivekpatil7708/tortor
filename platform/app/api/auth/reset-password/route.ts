@@ -43,6 +43,8 @@ export async function POST(req: NextRequest) {
         resetTokenExpiry: null,
         loginAttempts: 0,
         lockedUntil: null,
+        // Signs out every device, including anyone using the old password.
+        sessionVersion: { increment: 1 },
       },
     })
 
