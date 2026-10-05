@@ -1,6 +1,8 @@
 import crypto from 'crypto'
 import { nanoid } from 'nanoid'
 import { prisma } from '@/lib/prisma'
+import { postWebhook, UnsafeWebhookUrlError } from '@/lib/safe-fetch'
+import { nextWebhookAttemptAt } from '@/lib/webhook-retry'
 import type { KeyMode, WebhookDeliveryStatus } from '@prisma/client'
 
 export const OUTGOING_WEBHOOK_EVENTS = [
@@ -28,12 +30,6 @@ export function signWebhook(payload: string, secret: string): string {
 
 export interface WebhookDispatchData {
   [key: string]: unknown
-}
-
-const RETRY_DELAY_MS = [0, 60_000, 300_000, 900_000, 3_600_000, 14_400_000]
-
-export function nextRetryDelay(attempt: number): number {
-  return RETRY_DELAY_MS[Math.min(attempt, RETRY_DELAY_MS.length - 1)]
 }
 
 function buildPayload(eventType: string, data: WebhookDispatchData) {
@@ -100,53 +96,64 @@ export async function dispatchMerchantWebhook(params: {
       },
     })
 
-    const delivered = await attemptDelivery(log.id, endpoint.id, endpoint.url, body, signature)
+    const delivered = await attemptDelivery({
+      logId: log.id,
+      endpointId: endpoint.id,
+      url: endpoint.url,
+      body,
+      signature,
+      eventType,
+      failedSoFar: 0,
+      retry: true,
+    })
     results.push({ logId: log.id, status: delivered.status })
   }
 
   return results
 }
 
-async function attemptDelivery(
-  logId: string,
-  endpointId: string,
-  url: string,
-  body: string,
+async function attemptDelivery(params: {
+  logId: string
+  endpointId: string
+  url: string
+  body: string
   signature: string
-): Promise<{ status: WebhookDeliveryStatus }> {
+  eventType: string
+  /** Failed attempts before this one. */
+  failedSoFar: number
+  /** False for one-off sends (dashboard test events) that shouldn't be retried. */
+  retry: boolean
+}): Promise<{ status: WebhookDeliveryStatus }> {
+  const { logId, endpointId, url, body, signature, eventType, failedSoFar, retry } = params
   let status: WebhookDeliveryStatus = 'delivered'
   let responseCode: number | null = null
   let responseBody: string | null = null
   let errorMessage: string | null = null
-  let retryCount = 0
+  let retryCount = failedSoFar
   let nextRetryAt: Date | null = null
 
   try {
-    const res = await fetch(url, {
-      method: 'POST',
+    const res = await postWebhook(url, {
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'ToroPay-Webhooks/1.0',
-        'X-ToroPay-Event': '',
+        'X-ToroPay-Event': eventType,
         'X-ToroPay-Signature': signature,
       },
       body,
-      signal: AbortSignal.timeout(10000),
     })
     responseCode = res.status
-    responseBody = (await res.text().catch(() => '')).slice(0, 2000)
-    if (res.ok) {
-      status = 'delivered'
-    } else {
-      retryCount = 1
-      status = 'retrying'
-      nextRetryAt = new Date(Date.now() + nextRetryDelay(1))
+    responseBody = res.body
+    if (!res.ok) {
+      retryCount = failedSoFar + 1
+      nextRetryAt = retry ? nextWebhookAttemptAt(retryCount) : null
+      status = nextRetryAt ? 'retrying' : 'failed'
     }
   } catch (err) {
     errorMessage = err instanceof Error ? err.message : 'Delivery failed'
-    retryCount = 1
-    status = 'retrying'
-    nextRetryAt = new Date(Date.now() + nextRetryDelay(1))
+    retryCount = failedSoFar + 1
+    // A private or invalid address will never work, so it isn't retried.
+    nextRetryAt = retry && !(err instanceof UnsafeWebhookUrlError) ? nextWebhookAttemptAt(retryCount) : null
+    status = nextRetryAt ? 'retrying' : 'failed'
   }
 
   await prisma.webhookDeliveryLog.update({
@@ -182,28 +189,42 @@ export async function retryWebhookDelivery(logId: string): Promise<WebhookDelive
   const log = await prisma.webhookDeliveryLog.findUnique({ where: { id: logId } })
   if (!log || !['failed', 'retrying', 'pending'].includes(log.status)) return null
 
-  const retried = await attemptDelivery(logId, log.endpointId, log.url, log.payload, log.signature)
-  if (retried.status === 'retrying') {
-    await prisma.webhookDeliveryLog.update({
-      where: { id: logId },
-      data: { retryCount: { increment: 1 } },
-    })
+  // The merchant switched this endpoint off: stop retrying.
+  const endpoint = await prisma.webhookEndpoint.findUnique({ where: { id: log.endpointId }, select: { active: true } })
+  if (!endpoint?.active) {
+    await prisma.webhookDeliveryLog.update({ where: { id: logId }, data: { status: 'disabled', nextRetryAt: null } })
+    return 'disabled'
   }
+
+  const retried = await attemptDelivery({
+    logId,
+    endpointId: log.endpointId,
+    url: log.url,
+    body: log.payload,
+    signature: log.signature,
+    eventType: log.eventType,
+    failedSoFar: log.retryCount,
+    retry: true,
+  })
   return retried.status
 }
 
-/** Find deliveries due for retry and re-attempt them. Returns number retried. */
-export async function processDueWebhookRetries(): Promise<number> {
+/** Re-attempt deliveries whose retry time has come (run by /api/cron/webhook-retries). Returns how many were attempted. */
+export async function processDueWebhookRetries({ deadline = Infinity, limit = 25 } = {}): Promise<number> {
   const due = await prisma.webhookDeliveryLog.findMany({
-    where: {
-      status: { in: ['retrying', 'failed', 'pending'] },
-      nextRetryAt: { lte: new Date() },
-      retryCount: { lt: 10 },
-    },
-    take: 100,
+    where: { status: 'retrying', nextRetryAt: { lte: new Date() } },
+    orderBy: { nextRetryAt: 'asc' },
+    take: limit,
   })
   let attempted = 0
   for (const log of due) {
+    if (Date.now() > deadline) break
+    // Claim it by pushing the retry time out, so an overlapping run skips it.
+    const claimed = await prisma.webhookDeliveryLog.updateMany({
+      where: { id: log.id, status: 'retrying', nextRetryAt: log.nextRetryAt },
+      data: { nextRetryAt: new Date(Date.now() + 10 * 60_000) },
+    })
+    if (claimed.count !== 1) continue
     await retryWebhookDelivery(log.id)
     attempted += 1
   }
@@ -237,6 +258,15 @@ export async function sendTestWebhook(endpointId: string, merchantId: string): P
       status: 'pending',
     },
   })
-  const delivered = await attemptDelivery(log.id, endpoint.id, endpoint.url, body, signature)
+  const delivered = await attemptDelivery({
+    logId: log.id,
+    endpointId: endpoint.id,
+    url: endpoint.url,
+    body,
+    signature,
+    eventType: 'order.created',
+    failedSoFar: 0,
+    retry: false,
+  })
   return { success: delivered.status === 'delivered', logId: log.id }
 }

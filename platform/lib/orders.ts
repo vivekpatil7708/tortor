@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { generateOrderNumber, generateTrackingToken } from '@/lib/status'
 import { logAudit } from '@/lib/audit'
 import { restoreStockForOrder } from '@/lib/inventory'
+import { decidePaymentStatusChange } from '@/lib/payment-transitions'
 import type {
   OrderSource,
   PaymentStatus,
@@ -336,6 +337,10 @@ export async function setPaymentStatus(params: {
       where: { id: orderId, merchantId },
     })
     if (!order) throw new Error('Order not found')
+
+    const decision = decidePaymentStatusChange(order.paymentStatus, nextStatus)
+    if (decision.action === 'blocked') throw new Error(decision.reason)
+    if (decision.action === 'unchanged') return order
 
     const updated = await tx.order.update({
       where: { id: order.id },

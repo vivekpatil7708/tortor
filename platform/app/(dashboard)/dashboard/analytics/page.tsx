@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '@/lib/api'
+import { exportToCSV } from '@/lib/export-csv'
 import { formatAmount } from '@/lib/utils'
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -41,14 +42,7 @@ function buildParams(range: Range, customFrom?: string, customTo?: string): stri
 
 function exportCSV(data: Record<string, unknown>[], filename: string) {
   if (!data.length) return
-  const keys = Object.keys(data[0])
-  const csv = [keys.join(','), ...data.map(r => keys.map(k => String(r[k] ?? '')).join(','))].join('\n')
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(a.href)
+  exportToCSV(filename, Object.keys(data[0]).map(key => ({ key, label: key })), data)
 }
 
 function Skeleton({ className }: { className?: string }) {

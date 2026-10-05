@@ -6,14 +6,24 @@ import { formatAmount, formatDate, statusColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { exportToCSV } from '@/lib/export-csv'
+import { CONFIRM_UNDO_MINUTES } from '@/lib/payment-transitions'
 import { Send } from 'lucide-react'
 import SendConfirmationModal from '@/components/dashboard/send-confirmation-modal'
 
-type StatusAction = { txn: Record<string, unknown>; status: 'success' | 'failed' }
+type StatusAction = { txn: Record<string, unknown>; status: 'success' | 'failed'; undo?: boolean }
 
-function actionMessage({ txn, status }: StatusAction): string {
+/** A confirmation can be undone for a short while, in case it was a mistake. */
+function canUndo(txn: Record<string, unknown>): boolean {
+  if (txn.status !== 'success' || !txn.confirmed_at) return false
+  return Date.now() - new Date(txn.confirmed_at as string).getTime() < CONFIRM_UNDO_MINUTES * 60_000
+}
+
+function actionMessage({ txn, status, undo }: StatusAction): string {
   const amount = formatAmount(Number(txn.amount))
   const customer = (txn.customer_name as string) || 'this customer'
+  if (undo) {
+    return `Mark ${amount} from ${customer} as not received? Use this only if you confirmed it by mistake. If this link sends updates to your website, it will be told the payment failed.`
+  }
   if (status === 'failed') {
     return `Mark ${amount} from ${customer} as failed? Do this only if the money did not arrive.`
   }
@@ -87,9 +97,9 @@ export default function TransactionsPage() {
 
   useEffect(() => { load() }, [])
 
-  function askStatus(txn: Record<string, unknown>, status: StatusAction['status']) {
+  function askStatus(txn: Record<string, unknown>, status: StatusAction['status'], undo = false) {
     setActionError('')
-    setPendingAction({ txn, status })
+    setPendingAction({ txn, status, undo })
   }
 
   async function applyStatus() {
@@ -212,6 +222,9 @@ export default function TransactionsPage() {
                         <Button size="sm" variant="danger" onClick={() => askStatus(t, 'failed')}>Reject</Button>
                       </>
                     )}
+                    {canUndo(t) && (
+                      <Button size="sm" variant="danger" onClick={() => askStatus(t, 'failed', true)}>Undo</Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -236,9 +249,9 @@ export default function TransactionsPage() {
           open
           onClose={() => { if (!updating) setPendingAction(null) }}
           onConfirm={applyStatus}
-          title={pendingAction.status === 'success' ? 'Confirm payment?' : 'Reject payment?'}
+          title={pendingAction.undo ? 'Undo confirmation?' : pendingAction.status === 'success' ? 'Confirm payment?' : 'Reject payment?'}
           message={actionMessage(pendingAction) + (actionError ? ` Error: ${actionError}` : '')}
-          confirmLabel={pendingAction.status === 'success' ? 'Yes, I received it' : 'Reject payment'}
+          confirmLabel={pendingAction.undo ? 'Undo confirmation' : pendingAction.status === 'success' ? 'Yes, I received it' : 'Reject payment'}
           danger={pendingAction.status === 'failed'}
           busy={updating}
         />

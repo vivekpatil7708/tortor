@@ -8,6 +8,7 @@ import { sendAutomatedEmail, buildEmailContextFromCheckout } from '@/lib/emails/
 import { TOROPAY_PUBLIC_URL } from '@/lib/checkout'
 import { completeRefundFromProviderWebhook, extractProviderRefundId } from '@/lib/refunds'
 import { applyInventoryDeductionOnMode } from '@/lib/inventory'
+import { decidePaymentStatusChange } from '@/lib/payment-transitions'
 import type { KeyMode, PaymentStatus } from '@prisma/client'
 
 export interface NormalizedProviderEvent {
@@ -141,11 +142,26 @@ async function applyPaymentStatus(input: ApplyStatusInput) {
   const { paymentId, merchantId, status, eventType, amount, currency, providerResponse } = input
 
   return prisma.$transaction(async (tx) => {
+    // Lock the payment so two provider messages for it are applied one at a time.
+    await tx.$queryRaw`SELECT id FROM payments WHERE id = ${paymentId} FOR UPDATE`
     const payment = await tx.payment.findFirst({ where: { id: paymentId, merchantId } })
     if (!payment) throw new Error('Payment not found for this merchant')
 
     const prevStatus = payment.status
-    const changed = prevStatus !== status
+    // A late or out-of-order message (e.g. "failed" after "paid") is recorded and ignored.
+    const decision = decidePaymentStatusChange(prevStatus, status)
+    if (decision.action === 'blocked') {
+      await logAudit({
+        merchantId,
+        actorUserId: null,
+        action: 'payment_change_ignored',
+        entityType: 'payment',
+        entityId: payment.id,
+        metadata: { from: prevStatus, to: status, provider_event: eventType },
+      })
+      return { changed: false, flagged: false, error: `Ignored: ${decision.reason}` }
+    }
+    const changed = decision.action === 'apply'
 
     // ---- amount/currency validation for money-moving events -----------------
     let flagged = false
