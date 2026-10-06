@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
 import { logAudit } from '@/lib/audit'
 import { decideLinkPaymentChange, type TransitionDecision } from '@/lib/payment-transitions'
+import { queuePaidClaimAlert } from '@/lib/payment-alerts'
 import { prisma } from '@/lib/prisma'
 import { serializeTransaction } from '@/lib/serializers'
 import { notifyPaymentStatus } from '@/lib/webhooks'
@@ -118,6 +119,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ txnId: 
 
     if (statusChanges && newStatus) {
       await notifyPaymentStatus(updated.id, newStatus)
+    }
+
+    // Settings → Notifications: email the merchant that a customer says they've paid.
+    if (statusChanges && newStatus === 'pending' && !isMerchantAction) {
+      queuePaidClaimAlert(updated)
     }
 
     if (!isMerchantAction) {

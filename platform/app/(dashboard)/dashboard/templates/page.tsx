@@ -4,14 +4,19 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { LoadError } from '@/components/ui/load-error'
 
 export default function TemplatesPage() {
   const router = useRouter()
   const [templates, setTemplates] = useState<Record<string, unknown>[]>([])
   const [name, setName] = useState('')
 
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'failed'>('loading')
+
   function load() {
-    api.getTemplates().then(setTemplates).catch(() => {})
+    api.getTemplates()
+      .then(t => { setTemplates(t); setLoadState('ready') })
+      .catch(() => setLoadState('failed'))
   }
 
   useEffect(() => { load() }, [])
@@ -70,7 +75,8 @@ export default function TemplatesPage() {
             </div>
           </div>
         ))}
-        {templates.length === 0 && (
+        {loadState === 'failed' && <LoadError what="your templates" onRetry={load} />}
+        {loadState === 'ready' && templates.length === 0 && (
           <p className="py-12 text-center text-sm text-gray-400">No templates yet.</p>
         )}
       </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { checkLinkAmount } from '@/lib/link-amount'
 import { usesTakenWhere } from '@/lib/link-uses'
+import { TXN_ID_PATTERN } from '@/lib/checkout-status'
 import { publicErrorMessage } from '@/lib/api-response'
 
 export async function POST(req: NextRequest) {
@@ -10,6 +11,11 @@ export async function POST(req: NextRequest) {
 
     if (!body.payment_link_id || !body.txn_id || body.amount == null) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+    // The reference is shown to the merchant (dashboard, exports, alert emails), so
+    // only the format the payment page makes is accepted, never free text.
+    if (!TXN_ID_PATTERN.test(String(body.txn_id))) {
+      return NextResponse.json({ error: 'Invalid transaction reference' }, { status: 400 })
     }
 
     // The merchant comes from the link, never from the request.

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import { LoadError } from '@/components/ui/load-error'
 import { DEFAULT_TEMPLATES, SAMPLE_DATA, renderTemplate, SUPPORTED_VARIABLES, type SampleData } from '@/lib/messaging'
 import { Check, RotateCcw, Eye, EyeOff } from 'lucide-react'
 
@@ -36,9 +37,19 @@ export default function MessagingTemplatesPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [channelStatus, setChannelStatus] = useState<Record<string, any> | null>(null)
+  const [templatesState, setTemplatesState] = useState<'loading' | 'ready' | 'failed'>('loading')
+
+  // Until the saved templates load, the editor stays hidden: saving the defaults
+  // shown after a failed load would overwrite the merchant's own wording.
+  function loadTemplates() {
+    setTemplatesState('loading')
+    api.getMessagingTemplates()
+      .then(r => { setTemplates(r.templates as unknown as Template[]); setTemplatesState('ready') })
+      .catch(() => setTemplatesState('failed'))
+  }
 
   useEffect(() => {
-    api.getMessagingTemplates().then(r => setTemplates(r.templates as unknown as Template[])).catch(() => {})
+    loadTemplates()
     api.getChannelStatus().then(r => setChannelStatus(r.channels as unknown as Record<string, any>)).catch(() => {})
   }, [])
 
@@ -88,6 +99,17 @@ export default function MessagingTemplatesPage() {
   const renderedSubject = renderTemplate(subject, SAMPLE_DATA as unknown as Record<string, string>)
   const renderedBody = renderTemplate(body, SAMPLE_DATA as unknown as Record<string, string>)
   const status = channelStatus?.[activeChannel]
+
+  if (templatesState !== 'ready') {
+    return (
+      <div>
+        <h1 className="mb-6 text-2xl font-bold tracking-tight">Messaging Templates</h1>
+        {templatesState === 'failed'
+          ? <LoadError what="your message templates" onRetry={loadTemplates} />
+          : <p className="text-sm text-gray-400">Loading…</p>}
+      </div>
+    )
+  }
 
   return (
     <div>

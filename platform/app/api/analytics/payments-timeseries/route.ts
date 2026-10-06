@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { requireSession } from '@/lib/auth'
+import { handleError } from '@/lib/api-response'
+import { createdAtRange, istDayKey } from '@/lib/ist-day'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
@@ -9,29 +12,29 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get('from')
     const to = searchParams.get('to')
 
-    const dateFilter: Record<string, Date> = {}
-    if (from) dateFilter.gte = new Date(from)
-    if (to) dateFilter.lte = new Date(to)
+    // Plain dates mean whole days in India; full timestamps (the preset ranges) are used as they are.
+    const createdAt = createdAtRange(from, to)
+    if (!createdAt) return NextResponse.json({ error: 'Dates must look like 2026-10-06' }, { status: 400 })
 
-    const where: Record<string, unknown> = { merchantId: session.id, status: 'success' }
-    if (from || to) where.createdAt = dateFilter
+    const where: Prisma.TransactionWhereInput = { merchantId: session.id, status: 'success' }
+    if (from || to) where.createdAt = createdAt
 
     const txns = await prisma.transaction.findMany({
-      where: where as any,
+      where,
       select: { amount: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     })
 
     const byDay: Record<string, number> = {}
     txns.forEach(t => {
-      const day = t.createdAt.toISOString().slice(0, 10)
+      const day = istDayKey(t.createdAt)
       byDay[day] = (byDay[day] || 0) + t.amount
     })
 
     const timeseries = Object.entries(byDay).map(([date, amount]) => ({ date, amount: Math.round(amount * 100) / 100 }))
 
     return NextResponse.json({ timeseries })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (err) {
+    return handleError(err, 'Could not load analytics')
   }
 }

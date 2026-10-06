@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { requireSession } from '@/lib/auth'
 import { handleError } from '@/lib/api-response'
+import { createdAtRange } from '@/lib/ist-day'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
@@ -11,12 +12,12 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get('from')
     const to = searchParams.get('to')
 
-    const dateFilter: Record<string, Date> = {}
-    if (from) dateFilter.gte = new Date(from)
-    if (to) dateFilter.lte = new Date(to)
+    // Plain dates mean whole days in India; full timestamps (the preset ranges) are used as they are.
+    const createdAt = createdAtRange(from, to)
+    if (!createdAt) return NextResponse.json({ error: 'Dates must look like 2026-10-06' }, { status: 400 })
 
     const where: Prisma.TransactionWhereInput = { merchantId: session.id }
-    if (from || to) where.createdAt = dateFilter
+    if (from || to) where.createdAt = createdAt
 
     // Counted and added up in the database, so every transaction is included
     // without loading them all.

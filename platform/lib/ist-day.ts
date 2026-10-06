@@ -17,3 +17,42 @@ export function istDayEnd(day: string): Date | null {
   const start = istDayStart(day)
   return start && new Date(start.getTime() + DAY_MS)
 }
+
+/** The day in India (YYYY-MM-DD) that a moment falls on, e.g. for charts. */
+export function istDayKey(at: Date): string {
+  return new Date(at.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10)
+}
+
+const MOMENT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/
+
+function parseMoment(value: string): Date | null {
+  if (!MOMENT.test(value)) return null
+  const at = new Date(value)
+  return Number.isNaN(at.getTime()) ? null : at
+}
+
+/**
+ * A created-at filter from `from` / `to` values: a plain date (2026-10-06) means
+ * that whole day in India, and a full timestamp with a time zone is used as it
+ * is. Null if either value is neither.
+ */
+export function createdAtRange(from: string | null, to: string | null): { gte?: Date; lt?: Date; lte?: Date } | null {
+  const range: { gte?: Date; lt?: Date; lte?: Date } = {}
+  if (from) {
+    const start = DAY.test(from) ? istDayStart(from) : parseMoment(from)
+    if (!start) return null
+    range.gte = start
+  }
+  if (to) {
+    if (DAY.test(to)) {
+      const end = istDayEnd(to)
+      if (!end) return null
+      range.lt = end
+    } else {
+      const at = parseMoment(to)
+      if (!at) return null
+      range.lte = at
+    }
+  }
+  return range
+}

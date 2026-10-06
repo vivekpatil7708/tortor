@@ -3,14 +3,23 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { LoadError } from '@/components/ui/load-error'
 
 export default function UpiPage() {
   const [upis, setUpis] = useState<Record<string, unknown>[]>([])
   const [newVpa, setNewVpa] = useState('')
   const [adding, setAdding] = useState(false)
 
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'failed'>('loading')
+
   function load() {
-    api.getUpis().then(setUpis).catch(() => {})
+    api.getUpis()
+      .then(u => { setUpis(u); setLoadState('ready') })
+      .catch(() => setLoadState('failed'))
+  }
+
+  function removeUpi(id: string) {
+    api.deleteUpi(id).then(load).catch((err: unknown) => alert(err instanceof Error ? err.message : 'Could not remove this UPI ID'))
   }
 
   useEffect(() => { load() }, [])
@@ -61,11 +70,12 @@ export default function UpiPage() {
             <div className="flex gap-2">
               {!u.verified_at && <Button variant="ghost" size="sm" onClick={() => verifyUpi(u.id as string)}>Check format</Button>}
               {!Boolean(u.is_primary) && <Button variant="ghost" size="sm" onClick={() => api.setPrimaryUpi(u.id as string).then(load)}>Make primary</Button>}
-              <Button variant="ghost" size="sm" onClick={() => api.deleteUpi(u.id as string).then(load)} className="text-red-500">Remove</Button>
+              <Button variant="ghost" size="sm" onClick={() => removeUpi(u.id as string)} className="text-red-500">Remove</Button>
             </div>
           </div>
         ))}
-        {upis.length === 0 && (
+        {loadState === 'failed' && <LoadError what="your UPI IDs" onRetry={load} />}
+        {loadState === 'ready' && upis.length === 0 && (
           <div className="rounded-2xl border border-white/80 bg-white/60 p-12 text-center text-sm text-gray-400 backdrop-blur-sm">
             No UPI IDs added yet.
           </div>

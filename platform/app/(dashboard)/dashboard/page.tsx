@@ -6,11 +6,14 @@ import { formatAmount, formatDate, statusColor } from '@/lib/utils'
 import { Link2, Banknote, TrendingUp, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { ConfirmDialog } from '@/components/ui/dialog'
+import { LoadError } from '@/components/ui/load-error'
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({ totalLinks: 0, totalTxns: 0, totalRevenue: 0, successRate: 0 })
   const [recentTxns, setRecentTxns] = useState<Record<string, unknown>[]>([])
   const [recentState, setRecentState] = useState<'loading' | 'ready' | 'failed'>('loading')
+  const [totalsFailed, setTotalsFailed] = useState(false)
+  const [pendingFailed, setPendingFailed] = useState(false)
   const [merchant, setMerchant] = useState<Record<string, unknown> | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [pendingUpi, setPendingUpi] = useState<Record<string, unknown>[]>([])
@@ -25,7 +28,7 @@ export default function DashboardPage() {
     try {
       await api.confirmUpiPayment(confirmTarget.id as string)
       setConfirmTarget(null)
-      api.getPendingUpiPayments().then(({ payments }) => setPendingUpi(payments)).catch(() => {})
+      loadPending()
     } catch (err) {
       setConfirmError(err instanceof Error ? err.message : 'Could not confirm the payment')
     } finally {
@@ -83,9 +86,14 @@ export default function DashboardPage() {
       .catch(() => setRecentState('failed'))
   }
 
-  useEffect(() => {
-    api.me().then(({ merchant: m }) => setMerchant(m))
-    api.getLinks().then(links => setStats(s => ({ ...s, totalLinks: links.length })))
+  function loadPending() {
+    api.getPendingUpiPayments()
+      .then(({ payments }) => { setPendingUpi(payments); setPendingFailed(false) })
+      .catch(() => setPendingFailed(true))
+  }
+
+  function loadTotals() {
+    setTotalsFailed(false)
     // Totals are counted in the database, so they include every transaction.
     api.getAnalyticsSummary().then(summary => {
       const total = Number(summary.total_orders) || 0
@@ -96,16 +104,22 @@ export default function DashboardPage() {
         totalRevenue: Number(summary.gross_payment_volume) || 0,
         successRate: total > 0 ? Math.round((successful / total) * 100) : 0,
       }))
-    }).catch(() => {})
+    }).catch(() => setTotalsFailed(true))
+  }
+
+  useEffect(() => {
+    api.me().then(({ merchant: m }) => setMerchant(m))
+    api.getLinks().then(links => setStats(s => ({ ...s, totalLinks: links.length })))
+    loadTotals()
     loadRecent()
-    api.getPendingUpiPayments().then(({ payments }) => setPendingUpi(payments)).catch(() => {})
+    loadPending()
   }, [])
 
   const cards = [
     { label: 'Payment Links', value: stats.totalLinks, icon: Link2, bg: 'bg-blue-50', color: 'text-blue-600' },
-    { label: 'Transactions', value: stats.totalTxns, icon: Banknote, bg: 'bg-green-50', color: 'text-green-600' },
-    { label: 'Revenue', value: formatAmount(stats.totalRevenue), icon: TrendingUp, bg: 'bg-purple-50', color: 'text-purple-600' },
-    { label: 'Success Rate', value: `${stats.successRate}%`, icon: CheckCircle2, bg: 'bg-amber-50', color: 'text-amber-600' },
+    { label: 'Transactions', value: totalsFailed ? '—' : stats.totalTxns, icon: Banknote, bg: 'bg-green-50', color: 'text-green-600' },
+    { label: 'Revenue', value: totalsFailed ? '—' : formatAmount(stats.totalRevenue), icon: TrendingUp, bg: 'bg-purple-50', color: 'text-purple-600' },
+    { label: 'Success Rate', value: totalsFailed ? '—' : `${stats.successRate}%`, icon: CheckCircle2, bg: 'bg-amber-50', color: 'text-amber-600' },
   ]
 
   return (
@@ -128,6 +142,9 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {totalsFailed && <LoadError what="your totals" onRetry={loadTotals} className="mb-8" />}
+      {pendingFailed && <LoadError what="payments waiting for your confirmation" onRetry={loadPending} className="mb-8" />}
 
       {pendingUpi.length > 0 && (
         <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50/60 p-6 backdrop-blur-sm">

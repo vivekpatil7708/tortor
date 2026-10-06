@@ -4,11 +4,15 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '@/lib/api'
 import { imageFileProblem } from '@/lib/image-input'
 import { Button } from '@/components/ui/button'
+import { LoadError } from '@/components/ui/load-error'
 import { Upload, X } from 'lucide-react'
 
 export default function BrandingPage() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
+  // The form only shows once the saved branding has loaded, so Save can never
+  // overwrite it with the defaults after a failed load.
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [form, setForm] = useState({
     business_name: '', business_logo_url: '', bg_image_url: '',
     brand_color_primary: '#7bb86c', brand_color_secondary: '#2c2c2c',
@@ -17,9 +21,10 @@ export default function BrandingPage() {
   const logoInputRef = useRef<HTMLInputElement>(null)
   const bgInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
+  function load() {
+    setLoadState('loading')
     api.me().then(({ merchant }) => {
-      if (!merchant) return
+      if (!merchant) { setLoadState('failed'); return }
       setForm({
         business_name: (merchant.business_name as string) || '',
         business_logo_url: (merchant.business_logo_url as string) || '',
@@ -30,8 +35,11 @@ export default function BrandingPage() {
         button_style: (merchant.button_style as string) || 'rounded',
         page_theme: (merchant.page_theme as string) || 'cream',
       })
-    }).catch(() => {})
-  }, [])
+      setLoadState('ready')
+    }).catch(() => setLoadState('failed'))
+  }
+
+  useEffect(() => { load() }, [])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -67,6 +75,17 @@ export default function BrandingPage() {
   const previewBg = form.bg_image_url
     ? { backgroundImage: `url(${form.bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { backgroundColor: isDark ? '#1a1a1a' : '#fdf8f0' }
+
+  if (loadState !== 'ready') {
+    return (
+      <div className="mx-auto max-w-5xl">
+        <h1 className="mb-6 text-2xl font-bold tracking-tight">Branding</h1>
+        {loadState === 'failed'
+          ? <LoadError what="your branding" onRetry={load} />
+          : <p className="text-sm text-gray-400">Loading…</p>}
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto max-w-5xl">

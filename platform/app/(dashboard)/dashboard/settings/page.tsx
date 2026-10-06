@@ -4,12 +4,18 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/dialog'
+import { LoadError } from '@/components/ui/load-error'
 import Link from 'next/link'
 import { MessageSquare } from 'lucide-react'
 
 export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
+  // The form only shows once the saved settings have loaded, so Save can never
+  // overwrite them (or the webhook secret) with blanks after a failed load.
+  const [settingsState, setSettingsState] = useState<'loading' | 'ready' | 'failed'>('loading')
+  const [keysFailed, setKeysFailed] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState('')
@@ -23,18 +29,35 @@ export default function SettingsPage() {
     webhook_secret: '',
   })
 
+  function loadSettings() {
+    setSettingsState('loading')
+    api.getSettings()
+      .then(s => { setForm(f => ({ ...f, ...s })); setSettingsState('ready') })
+      .catch(() => setSettingsState('failed'))
+  }
+
+  function loadKeys() {
+    api.getApiKeys()
+      .then(keys => { setApiKeys(keys); setKeysFailed(false) })
+      .catch(() => setKeysFailed(true))
+  }
+
   useEffect(() => {
-    api.getSettings().then(s => setForm(f => ({ ...f, ...s }))).catch(() => {})
-    api.getApiKeys().then(setApiKeys).catch(() => {})
+    loadSettings()
+    loadKeys()
   }, [])
 
   async function saveSettings(e: React.FormEvent) {
     e.preventDefault()
+    if (settingsState !== 'ready') return
     setSaving(true)
+    setSaveError('')
     try {
       await api.saveSettings(form)
       setMsg('Settings saved')
       setTimeout(() => setMsg(''), 3000)
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : 'Could not save your settings')
     } finally {
       setSaving(false)
     }
@@ -45,7 +68,7 @@ export default function SettingsPage() {
       const { key } = await api.createApiKey(newApiKeyName || 'Default')
       setCreatedKey(key)
       setNewApiKeyName('')
-      api.getApiKeys().then(setApiKeys)
+      loadKeys()
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : 'Failed')
     }
@@ -87,22 +110,25 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {settingsState === 'failed' && <LoadError what="your settings" onRetry={loadSettings} className="mb-6" />}
+      {settingsState === 'loading' && <p className="mb-6 text-sm text-gray-400">Loading settings…</p>}
+
+      {settingsState === 'ready' && (
       <form onSubmit={saveSettings} className="mb-6 space-y-5">
         <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
-          <h2 className="mb-4 font-bold">Notifications</h2>
+          <h2 className="mb-1 font-bold">Notifications</h2>
+          <p className="mb-4 text-xs text-gray-500">
+            Get an email when a customer taps &quot;I&apos;ve paid&quot; on one of your links, so you can check and confirm it.
+            At most 20 emails an hour.
+          </p>
           <div className="space-y-4">
-            <input placeholder="Notification email" value={form.notification_email}
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={form.email_enabled} onChange={e => setForm({ ...form, email_enabled: e.target.checked })} />
+              Email me when a customer says they&apos;ve paid
+            </label>
+            <input type="email" placeholder="Send alerts to (leave empty to use your login email)" value={form.notification_email}
               onChange={e => setForm({ ...form, notification_email: e.target.value })}
               className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none" />
-            <input placeholder="Notification phone" value={form.notification_phone}
-              onChange={e => setForm({ ...form, notification_phone: e.target.value })}
-              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none" />
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.sms_enabled} onChange={e => setForm({ ...form, sms_enabled: e.target.checked })} /> SMS alerts
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.email_enabled} onChange={e => setForm({ ...form, email_enabled: e.target.checked })} /> Email alerts
-            </label>
           </div>
         </div>
 
@@ -118,8 +144,10 @@ export default function SettingsPage() {
           </p>
         </div>
 
+        {saveError && <p className="text-sm text-red-500">Couldn&apos;t save: {saveError}</p>}
         <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save Settings'}</Button>
       </form>
+      )}
 
       <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
         <h2 className="mb-4 font-bold">API Keys</h2>
@@ -135,6 +163,7 @@ export default function SettingsPage() {
             <code className="break-all font-mono">{createdKey}</code>
           </div>
         )}
+        {keysFailed && <LoadError what="your API keys" onRetry={loadKeys} className="mb-2" />}
         {apiKeys.map(k => (
           <div key={k.id as string} className="mb-2 flex justify-between rounded-lg bg-white/50 px-3 py-2 text-sm">
             <span className="flex items-center gap-2">

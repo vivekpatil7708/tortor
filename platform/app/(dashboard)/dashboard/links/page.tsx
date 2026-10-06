@@ -6,14 +6,21 @@ import { formatAmount, formatDate, statusColor } from '@/lib/utils'
 import Link from 'next/link'
 import { Plus, ExternalLink, Copy } from 'lucide-react'
 import { useToast } from '@/components/toast'
+import { LoadError } from '@/components/ui/load-error'
 
 export default function LinksPage() {
   const { toast } = useToast()
   const [links, setLinks] = useState<Record<string, unknown>[]>([])
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'failed'>('loading')
 
-  useEffect(() => {
-    api.getLinks().then(setLinks).catch(() => {})
-  }, [])
+  function load() {
+    setLoadState('loading')
+    api.getLinks()
+      .then(l => { setLinks(l); setLoadState('ready') })
+      .catch(() => setLoadState('failed'))
+  }
+
+  useEffect(() => { load() }, [])
 
   async function copyLink(slug: string) {
     await navigator.clipboard.writeText(`${window.location.origin}/pay/${slug}`)
@@ -32,7 +39,11 @@ export default function LinksPage() {
         </Link>
       </div>
 
-      {links.length === 0 ? (
+      {loadState === 'failed' ? (
+        <LoadError what="your payment links" onRetry={load} />
+      ) : loadState === 'loading' ? (
+        <p className="py-12 text-center text-sm text-gray-400">Loading…</p>
+      ) : links.length === 0 ? (
         <div className="rounded-2xl border border-white/80 bg-white/60 p-12 text-center backdrop-blur-sm">
           <div className="mb-3 text-4xl">🔗</div>
           <h2 className="mb-1 text-lg font-bold">No payment links yet</h2>

@@ -9,11 +9,13 @@ const db = vi.hoisted(() => ({
 }))
 const notifyPaymentStatus = vi.hoisted(() => vi.fn())
 const logAudit = vi.hoisted(() => vi.fn())
+const queuePaidClaimAlert = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 vi.mock('@/lib/auth', () => ({ requireSession: vi.fn(async () => ({ id: 'merchant-1' })) }))
 vi.mock('@/lib/webhooks', () => ({ notifyPaymentStatus }))
 vi.mock('@/lib/audit', () => ({ logAudit }))
+vi.mock('@/lib/payment-alerts', () => ({ queuePaidClaimAlert }))
 
 import { PATCH } from '@/app/api/transactions/[txnId]/route'
 
@@ -105,12 +107,25 @@ describe('PATCH /api/transactions/[txnId]', () => {
     db.transaction.findUniqueOrThrow.mockResolvedValue(txn({ status: 'pending' }))
     expect((await patch({ status: 'pending' })).status).toBe(200)
     expect(notifyPaymentStatus).toHaveBeenCalledWith('t1', 'pending')
+    // B9: the merchant's alert email is queued once, for the saved claim.
+    expect(queuePaidClaimAlert).toHaveBeenCalledTimes(1)
+    expect(queuePaidClaimAlert).toHaveBeenCalledWith(expect.objectContaining({ id: 't1', status: 'pending' }))
 
     vi.clearAllMocks()
     db.transaction.findUnique.mockResolvedValue(txn({ status: 'pending' }))
     expect((await patch({ status: 'pending' })).status).toBe(200)
     expect(db.transaction.updateMany).not.toHaveBeenCalled()
     expect(notifyPaymentStatus).not.toHaveBeenCalled()
+    expect(queuePaidClaimAlert).not.toHaveBeenCalled()
+  })
+
+  it("never sends a payment alert for the merchant's own confirm or reject", async () => {
+    db.transaction.findUnique.mockResolvedValue(txn())
+    db.transaction.findUniqueOrThrow.mockResolvedValue(txn({ status: 'success' }))
+
+    await patch({ status: 'success', merchant_action: true })
+
+    expect(queuePaidClaimAlert).not.toHaveBeenCalled()
   })
 
   it('when two updates race, the one that loses gets a conflict and sends nothing', async () => {

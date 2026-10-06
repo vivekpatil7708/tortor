@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
+import { handleError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { maskSecret, serializeSettings } from '@/lib/serializers'
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function GET() {
   try {
@@ -11,8 +14,8 @@ export async function GET() {
       settings = await prisma.merchantSettings.create({ data: { merchantId: session.id } })
     }
     return NextResponse.json(serializeSettings(settings))
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (err) {
+    return handleError(err, 'Could not load your settings')
   }
 }
 
@@ -20,6 +23,12 @@ export async function PUT(req: NextRequest) {
   try {
     const session = await requireSession()
     const body = await req.json()
+
+    // Payment alerts are emailed here (Settings → Notifications), so it must be a real address.
+    const notificationEmail = typeof body.notification_email === 'string' ? body.notification_email.trim() : ''
+    if (notificationEmail && (notificationEmail.length > 254 || !EMAIL.test(notificationEmail))) {
+      return NextResponse.json({ error: 'Enter a valid email address for alerts, or leave it empty.' }, { status: 400 })
+    }
 
     // The client only ever sees the masked secret; if it sends that back unchanged
     // (or omits the field), keep the stored secret instead of overwriting it.
@@ -38,7 +47,7 @@ export async function PUT(req: NextRequest) {
         emailEnabled: Boolean(body.email_enabled),
         autoSettlement: body.auto_settlement !== false,
         settlementFrequency: body.settlement_frequency || 'daily',
-        notificationEmail: body.notification_email || null,
+        notificationEmail: notificationEmail || null,
         notificationPhone: body.notification_phone || null,
         webhookSecret,
       },
@@ -47,14 +56,14 @@ export async function PUT(req: NextRequest) {
         emailEnabled: Boolean(body.email_enabled),
         autoSettlement: Boolean(body.auto_settlement),
         settlementFrequency: body.settlement_frequency || 'daily',
-        notificationEmail: body.notification_email || null,
+        notificationEmail: notificationEmail || null,
         notificationPhone: body.notification_phone || null,
         webhookSecret,
       },
     })
 
     return NextResponse.json({ settings: serializeSettings(settings) })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (err) {
+    return handleError(err, 'Could not save your settings')
   }
 }

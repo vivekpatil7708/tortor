@@ -5,7 +5,7 @@ import {
   serializeCheckoutLink,
   serializeCheckoutMerchant,
 } from '@/lib/serializers'
-import { customerView } from '@/lib/checkout-status'
+import { TXN_ID_PATTERN, customerView } from '@/lib/checkout-status'
 import { linkRoom } from '@/lib/link-uses'
 import { isValidRedirectUrl } from '@/lib/validate-url'
 import { notFound, redirect } from 'next/navigation'
@@ -13,8 +13,6 @@ import CheckoutClient from './checkout-client'
 import LinkClosed, { type ClosedReason } from './link-closed'
 
 export const dynamic = 'force-dynamic'
-
-const TXN_ID = /^[A-Za-z0-9_-]{1,64}$/
 
 async function getLinkData(slug: string, txnId: string | undefined) {
   // Deleted links don't exist; switched-off ones get a friendly page.
@@ -24,7 +22,7 @@ async function getLinkData(slug: string, txnId: string | undefined) {
   // A payment already started on this link (the page was refreshed, or the phone
   // came back from the UPI app) reopens even if the link has since expired or
   // reached its use limit. Its amount always comes from the database.
-  const started = link.status === 'active' && txnId && TXN_ID.test(txnId)
+  const started = link.status === 'active' && txnId && TXN_ID_PATTERN.test(txnId)
     ? await prisma.transaction.findFirst({
         where: { txnId, paymentLinkId: link.id },
         select: { txnId: true, amount: true, status: true },

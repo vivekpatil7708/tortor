@@ -1,6 +1,9 @@
 // Used in the browser (customer payment page), so no Node-only imports here.
 // The server stays the only judge of a payment's status; this file only asks.
 
+/** Payment references as the payment page makes them (TXN + time + random letters). */
+export const TXN_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
+
 /** After this long the page stops checking on its own; the customer can still tap "Check again". */
 export const STOP_CHECKING_AFTER_MS = 30 * 60_000
 

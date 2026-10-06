@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { requireSession } from '@/lib/auth'
+import { handleError } from '@/lib/api-response'
+import { createdAtRange } from '@/lib/ist-day'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
@@ -9,15 +12,15 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get('from')
     const to = searchParams.get('to')
 
-    const dateFilter: Record<string, Date> = {}
-    if (from) dateFilter.gte = new Date(from)
-    if (to) dateFilter.lte = new Date(to)
+    // Plain dates mean whole days in India; full timestamps (the preset ranges) are used as they are.
+    const createdAt = createdAtRange(from, to)
+    if (!createdAt) return NextResponse.json({ error: 'Dates must look like 2026-10-06' }, { status: 400 })
 
-    const where: Record<string, unknown> = { merchantId: session.id, status: 'success' }
-    if (from || to) where.createdAt = dateFilter
+    const where: Prisma.TransactionWhereInput = { merchantId: session.id, status: 'success' }
+    if (from || to) where.createdAt = createdAt
 
     const txns = await prisma.transaction.findMany({
-      where: where as any,
+      where,
       select: { amount: true, paymentApp: true, paymentLinkId: true },
     })
 
@@ -58,7 +61,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ top_payment_apps: topPaymentApps, top_links: topLinks })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (err) {
+    return handleError(err, 'Could not load analytics')
   }
 }

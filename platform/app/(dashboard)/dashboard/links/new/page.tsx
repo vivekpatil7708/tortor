@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { LoadError } from '@/components/ui/load-error'
 import { Button } from '@/components/ui/button'
 import { Zap, ShoppingBag, ChevronDown, Check, ArrowRight } from 'lucide-react'
 
@@ -38,6 +39,7 @@ export default function NewLinkPage() {
   const router = useRouter()
   const [merchant, setMerchant] = useState<Record<string, unknown> | null>(null)
   const [upis, setUpis] = useState<Record<string, unknown>[]>([])
+  const [upisFailed, setUpisFailed] = useState(false)
   const [mode, setMode] = useState<'quick' | 'sell'>('quick')
 
   const [form, setForm] = useState({
@@ -55,13 +57,18 @@ export default function NewLinkPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [previewQty, setPreviewQty] = useState(1)
 
-  useEffect(() => {
-    api.me().then(({ merchant: m }) => setMerchant(m)).catch(() => {})
+  function loadUpis() {
+    setUpisFailed(false)
     api.getUpis().then(upiList => {
       setUpis(upiList)
       const primary = upiList.find(u => u.is_primary) || upiList[0]
       if (primary) setForm(f => ({ ...f, upi_id: primary.vpa as string }))
-    }).catch(() => {})
+    }).catch(() => setUpisFailed(true))
+  }
+
+  useEffect(() => {
+    api.me().then(({ merchant: m }) => setMerchant(m)).catch(() => {})
+    loadUpis()
 
     const stored = sessionStorage.getItem('toropay_template')
     if (stored) {
@@ -306,7 +313,9 @@ export default function NewLinkPage() {
               <option value="">Select UPI ID</option>
               {upis.map(u => <option key={u.id as string} value={u.vpa as string}>{u.vpa as string}</option>)}
             </select>
-            {upis.length === 0 && <p className="mt-1.5 text-xs text-amber-600">No UPI IDs yet. <a href="/dashboard/upi" className="underline">Add one first</a>.</p>}
+            {upisFailed
+              ? <LoadError what="your UPI IDs" onRetry={loadUpis} className="mt-2" />
+              : upis.length === 0 && <p className="mt-1.5 text-xs text-amber-600">No UPI IDs yet. <a href="/dashboard/upi" className="underline">Add one first</a>.</p>}
             {touched.upi_id && upiError() && <p className="mt-1.5 text-xs text-red-500">{upiError()}</p>}
             {!touched.upi_id && upis.length > 0 && <p className="mt-1.5 text-xs text-gray-400">Money comes directly to this UPI ID.</p>}
           </div>

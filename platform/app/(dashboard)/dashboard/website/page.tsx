@@ -19,16 +19,21 @@ export default function WebsiteIntegrationPage() {
   const [createdKey, setCreatedKey] = useState<{ raw: string; key: ApiKey } | null>(null)
   const [copied, setCopied] = useState('')
   const [loading, setLoading] = useState(true)
+  const [keysFailed, setKeysFailed] = useState(false)
   const [error, setError] = useState('')
   const [mode, setMode] = useState<'test' | 'live'>('test')
 
-  useEffect(() => {
+  function loadKeys() {
+    setLoading(true)
+    setKeysFailed(false)
     fetch('/api/api-keys')
-      .then(r => (r.ok ? r.json() : []))
+      .then(r => { if (!r.ok) throw new Error('Could not load keys'); return r.json() })
       .then(setKeys)
-      .catch(() => {})
+      .catch(() => setKeysFailed(true))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { loadKeys() }, [])
 
   async function createKey() {
     setError('')
@@ -125,6 +130,10 @@ const { checkout_url } = await res.json()
               <span className="font-mono text-xs text-gray-500">{activeKey.key_prefix}…</span>
             ) : loading ? (
               '…'
+            ) : keysFailed ? (
+              <span className="text-xs text-red-600">
+                Couldn&apos;t load your keys. <button type="button" onClick={loadKeys} className="font-semibold underline">Try again</button>
+              </span>
             ) : (
               <span className="text-xs text-gray-400">No {mode} key yet</span>
             )}

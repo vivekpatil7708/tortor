@@ -7,12 +7,14 @@ import { formatDate, formatAmount } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/toast'
 import { useTransactionPages } from '@/lib/use-transaction-pages'
+import { LoadError } from '@/components/ui/load-error'
 
 export default function LinkDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { toast } = useToast()
   const [link, setLink] = useState<Record<string, unknown> | null>(null)
+  const [linkFailed, setLinkFailed] = useState(false)
   // Only this link's payments, from the server (not filtered from the newest few hundred).
   const { rows: txns, total, loading: txnsLoading, error: txnsError, hasMore, loadMore, reload } = useTransactionPages({ link: id })
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
@@ -60,9 +62,12 @@ export default function LinkDetailPage() {
     )
   }
 
-  useEffect(() => {
-    api.getLink(id).then(setLink).catch(() => {})
-  }, [id])
+  function loadLink() {
+    setLinkFailed(false)
+    api.getLink(id).then(setLink).catch(() => setLinkFailed(true))
+  }
+
+  useEffect(() => { loadLink() }, [id])
 
   async function toggleStatus() {
     const newStatus = link?.status === 'active' ? 'inactive' : 'active'
@@ -78,7 +83,11 @@ export default function LinkDetailPage() {
     router.push('/dashboard/links')
   }
 
-  if (!link) return <div className="text-sm text-gray-400">Loading...</div>
+  if (!link) {
+    return linkFailed
+      ? <LoadError what="this payment link" onRetry={loadLink} />
+      : <div className="text-sm text-gray-400">Loading...</div>
+  }
 
   const payUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/pay/${link.slug}`
   const qrUrl = link.amount
