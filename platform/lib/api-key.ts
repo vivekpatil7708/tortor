@@ -94,21 +94,27 @@ export async function authenticateApiKey(authHeader: string | null): Promise<Api
   const rawKey = authHeader.slice('Bearer '.length).trim()
   if (!rawKey) return null
 
-  // New keys use a 21-char prefix; legacy Phase 1 keys use 12.
-  const prefix21 = rawKey.slice(0, 21)
-  const prefix12 = rawKey.slice(0, 12)
-  const key = await prisma.apiKey.findFirst({
-    where: { keyPrefix: { in: [prefix21, prefix12] } },
-    orderBy: { createdAt: 'desc' },
-  })
-  if (!key) return null
-  if (key.revokedAt) return null
-  if (key.expiresAt && key.expiresAt < new Date()) return null
+  // New keys are found by their 21-char prefix. Legacy Phase 1 keys used only 12
+  // characters, which several keys can share, so every candidate is checked
+  // instead of trusting whichever one the database returns first.
+  const current = await prisma.apiKey.findMany({ where: { keyPrefix: rawKey.slice(0, 21) }, take: 5 })
+  const candidates = current.length
+    ? current
+    : await prisma.apiKey.findMany({ where: { keyPrefix: rawKey.slice(0, 12) }, orderBy: { createdAt: 'desc' }, take: 10 })
 
-  // Phase 2+ keys: HMAC-SHA256. Legacy keys: bcrypt.
-  const hmacValid = constantTimeEqual(hashApiKey(rawKey), key.keyHash)
-  const valid = hmacValid || (await bcrypt.compare(rawKey, key.keyHash).catch(() => false))
-  if (!valid) return null
+  const now = new Date()
+  let key: (typeof candidates)[number] | null = null
+  for (const candidate of candidates) {
+    if (candidate.revokedAt || (candidate.expiresAt && candidate.expiresAt < now)) continue
+    // Phase 2+ keys: HMAC-SHA256. Legacy keys: bcrypt.
+    const valid = constantTimeEqual(hashApiKey(rawKey), candidate.keyHash) ||
+      (await bcrypt.compare(rawKey, candidate.keyHash).catch(() => false))
+    if (valid) {
+      key = candidate
+      break
+    }
+  }
+  if (!key) return null
 
   await prisma.apiKey.update({
     where: { id: key.id },

@@ -1,0 +1,37 @@
+# Runs the type check, all tests and a production build on every push and pull
+# request, so a broken change shows up before anyone relies on the deploy.
+# GitHub emails the repository owner when it fails. It never touches the
+# database: the build gets a placeholder DATABASE_URL.
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: platform/package-lock.json
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Production build
+        run: npx next build
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:1/placeholder
+          NEXT_TELEMETRY_DISABLED: 1

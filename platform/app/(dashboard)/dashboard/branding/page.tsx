@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { api } from '@/lib/api'
+import { imageFileProblem } from '@/lib/image-input'
 import { Button } from '@/components/ui/button'
 import { Upload, X } from 'lucide-react'
 
@@ -46,6 +47,11 @@ export default function BrandingPage() {
 
   function handleFileUpload(file: File | undefined, field: 'business_logo_url' | 'bg_image_url') {
     if (!file) return
+    const problem = imageFileProblem(file)
+    if (problem) {
+      alert(problem)
+      return
+    }
     const reader = new FileReader()
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string

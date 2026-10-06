@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { generateSlug } from '../lib/utils'
@@ -5,11 +6,13 @@ import { generateSlug } from '../lib/utils'
 const prisma = new PrismaClient()
 
 async function main() {
-  const passwordHash = await bcrypt.hash('demo123', 12)
+  // A new random password each run (printed below), so no demo login is ever published.
+  const demoPassword = process.env.DEMO_PASSWORD || crypto.randomBytes(9).toString('base64url')
+  const passwordHash = await bcrypt.hash(demoPassword, 12)
 
   const merchant = await prisma.merchant.upsert({
     where: { email: 'demo@toropay.in' },
-    update: {},
+    update: { passwordHash },
     create: {
       email: 'demo@toropay.in',
       phone: '9876543210',
@@ -56,7 +59,7 @@ async function main() {
   })
 
   console.log('Seed complete!')
-  console.log('Login: demo@toropay.in / demo123')
+  console.log(`Login: demo@toropay.in / ${demoPassword}`)
   console.log('Payment link: /pay/demo-booking')
 }
 

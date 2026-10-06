@@ -18,7 +18,7 @@ Open [http://localhost:3000](http://localhost:3000)
 | Field | Value |
 |-------|-------|
 | Email | `demo@toropay.in` |
-| Password | `demo123` |
+| Password | Printed when you run `npm run setup` |
 | Sample checkout | [/pay/demo-booking](http://localhost:3000/pay/demo-booking) |
 
 ## Features

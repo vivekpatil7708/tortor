@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession, merchantToJson, requireSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { publicErrorMessage } from '@/lib/api-response'
+import { imageValueProblem } from '@/lib/image-input'
 
 export async function GET() {
   const session = await getSession()
@@ -13,6 +14,24 @@ export async function PATCH(req: NextRequest) {
   try {
     const session = await requireSession()
     const body = await req.json()
+
+    // Images are checked only when they change, so an older large logo doesn't
+    // stop the merchant saving other branding settings.
+    if (body.business_logo_url !== undefined || body.bg_image_url !== undefined) {
+      const saved = await prisma.merchant.findUnique({
+        where: { id: session.id },
+        select: { businessLogoUrl: true, bgImageUrl: true },
+      })
+      const images = [
+        ['Logo', body.business_logo_url, saved?.businessLogoUrl],
+        ['Background image', body.bg_image_url, saved?.bgImageUrl],
+      ] as const
+      for (const [label, value, current] of images) {
+        if (value === undefined || value === current) continue
+        const problem = imageValueProblem(value)
+        if (problem) return NextResponse.json({ error: `${label}: ${problem}` }, { status: 400 })
+      }
+    }
 
     const data: Record<string, unknown> = {}
     if (body.business_name !== undefined) data.businessName = body.business_name
