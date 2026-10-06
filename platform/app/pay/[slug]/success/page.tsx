@@ -40,6 +40,12 @@ export default async function SuccessPage(
         {found && <p className="mt-2 text-sm font-semibold">{formatAmount(found.amount)}</p>}
         {found && <p className="mt-1 font-mono text-xs text-gray-400">{found.txnId}</p>}
         <p className="mt-4 text-sm text-gray-500">{state.note}</p>
+        {state === STATES.failed && (
+          <a href={`/pay/${encodeURIComponent(params.slug)}`}
+            className="mt-6 block rounded-xl bg-charcoal px-8 py-3 text-sm font-semibold text-white hover:opacity-90">
+            Try again
+          </a>
+        )}
         <Link href="/" className="mt-6 inline-block text-sm font-semibold text-primary-600 hover:underline">Back to home</Link>
       </div>
     </div>

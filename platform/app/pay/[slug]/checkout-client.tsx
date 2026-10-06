@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { claimPaid, customerView, fetchPaymentStatus, nextCheckDelay } from '@/lib/checkout-status'
 import { UPI_APPS } from '@/lib/constants'
 import { buildAppDeepLink, buildUpiIntentUrl, buildUpiPayUrl } from '@/lib/upi'
 import { buttonRadius, formatAmount, generateTxnId } from '@/lib/utils'
@@ -34,22 +35,28 @@ interface CheckoutData {
 
 interface Props {
   data: CheckoutData
+  /** A payment already started on this link (from ?txn=), still waiting for the merchant. */
+  resume?: { txn_id: string; amount: number; status: string } | null
 }
 
-export default function CheckoutClient({ data }: Props) {
+export default function CheckoutClient({ data, resume }: Props) {
   const router = useRouter()
   const link = data.link
   const merchant = data.merchant
 
-  const [amount, setAmount] = useState(link.amount ? Number(link.amount) : 0)
+  const [amount, setAmount] = useState(resume ? resume.amount : link.amount ? Number(link.amount) : 0)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [customerNote, setCustomerNote] = useState('')
   const [fieldValues, setFieldValues] = useState<Record<string, string | string[]>>({})
-  const [step, setStep] = useState<'form' | 'pay'>('form')
-  const [txnId, setTxnId] = useState('')
-  const [paymentStatus, setPaymentStatus] = useState<string>('initiated')
+  const [step, setStep] = useState<'form' | 'pay'>(resume ? 'pay' : 'form')
+  const [txnId, setTxnId] = useState(resume?.txn_id ?? '')
+  const [paymentStatus, setPaymentStatus] = useState<string>(resume?.status ?? 'initiated')
+  // Each round of status checks starts fast and thins out; a new round starts after
+  // "I've paid" or "Check again".
+  const [checkRound, setCheckRound] = useState(0)
+  const [checkingStopped, setCheckingStopped] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [confirming, setConfirming] = useState(false)
@@ -73,24 +80,67 @@ export default function CheckoutClient({ data }: Props) {
     : 'bg-white/50 border-white/60 text-charcoal placeholder:text-gray-400 focus:border-white/80'
   const ctaText = link.button_text || 'Continue to Pay'
 
+  /** Leaves the payment step once the merchant has confirmed or rejected the payment. */
+  const finish = useCallback((status: string, id: string) => {
+    if (customerView(status) === 'confirmed' && link.redirect_url && isValidRedirectUrl(link.redirect_url)) {
+      window.location.replace(link.redirect_url)
+    } else {
+      // The status page reads the outcome from the database ("confirmed" or "not confirmed").
+      router.replace(`/pay/${link.slug}/success?txn=${encodeURIComponent(id)}`)
+    }
+  }, [link.redirect_url, link.slug, router])
+
   useEffect(() => {
     if (!txnId || step !== 'pay') return
-    const interval = setInterval(async () => {
-      const res = await fetch(`/api/transactions?txn_id=${txnId}`)
-      if (!res.ok) return
-      const txn = await res.json()
-      if (txn.status === 'success') {
-        setPaymentStatus('success')
-        clearInterval(interval)
-        if (link.redirect_url && isValidRedirectUrl(link.redirect_url)) {
-          window.location.href = link.redirect_url
-        } else {
-          router.push(`/pay/${link.slug}/success?txn=${txnId}`)
-        }
+    let stopped = false
+    let checking = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const startedAt = Date.now()
+
+    async function check() {
+      if (stopped || checking) return
+      checking = true
+      const status = await fetchPaymentStatus(txnId)
+      checking = false
+      if (stopped) return
+      if (status && customerView(status) !== 'waiting') {
+        stopped = true
+        finish(status, txnId)
+        return
       }
-    }, 3000)
-    return () => clearInterval(interval)
-  }, [txnId, step, link, router])
+      if (status === 'pending') setPaymentStatus('pending')
+      schedule()
+    }
+
+    function schedule() {
+      clearTimeout(timer)
+      // Hidden tabs (the customer is in the UPI app) don't check; coming back checks at once.
+      if (stopped || document.hidden) return
+      const delay = nextCheckDelay(Date.now() - startedAt)
+      if (delay === null) {
+        setCheckingStopped(true)
+        return
+      }
+      timer = setTimeout(check, delay)
+    }
+
+    function onVisibilityChange() {
+      if (stopped || document.hidden) return
+      clearTimeout(timer)
+      check()
+    }
+
+    setCheckingStopped(false)
+    // A round started by "I've paid" or "Check again" asks straight away.
+    if (checkRound > 0) check()
+    else schedule()
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      stopped = true
+      clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [txnId, step, checkRound, finish])
 
   function validateName(name: string): string | null {
     const trimmed = name.trim()
@@ -196,7 +246,20 @@ export default function CheckoutClient({ data }: Props) {
     // Show payment options only once the order is saved, so every payment has a record.
     setTxnId(id)
     if (hasProducts) setAmount(payAmount)
+    setPaymentStatus('initiated')
     setStep('pay')
+    // Keep the payment in the address, so a refresh or the trip to the UPI app reopens it.
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}?txn=${encodeURIComponent(id)}`)
+  }
+
+  /** Back to the form for a fresh payment (only offered before "I've paid"). */
+  function startOver() {
+    window.history.replaceState(window.history.state, '', window.location.pathname)
+    setStep('form')
+    setTxnId('')
+    setPaymentStatus('initiated')
+    setCheckingStopped(false)
+    setError('')
   }
 
   function openUpi(appName?: string) {
@@ -221,15 +284,24 @@ export default function CheckoutClient({ data }: Props) {
   }
 
   async function markAsPaid() {
+    if (confirming) return
     setConfirming(true)
-    await fetch(`/api/transactions/${txnId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'pending' }),
-    })
-    setPaymentStatus('pending')
-    setConfirming(false)
     setError('')
+    const result = await claimPaid(txnId)
+    setConfirming(false)
+    if (result.ok) {
+      if (customerView(result.status) !== 'waiting') {
+        finish(result.status, txnId)
+        return
+      }
+      setPaymentStatus('pending')
+      setCheckRound(r => r + 1)
+      return
+    }
+    setError(result.error)
+    // The merchant may already have confirmed or rejected it: follow the stored status.
+    const status = await fetchPaymentStatus(txnId)
+    if (status && customerView(status) !== 'waiting') finish(status, txnId)
   }
 
   const qrSrc = `/api/qr?vpa=${encodeURIComponent(link.upi_id)}&amount=${amount}&txn_id=${encodeURIComponent(txnId)}&note=${encodeURIComponent(link.title)}`
@@ -277,14 +349,29 @@ export default function CheckoutClient({ data }: Props) {
             </>
           )}
 
+          {error && <p className="mb-3 text-center text-sm text-red-500">{error}</p>}
+
           <button onClick={markAsPaid} disabled={confirming || paymentStatus === 'pending'}
             className={`mb-2 w-full border border-white/20 bg-white/20 py-2.5 text-sm font-semibold backdrop-blur-md transition-all hover:bg-white/40 ${btnRadius} disabled:opacity-50`}>
             {confirming ? 'Updating...' : "I've completed payment"}
           </button>
 
+          {checkingStopped && (
+            <p className="mt-3 text-center text-xs opacity-70">
+              This page has stopped checking for updates.{' '}
+              <button onClick={() => setCheckRound(r => r + 1)} className="font-semibold underline">Check again</button>
+            </p>
+          )}
+
           <p className="mt-4 text-center text-xs opacity-50">
             Pay to <span className="font-mono">{link.upi_id}</span>
           </p>
+
+          {paymentStatus === 'initiated' && (
+            <button onClick={startOver} className="mt-3 w-full text-center text-xs underline opacity-50 hover:opacity-80">
+              Start over
+            </button>
+          )}
         </div>
       </div>
     )
