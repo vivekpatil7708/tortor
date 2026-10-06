@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, ctx: { params: { session: string } 
 
   const payment = await prisma.payment.findUnique({
     where: { checkoutSessionId: ctx.params.session },
-    include: { order: true, merchant: true },
+    include: { order: true },
   })
   if (!payment) return notFound('Checkout not found')
 

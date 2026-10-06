@@ -384,7 +384,7 @@ export async function processProviderWebhook(params: {
           },
         ],
       },
-      include: { order: true, merchant: true },
+      include: { order: true },
     })
 
     let paymentId: string | null = payment?.id ?? null

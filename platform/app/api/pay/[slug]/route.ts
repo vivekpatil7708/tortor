@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { serializeCheckoutLink, serializeCheckoutMerchant } from '@/lib/serializers'
+import { CHECKOUT_MERCHANT_FIELDS, serializeCheckoutLink, serializeCheckoutMerchant } from '@/lib/serializers'
 
 export async function GET(_req: Request, { params }: { params: { slug: string } }) {
   const link = await prisma.paymentLink.findFirst({
@@ -12,7 +12,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
     return NextResponse.json({ error: 'Link expired' }, { status: 410 })
   }
 
-  const merchant = await prisma.merchant.findUnique({ where: { id: link.merchantId } })
+  const merchant = await prisma.merchant.findUnique({ where: { id: link.merchantId }, select: CHECKOUT_MERCHANT_FIELDS })
   if (!merchant || merchant.status === 'suspended') {
     return NextResponse.json({ error: 'Unavailable' }, { status: 403 })
   }

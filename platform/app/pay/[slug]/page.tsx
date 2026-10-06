@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { serializeCheckoutLink, serializeCheckoutMerchant } from '@/lib/serializers'
+import { CHECKOUT_MERCHANT_FIELDS, serializeCheckoutLink, serializeCheckoutMerchant } from '@/lib/serializers'
 import { notFound } from 'next/navigation'
 import CheckoutClient from './checkout-client'
 
@@ -13,7 +13,7 @@ async function getLinkData(slug: string) {
   if (link.expiryAt && link.expiryAt < new Date()) return null
   if (link.maxUses && link.useCount >= link.maxUses) return null
 
-  const merchant = await prisma.merchant.findUnique({ where: { id: link.merchantId } })
+  const merchant = await prisma.merchant.findUnique({ where: { id: link.merchantId }, select: CHECKOUT_MERCHANT_FIELDS })
   if (!merchant || merchant.status === 'suspended') return null
 
   return {

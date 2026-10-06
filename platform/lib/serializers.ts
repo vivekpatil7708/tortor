@@ -15,6 +15,7 @@ import type {
   Package,
   ShipmentEvent,
   OrderStatusHistory,
+  Prisma,
 } from '@prisma/client'
 
 export function serializeLink(link: PaymentLink) {
@@ -61,7 +62,24 @@ export function serializeCheckoutLink(link: PaymentLink) {
 }
 
 /** Branding shown on the public checkout. Never the merchant's login email or phone. */
-export function serializeCheckoutMerchant(m: Merchant) {
+/**
+ * The only merchant fields a public payment page loads: branding, plus status
+ * to hide suspended merchants. Never the whole record, so passwords and tokens
+ * stay out of public pages and a new account column can't break checkout.
+ */
+export const CHECKOUT_MERCHANT_FIELDS = {
+  status: true,
+  businessLogoUrl: true,
+  bgImageUrl: true,
+  brandColorPrimary: true,
+  brandColorSecondary: true,
+  buttonStyle: true,
+  pageTheme: true,
+} satisfies Prisma.MerchantSelect
+
+export function serializeCheckoutMerchant(
+  m: Pick<Merchant, 'businessLogoUrl' | 'bgImageUrl' | 'brandColorPrimary' | 'brandColorSecondary' | 'buttonStyle' | 'pageTheme'>
+) {
   return {
     business_logo_url: m.businessLogoUrl,
     bg_image_url: m.bgImageUrl,
