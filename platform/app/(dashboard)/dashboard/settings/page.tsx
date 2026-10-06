@@ -137,7 +137,12 @@ export default function SettingsPage() {
         )}
         {apiKeys.map(k => (
           <div key={k.id as string} className="mb-2 flex justify-between rounded-lg bg-white/50 px-3 py-2 text-sm">
-            <span>{k.name as string}</span>
+            <span className="flex items-center gap-2">
+              {k.name as string}
+              {Boolean(k.revoked_at) && (
+                <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase text-red-600">Revoked</span>
+              )}
+            </span>
             <span className="font-mono text-xs text-gray-400">{k.key_prefix as string}...</span>
           </div>
         ))}

@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { api } from '@/lib/api'
+import { useState } from 'react'
+import { api, fetchAllTransactions } from '@/lib/api'
+import { useTransactionPages } from '@/lib/use-transaction-pages'
 import { formatAmount, formatDate, statusColor } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/dialog'
@@ -34,10 +35,14 @@ function actionMessage({ txn, status, undo }: StatusAction): string {
 }
 
 export default function TransactionsPage() {
-  const [txns, setTxns] = useState<Record<string, unknown>[]>([])
   const [filter, setFilter] = useState('all')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
+  // Filters run on the server over every transaction; dates are Indian calendar days.
+  const filters = { status: filter === 'all' ? undefined : filter, from: fromDate || undefined, to: toDate || undefined }
+  const { rows: txns, total, loading, error: loadError, hasMore, loadMore, reload, replaceRow, removeRow } = useTransactionPages(filters)
+  const [exporting, setExporting] = useState('')
+  const [exportError, setExportError] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [sendTxn, setSendTxn] = useState<Record<string, any> | null>(null)
   const [pendingAction, setPendingAction] = useState<StatusAction | null>(null)
@@ -91,12 +96,6 @@ export default function TransactionsPage() {
     )
   }
 
-  function load() {
-    api.getTransactions().then(setTxns).catch(() => {})
-  }
-
-  useEffect(() => { load() }, [])
-
   function askStatus(txn: Record<string, unknown>, status: StatusAction['status'], undo = false) {
     setActionError('')
     setPendingAction({ txn, status, undo })
@@ -107,9 +106,11 @@ export default function TransactionsPage() {
     setUpdating(true)
     setActionError('')
     try {
-      await api.updateTransaction(pendingAction.txn.txn_id as string, { status: pendingAction.status, merchant_action: true })
+      const { transaction } = await api.updateTransaction(pendingAction.txn.txn_id as string, { status: pendingAction.status, merchant_action: true })
       setPendingAction(null)
-      load()
+      // Update the row where it is, so the list keeps its place. It leaves a status filter it no longer matches.
+      if (filter !== 'all' && transaction.status !== filter) removeRow(transaction.id)
+      else replaceRow(transaction)
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Could not update the payment')
     } finally {
@@ -117,18 +118,23 @@ export default function TransactionsPage() {
     }
   }
 
-  const filtered = txns.filter(t => {
-    if (filter !== 'all' && t.status !== filter) return false
-    if (fromDate && new Date(t.created_at as string) < new Date(fromDate)) return false
-    if (toDate) {
-      const end = new Date(toDate)
-      end.setHours(23, 59, 59, 999)
-      if (new Date(t.created_at as string) > end) return false
+  async function handleExport() {
+    if (exporting) return
+    setExportError('')
+    setExporting('Preparing…')
+    try {
+      // Every transaction matching the filters, not only the ones loaded on screen.
+      const all = await fetchAllTransactions(filters, (loaded, count) =>
+        setExporting(`Preparing ${loaded}${count ? ` of ${count}` : ''}…`))
+      exportCsv(all)
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Could not export')
+    } finally {
+      setExporting('')
     }
-    return true
-  })
+  }
 
-  function handleExport() {
+  function exportCsv(rows: Record<string, unknown>[]) {
     exportToCSV('toropay-transactions', [
       { key: 'txn_id', label: 'Transaction ID' },
       { key: 'amount', label: 'Amount' },
@@ -145,7 +151,7 @@ export default function TransactionsPage() {
       { key: 'error_message', label: 'Error' },
       { key: 'created_at', label: 'Created Date' },
       { key: 'confirmed_at', label: 'Confirmed Date' },
-    ], filtered)
+    ], rows)
   }
 
   return (
@@ -155,11 +161,12 @@ export default function TransactionsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
           <p className="text-sm text-gray-500">All payment transactions made through your links.</p>
         </div>
-        <button onClick={handleExport} disabled={filtered.length === 0}
+        <button onClick={handleExport} disabled={!total || !!exporting}
           className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-charcoal transition-colors hover:bg-gray-50 disabled:opacity-40">
-          Export to Excel
+          {exporting || 'Export to Excel'}
         </button>
       </div>
+      {exportError && <p className="mb-4 text-sm text-red-500">Export failed: {exportError}</p>}
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex flex-wrap gap-2">
@@ -183,11 +190,19 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-white/80 bg-white/60 p-12 text-center text-sm text-gray-400 backdrop-blur-sm">No transactions found.</div>
+      {total !== null && txns.length > 0 && (
+        <p className="mb-2 text-xs text-gray-400">Showing {txns.length} of {total}</p>
+      )}
+
+      {txns.length === 0 ? (
+        <div className="rounded-2xl border border-white/80 bg-white/60 p-12 text-center text-sm text-gray-400 backdrop-blur-sm">
+          {loadError ? (
+            <>Couldn&apos;t load transactions. <button onClick={reload} className="font-semibold text-charcoal underline">Retry</button></>
+          ) : loading ? 'Loading…' : 'No transactions found.'}
+        </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((t) => {
+          {txns.map((t) => {
             const tid = t.id as string
             const txnId = t.txn_id as string
             const isExpanded = expanded.has(tid)
@@ -243,7 +258,17 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {sendTxn && <SendConfirmationModal txn={sendTxn} onClose={() => setSendTxn(null)} onSent={() => { setSendTxn(null); load() }} />}
+      {txns.length > 0 && hasMore && (
+        <div className="mt-4 text-center">
+          {loadError && <p className="mb-2 text-xs text-red-500">Couldn&apos;t load more transactions.</p>}
+          <button onClick={loadMore} disabled={loading}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-charcoal hover:bg-gray-50 disabled:opacity-40">
+            {loading ? 'Loading…' : loadError ? 'Retry' : 'Load more'}
+          </button>
+        </div>
+      )}
+
+      {sendTxn && <SendConfirmationModal txn={sendTxn} onClose={() => setSendTxn(null)} onSent={() => { setSendTxn(null); reload() }} />}
       {pendingAction && (
         <ConfirmDialog
           open

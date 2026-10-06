@@ -17,8 +17,16 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [notice, setNotice] = useState('')
   const router = useRouter()
   const googleBtnRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Sent here because this login ended elsewhere (see /api/auth/session-ended).
+    if (new URLSearchParams(window.location.search).get('ended') === '1') {
+      setNotice("You've been signed out. Please log in again.")
+    }
+  }, [])
 
   useEffect(() => {
     const script = document.createElement('script')
@@ -83,6 +91,8 @@ export default function LoginPage() {
         <div className="text-2xl font-extrabold tracking-tight">Toro<span className="text-primary-500">Pay</span></div>
         <p className="mt-1 text-sm text-gray-500">Log in to your account</p>
       </div>
+
+      {notice && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">{notice}</p>}
 
       <div ref={googleBtnRef} className="mb-4 flex justify-center" />
 

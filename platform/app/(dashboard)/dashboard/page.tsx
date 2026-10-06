@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 export default function DashboardPage() {
   const [stats, setStats] = useState({ totalLinks: 0, totalTxns: 0, totalRevenue: 0, successRate: 0 })
   const [recentTxns, setRecentTxns] = useState<Record<string, unknown>[]>([])
+  const [recentState, setRecentState] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [merchant, setMerchant] = useState<Record<string, unknown> | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [pendingUpi, setPendingUpi] = useState<Record<string, unknown>[]>([])
@@ -75,15 +76,28 @@ export default function DashboardPage() {
     )
   }
 
+  function loadRecent() {
+    setRecentState('loading')
+    api.getTransactions({ limit: 5 })
+      .then(page => { setRecentTxns(page.transactions); setRecentState('ready') })
+      .catch(() => setRecentState('failed'))
+  }
+
   useEffect(() => {
     api.me().then(({ merchant: m }) => setMerchant(m))
     api.getLinks().then(links => setStats(s => ({ ...s, totalLinks: links.length })))
-    api.getTransactions().then(txns => {
-      const revenue = txns.filter(t => t.status === 'success').reduce((a, t) => a + Number(t.amount), 0)
-      const success = txns.length > 0 ? (txns.filter(t => t.status === 'success').length / txns.length) * 100 : 0
-      setStats(s => ({ ...s, totalTxns: txns.length, totalRevenue: revenue, successRate: Math.round(success) }))
-      setRecentTxns(txns.slice(0, 5))
+    // Totals are counted in the database, so they include every transaction.
+    api.getAnalyticsSummary().then(summary => {
+      const total = Number(summary.total_orders) || 0
+      const successful = Number(summary.successful_payments) || 0
+      setStats(s => ({
+        ...s,
+        totalTxns: total,
+        totalRevenue: Number(summary.gross_payment_volume) || 0,
+        successRate: total > 0 ? Math.round((successful / total) * 100) : 0,
+      }))
     }).catch(() => {})
+    loadRecent()
     api.getPendingUpiPayments().then(({ payments }) => setPendingUpi(payments)).catch(() => {})
   }, [])
 
@@ -153,7 +167,13 @@ export default function DashboardPage() {
           <h2 className="font-bold">Recent Transactions</h2>
           <Link href="/dashboard/transactions" className="text-sm font-semibold text-primary-600 hover:underline">View all</Link>
         </div>
-        {recentTxns.length === 0 ? (
+        {recentState === 'failed' ? (
+          <p className="py-8 text-center text-sm text-gray-400">
+            Couldn&apos;t load recent transactions. <button onClick={loadRecent} className="font-semibold text-charcoal underline">Retry</button>
+          </p>
+        ) : recentState === 'loading' ? (
+          <p className="py-8 text-center text-sm text-gray-400">Loading…</p>
+        ) : recentTxns.length === 0 ? (
           <p className="py-8 text-center text-sm text-gray-400">No transactions yet. Create a payment link to get started.</p>
         ) : (
           <div className="space-y-3">

@@ -9,8 +9,65 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     throw new Error('Unable to connect to server. Make sure the app is running.')
   }
   const data = await res.json().catch(() => ({}))
+  if (res.status === 401 && (await loginHasEnded())) {
+    // Signed out on another device, password reset or account suspended: back to the login page.
+    window.location.assign('/api/auth/session-ended')
+    return new Promise<T>(() => {})
+  }
   if (!res.ok) throw new Error(data.error || 'Request failed')
   return data as T
+}
+
+const SIGNED_IN_PAGES = /^\/(dashboard|onboarding)(\/|$)/
+
+/**
+ * Whether a refused request on a signed-in page means the login itself has ended.
+ * Many routes answer any error with "Unauthorized", so this asks /api/auth/me
+ * before signing anyone out.
+ */
+async function loginHasEnded(): Promise<boolean> {
+  if (typeof window === 'undefined' || !SIGNED_IN_PAGES.test(window.location.pathname)) return false
+  try {
+    const res = await fetch('/api/auth/me')
+    if (!res.ok) return false
+    const body = await res.json()
+    return body?.merchant === null
+  } catch {
+    return false
+  }
+}
+
+export type TransactionFilters = { status?: string; from?: string; to?: string; link?: string }
+export type TransactionQuery = TransactionFilters & { limit?: number; cursor?: string }
+/** One page of transactions, newest first. `total` is counted on the first page only. */
+export type TransactionPage = { transactions: Record<string, unknown>[]; next_cursor: string | null; total: number | null }
+
+function transactionParams(query: TransactionQuery): string {
+  const params = new URLSearchParams({ limit: String(query.limit ?? 50) })
+  for (const key of ['cursor', 'status', 'from', 'to', 'link'] as const) {
+    const value = query[key]
+    if (value) params.set(key, value)
+  }
+  return params.toString()
+}
+
+/** Every transaction matching the filters, fetched 500 at a time (for exports). */
+export async function fetchAllTransactions(
+  filters: TransactionFilters,
+  onProgress?: (loaded: number, total: number | null) => void
+): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = []
+  let total: number | null = null
+  let cursor: string | undefined
+  do {
+    const page: TransactionPage = await api.getTransactions({ ...filters, limit: 500, cursor })
+    if (total === null) total = page.total
+    rows.push(...page.transactions)
+    onProgress?.(rows.length, total)
+    if (page.next_cursor === cursor) break
+    cursor = page.next_cursor ?? undefined
+  } while (cursor)
+  return rows
 }
 
 export const api = {
@@ -61,7 +118,8 @@ export const api = {
   setPrimaryUpi: (id: string) =>
     request<{ success: boolean }>(`/api/upi/${id}/primary`, { method: 'POST' }),
 
-  getTransactions: () => request<Record<string, unknown>[]>('/api/transactions/list'),
+  getTransactions: (query: TransactionQuery = {}) =>
+    request<TransactionPage>(`/api/transactions/list?${transactionParams(query)}`),
 
   updateTransaction: (txnId: string, body: Record<string, unknown>) =>
     request<{ transaction: Record<string, unknown> }>(`/api/transactions/${txnId}`, { method: 'PATCH', body: JSON.stringify(body) }),

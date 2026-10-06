@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { requireSession } from '@/lib/auth'
+import { handleError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
@@ -13,31 +15,39 @@ export async function GET(req: NextRequest) {
     if (from) dateFilter.gte = new Date(from)
     if (to) dateFilter.lte = new Date(to)
 
-    const where: Record<string, unknown> = { merchantId: session.id }
+    const where: Prisma.TransactionWhereInput = { merchantId: session.id }
     if (from || to) where.createdAt = dateFilter
 
-    const txns = await prisma.transaction.findMany({ where: where as any, select: { status: true, amount: true, createdAt: true } })
+    // Counted and added up in the database, so every transaction is included
+    // without loading them all.
+    const groups = await prisma.transaction.groupBy({
+      by: ['status'],
+      where,
+      _count: { _all: true },
+      _sum: { amount: true },
+    })
+    const count = (...statuses: string[]) =>
+      groups.filter(g => statuses.includes(g.status)).reduce((a, g) => a + g._count._all, 0)
+    const sum = (status: string) =>
+      groups.filter(g => g.status === status).reduce((a, g) => a + (g._sum.amount ?? 0), 0)
 
-    const successTxns = txns.filter(t => t.status === 'success')
-    const failedTxns = txns.filter(t => t.status === 'failed')
-    const pendingTxns = txns.filter(t => t.status === 'pending' || t.status === 'initiated')
-    const totalRevenue = successTxns.reduce((a, t) => a + t.amount, 0)
-    const refundedTxns = txns.filter(t => t.status === 'refunded')
-    const refundAmount = refundedTxns.reduce((a, t) => a + t.amount, 0)
-    const avgOrder = successTxns.length > 0 ? totalRevenue / successTxns.length : 0
-    const conversion = txns.length > 0 ? (successTxns.length / txns.length) * 100 : 0
+    const totalOrders = count(...groups.map(g => g.status))
+    const successful = count('success')
+    const totalRevenue = sum('success')
+    const avgOrder = successful > 0 ? totalRevenue / successful : 0
+    const conversion = totalOrders > 0 ? (successful / totalOrders) * 100 : 0
 
     return NextResponse.json({
-      total_orders: txns.length,
-      successful_payments: successTxns.length,
-      failed_payments: failedTxns.length,
-      pending_orders: pendingTxns.length,
+      total_orders: totalOrders,
+      successful_payments: successful,
+      failed_payments: count('failed'),
+      pending_orders: count('pending', 'initiated'),
       gross_payment_volume: totalRevenue,
-      refund_amount: refundAmount,
+      refund_amount: sum('refunded'),
       conversion_rate: Math.round(conversion * 10) / 10,
       average_order_value: Math.round(avgOrder * 100) / 100,
     })
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  } catch (err) {
+    return handleError(err, 'Could not load the summary')
   }
 }

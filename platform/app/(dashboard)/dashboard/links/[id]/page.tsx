@@ -6,13 +6,15 @@ import { useParams, useRouter } from 'next/navigation'
 import { formatDate, formatAmount } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/toast'
+import { useTransactionPages } from '@/lib/use-transaction-pages'
 
 export default function LinkDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { toast } = useToast()
   const [link, setLink] = useState<Record<string, unknown> | null>(null)
-  const [txns, setTxns] = useState<Record<string, unknown>[]>([])
+  // Only this link's payments, from the server (not filtered from the newest few hundred).
+  const { rows: txns, total, loading: txnsLoading, error: txnsError, hasMore, loadMore, reload } = useTransactionPages({ link: id })
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   function toggleExpand(id: string) {
@@ -60,7 +62,6 @@ export default function LinkDetailPage() {
 
   useEffect(() => {
     api.getLink(id).then(setLink).catch(() => {})
-    api.getTransactions().then(all => setTxns(all.filter(t => t.payment_link_id === id))).catch(() => {})
   }, [id])
 
   async function toggleStatus() {
@@ -127,9 +128,13 @@ export default function LinkDetailPage() {
       </div>
 
       <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
-        <h2 className="mb-3 font-bold">Transactions ({txns.length})</h2>
+        <h2 className="mb-3 font-bold">Transactions ({total ?? txns.length})</h2>
         {txns.length === 0 ? (
-          <p className="py-4 text-center text-sm text-gray-400">No transactions yet.</p>
+          <p className="py-4 text-center text-sm text-gray-400">
+            {txnsError ? (
+              <>Couldn&apos;t load transactions. <button onClick={reload} className="font-semibold text-charcoal underline">Retry</button></>
+            ) : txnsLoading ? 'Loading…' : 'No transactions yet.'}
+          </p>
         ) : (
           <div className="space-y-2">
             {txns.map((t) => {
@@ -158,6 +163,15 @@ export default function LinkDetailPage() {
                 {isExpanded && hasDetails && renderOrderDetails(t)}
               </div>
             )})}
+          </div>
+        )}
+        {txns.length > 0 && hasMore && (
+          <div className="mt-3 text-center">
+            {txnsError && <p className="mb-2 text-xs text-red-500">Couldn&apos;t load more transactions.</p>}
+            <button onClick={loadMore} disabled={txnsLoading}
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-charcoal hover:bg-gray-50 disabled:opacity-40">
+              {txnsLoading ? 'Loading…' : txnsError ? 'Retry' : 'Load more'}
+            </button>
           </div>
         )}
       </div>

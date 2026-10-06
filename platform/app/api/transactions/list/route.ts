@@ -1,18 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { requireSession } from '@/lib/auth'
+import { handleError } from '@/lib/api-response'
+import { istDayEnd, istDayStart } from '@/lib/ist-day'
 import { prisma } from '@/lib/prisma'
 import { serializeTransaction } from '@/lib/serializers'
 
-export async function GET() {
+const STATUSES = new Set(['initiated', 'pending', 'success', 'failed'])
+const MAX_LIMIT = 500
+const ID = /^[A-Za-z0-9-]{1,64}$/
+
+type Query = { limit: number; cursor?: string; filters: Prisma.TransactionWhereInput }
+
+function readQuery(params: URLSearchParams): Query | { error: string } {
+  const limit = Number(params.get('limit'))
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) return { error: `limit must be 1 to ${MAX_LIMIT}` }
+
+  const cursor = params.get('cursor') || undefined
+  if (cursor && !ID.test(cursor)) return { error: 'Invalid cursor' }
+
+  const filters: Prisma.TransactionWhereInput = {}
+  const status = params.get('status')
+  if (status) {
+    if (!STATUSES.has(status)) return { error: 'Unknown status' }
+    filters.status = status
+  }
+  const link = params.get('link')
+  if (link) {
+    if (!ID.test(link)) return { error: 'Invalid link' }
+    filters.paymentLinkId = link
+  }
+  // "From 6 Oct to 6 Oct" means the whole of 6 October in India.
+  const from = params.get('from')
+  const to = params.get('to')
+  if (from || to) {
+    const gte = from ? istDayStart(from) : undefined
+    const lt = to ? istDayEnd(to) : undefined
+    if (gte === null || lt === null) return { error: 'Dates must look like 2026-10-06' }
+    filters.createdAt = { ...(gte ? { gte } : {}), ...(lt ? { lt } : {}) }
+  }
+  return { limit, cursor, filters }
+}
+
+export async function GET(req: NextRequest) {
   try {
     const session = await requireSession()
-    const txns = await prisma.transaction.findMany({
-      where: { merchantId: session.id },
-      orderBy: { createdAt: 'desc' },
-      take: 500,
+    const params = req.nextUrl.searchParams
+
+    // Dashboard tabs opened before paging existed ask without a limit and expect
+    // the old plain list. Remove once those tabs are gone.
+    if (!params.has('limit')) {
+      const txns = await prisma.transaction.findMany({
+        where: { merchantId: session.id },
+        orderBy: { createdAt: 'desc' },
+        take: 500,
+      })
+      return NextResponse.json(txns.map(serializeTransaction))
+    }
+
+    const query = readQuery(params)
+    if ('error' in query) return NextResponse.json({ error: query.error }, { status: 400 })
+
+    const where: Prisma.TransactionWhereInput = { merchantId: session.id, ...query.filters }
+    const rows = await prisma.transaction.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: query.limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
     })
-    return NextResponse.json(txns.map(serializeTransaction))
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const hasMore = rows.length > query.limit
+    const page = hasMore ? rows.slice(0, query.limit) : rows
+
+    return NextResponse.json({
+      transactions: page.map(serializeTransaction),
+      next_cursor: hasMore ? page[page.length - 1].id : null,
+      // Counted on the first page; later pages keep the number the browser already has.
+      total: query.cursor ? null : await prisma.transaction.count({ where }),
+    })
+  } catch (err) {
+    return handleError(err, 'Could not load transactions')
   }
 }
