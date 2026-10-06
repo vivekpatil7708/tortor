@@ -120,7 +120,12 @@ export interface WebhookProcessResult {
   changed: boolean
   flagged: boolean
   error?: string
+  /** Processing failed in a way a later delivery can fix (e.g. the database was briefly down). */
+  retryable?: boolean
 }
+
+/** An event left mid-processing this long ago (the attempt crashed) may be picked up again. */
+const STUCK_PROCESSING_MS = 10 * 60_000
 
 interface ApplyStatusInput {
   paymentId: string
@@ -339,33 +344,31 @@ export async function processProviderWebhook(params: {
       processingStatus: 'received',
     },
   }).catch(async (err: unknown) => {
-    // Unique constraint on (provider, provider_event_id) → duplicate delivery.
+    // Unique constraint on (provider, provider_event_id) → the provider sent this event before.
     const isDuplicate =
       typeof err === 'object' && err !== null && (err as { code?: string }).code === 'P2002'
-    if (isDuplicate) {
-      const existing = await prisma.webhookEvent.findFirst({ where: { provider, providerEventId: eventId } })
-      if (existing) {
-        await prisma.webhookEvent.update({
-          where: { id: existing.id },
-          data: { processingStatus: 'duplicate', processedAt: new Date() },
-        })
-        return { ...existing, processingStatus: 'duplicate' as const }
-      }
-      return null
-    }
+    if (isDuplicate) return prisma.webhookEvent.findFirst({ where: { provider, providerEventId: eventId } })
     throw err
   })
 
   if (!event) throw new Error('Failed to persist webhook event')
 
-  if (event.processingStatus === 'duplicate') {
+  // Process an event only if nobody else is: a new one, one whose earlier attempt
+  // failed and was left for the provider's retry, or one stuck after a crash.
+  // Anything else is a duplicate delivery, and the original record stays as it is.
+  const claimed = await prisma.webhookEvent.updateMany({
+    where: {
+      id: event.id,
+      OR: [
+        { processingStatus: 'received' },
+        { processingStatus: 'processing', receivedAt: { lt: new Date(Date.now() - STUCK_PROCESSING_MS) } },
+      ],
+    },
+    data: { processingStatus: 'processing', processingError: null },
+  })
+  if (claimed.count === 0) {
     return { eventId: event.id, signatureValid: true, duplicate: true, paymentId: event.paymentId, changed: false, flagged: false }
   }
-
-  await prisma.webhookEvent.update({
-    where: { id: event.id },
-    data: { processingStatus: 'processing' },
-  })
 
   const status = mapEventToPaymentStatus(fingerprints.eventType)
 
@@ -504,11 +507,12 @@ const apply = await applyPaymentStatus({
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Processing failed'
+    // Left as 'received' so the provider's retry (the route answers 500) processes it again.
     await prisma.webhookEvent.update({
       where: { id: event.id },
-      data: { processingStatus: 'failed_processing', processingError: message, processedAt: new Date() },
-    })
-    return { eventId: event.id, signatureValid: true, duplicate: false, paymentId: null, changed: false, flagged: false, error: message }
+      data: { processingStatus: 'received', processingError: message, processedAt: new Date() },
+    }).catch(() => {})
+    return { eventId: event.id, signatureValid: true, duplicate: false, paymentId: null, changed: false, flagged: false, error: message, retryable: true }
   }
 }
 

@@ -7,8 +7,9 @@ import { processProviderWebhook } from '@/lib/payments/webhook-processor'
  * Incoming payment webhook from a provider. The raw body is required for
  * signature verification, so we read `req.text()` before parsing JSON.
  *
- * Responds 2xx to the provider as fast as possible; processing happens
- * inline (idempotent on provider event id).
+ * Processing happens inline and is idempotent on the provider event id. If it
+ * fails in a way a retry can fix, the answer is 500 so the provider sends the
+ * event again; everything else (done, duplicate, flagged, unknown payment) is 2xx.
  */
 export async function POST(req: NextRequest, ctx: { params: Promise<{ provider: string }> }) {
   const provider = (await ctx.params).provider
@@ -37,6 +38,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ provider: 
 
   if (!result.signatureValid) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+  }
+
+  // Saving failed (for example, the database was briefly unavailable): ask the
+  // provider to send it again instead of telling it everything is fine.
+  if (result.retryable) {
+    return NextResponse.json({ error: 'Processing failed, please retry', event_id: result.eventId }, { status: 500 })
   }
 
   if (result.flagged) {
