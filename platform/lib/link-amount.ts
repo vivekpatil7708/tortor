@@ -109,5 +109,6 @@ export function checkLinkAmount(link: LinkPricing, submittedAmount: unknown, sub
 
   if (!link.amount || link.amount <= 0) return { ok: false, error: 'This payment link has no amount set' }
   if (toPaise(amount) !== toPaise(link.amount)) return { ok: false, error: 'Amount does not match this payment link' }
-  return { ok: true, amount: link.amount, products: null }
+  // Whole paise, even for links saved before amounts were rounded.
+  return { ok: true, amount: toPaise(link.amount) / 100, products: null }
 }

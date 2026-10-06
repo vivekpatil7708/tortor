@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import QRCode from 'qrcode'
 import { buildUpiPayUrl, isValidVpa } from '@/lib/upi'
+import { MAX_LINK_AMOUNT as MAX_AMOUNT } from '@/lib/money'
 
 // Public on purpose: payment pages show these QR codes to customers. So every
 // input is checked, and the same QR image is served from Vercel's cache
 // instead of being drawn again.
-const MAX_AMOUNT = 10_00_000
 const TXN_ID = /^[A-Za-z0-9_-]{1,64}$/
 
 export async function GET(req: NextRequest) {

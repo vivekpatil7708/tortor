@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
 import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
+import { linkAmountInput } from '@/lib/money'
 import { prisma } from '@/lib/prisma'
 import { serializeLink } from '@/lib/serializers'
 import { generateSlug } from '@/lib/utils'
@@ -50,6 +51,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid webhook URL' }, { status: 400 })
     }
 
+    // Amounts are kept to whole paise: UPI apps can't charge fractions of a paisa.
+    const amount = linkAmountInput(body.amount)
+    const minAmount = linkAmountInput(body.min_amount, 'Minimum amount')
+    const maxAmount = linkAmountInput(body.max_amount, 'Maximum amount')
+    for (const check of [amount, minAmount, maxAmount]) {
+      if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 })
+    }
+    if (minAmount.ok && maxAmount.ok && minAmount.value && maxAmount.value && minAmount.value > maxAmount.value) {
+      return NextResponse.json({ error: "The minimum amount can't be more than the maximum" }, { status: 400 })
+    }
+
     const slug = body.slug || generateSlug()
     const link = await prisma.paymentLink.create({
       data: {
@@ -57,10 +69,10 @@ export async function POST(req: NextRequest) {
         upiId: savedUpi.vpa,
         title: body.title,
         description: body.description || null,
-        amount: body.amount != null ? Number(body.amount) : null,
+        amount: amount.ok ? amount.value : null,
         amountFlexible: Boolean(body.amount_flexible),
-        minAmount: body.min_amount != null ? Number(body.min_amount) : null,
-        maxAmount: body.max_amount != null ? Number(body.max_amount) : null,
+        minAmount: minAmount.ok ? minAmount.value : null,
+        maxAmount: maxAmount.ok ? maxAmount.value : null,
         customFields: JSON.stringify(body.custom_fields || []),
         expiryAt: body.expiry_at ? new Date(body.expiry_at) : null,
         maxUses: body.max_uses != null ? Number(body.max_uses) : null,

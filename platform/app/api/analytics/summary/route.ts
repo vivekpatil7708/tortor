@@ -4,6 +4,7 @@ import { requireSession } from '@/lib/auth'
 import { handleError } from '@/lib/api-response'
 import { createdAtRange } from '@/lib/ist-day'
 import { CHECKOUT_HOLD_MINUTES } from '@/lib/link-uses'
+import { roundToPaise } from '@/lib/money'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
@@ -52,8 +53,9 @@ export async function GET(req: NextRequest) {
       successful_payments: successful,
       failed_payments: count('failed'),
       pending_orders: count('pending', 'initiated'),
-      gross_payment_volume: totalRevenue,
-      refund_amount: sum('refunded'),
+      // Totals of many amounts are rounded back to whole paise.
+      gross_payment_volume: roundToPaise(totalRevenue),
+      refund_amount: roundToPaise(sum('refunded')),
       conversion_rate: Math.round(conversion * 10) / 10,
       average_order_value: Math.round(avgOrder * 100) / 100,
       success_rate: settled > 0 ? Math.round((successful / settled) * 1000) / 10 : null,

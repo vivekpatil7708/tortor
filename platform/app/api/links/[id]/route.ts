@@ -6,6 +6,7 @@ import { isValidRedirectUrl } from '@/lib/validate-url'
 import { isValidWebhookUrl } from '@/lib/safe-fetch'
 import { handleError, publicErrorMessage } from '@/lib/api-response'
 import { linkUses } from '@/lib/link-uses'
+import { linkAmountInput } from '@/lib/money'
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -42,13 +43,17 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Invalid webhook URL' }, { status: 400 })
     }
 
+    // A changed amount is kept to whole paise, like a new link's.
+    const amount = body.amount != null ? linkAmountInput(body.amount) : null
+    if (amount && !amount.ok) return NextResponse.json({ error: amount.error }, { status: 400 })
+
     const link = await prisma.paymentLink.update({
       where: { id: params.id },
       data: {
         title: body.title ?? existing.title,
         description: body.description ?? existing.description,
         status: body.status ?? existing.status,
-        amount: body.amount != null ? Number(body.amount) : existing.amount,
+        amount: amount?.ok ? amount.value : existing.amount,
         buttonText: body.button_text ?? existing.buttonText,
         webhookUrl: body.webhook_url ?? existing.webhookUrl,
         redirectUrl: body.redirect_url ?? existing.redirectUrl,
