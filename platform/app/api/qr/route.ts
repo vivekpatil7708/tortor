@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import QRCode from 'qrcode'
-import { buildUpiPayUrl, isValidVpa } from '@/lib/upi'
+import { buildUpiPayUrl, cleanPayeeName, isValidVpa } from '@/lib/upi'
 import { MAX_LINK_AMOUNT as MAX_AMOUNT } from '@/lib/money'
 
 // Public on purpose: payment pages show these QR codes to customers. So every
@@ -27,7 +27,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'A valid txn_id is required' }, { status: 400 })
   }
 
-  const upiUrl = buildUpiPayUrl(vpa, amount, txnId, note)
+  // The business name, so UPI apps can show who is being paid (cleaned like the note).
+  const payeeName = cleanPayeeName(searchParams.get('pn'))
+
+  const upiUrl = buildUpiPayUrl(vpa, amount, txnId, note, payeeName)
   const png = await QRCode.toBuffer(upiUrl, { width: 400, margin: 2, type: 'png' })
 
   return new NextResponse(new Uint8Array(png), {

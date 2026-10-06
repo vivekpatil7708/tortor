@@ -17,7 +17,7 @@ const link = {
   redirectUrl: null, slug: 'u3MfoJlCOF', status: 'active', expiryAt: null,
 }
 const branding = {
-  status: 'active', businessLogoUrl: null, bgImageUrl: null, brandColorPrimary: '#111111',
+  status: 'active', businessName: 'Asha Crafts', businessLogoUrl: null, bgImageUrl: null, brandColorPrimary: '#111111',
   brandColorSecondary: '#ffffff', buttonStyle: 'rounded', pageTheme: 'light',
 }
 
@@ -28,9 +28,10 @@ beforeEach(() => {
 })
 
 describe('public payment pages', () => {
-  it('load only branding fields and status, nothing sensitive', () => {
+  it('load only the business name, branding fields and status, nothing sensitive', () => {
+    // The business name is public (customers need to know who they're paying); never the login email or phone.
     expect(Object.keys(CHECKOUT_MERCHANT_FIELDS).sort()).toEqual(
-      ['bgImageUrl', 'brandColorPrimary', 'brandColorSecondary', 'businessLogoUrl', 'buttonStyle', 'pageTheme', 'status']
+      ['bgImageUrl', 'brandColorPrimary', 'brandColorSecondary', 'businessLogoUrl', 'businessName', 'buttonStyle', 'pageTheme', 'status']
     )
   })
 
@@ -41,7 +42,7 @@ describe('public payment pages', () => {
     expect(db.merchant.findUnique).toHaveBeenCalledWith({ where: { id: 'm1' }, select: CHECKOUT_MERCHANT_FIELDS })
     const body = await res.json()
     expect(Object.keys(body.merchant).sort()).toEqual(
-      ['bg_image_url', 'brand_color_primary', 'brand_color_secondary', 'business_logo_url', 'button_style', 'page_theme']
+      ['bg_image_url', 'brand_color_primary', 'brand_color_secondary', 'business_logo_url', 'business_name', 'button_style', 'page_theme']
     )
   })
 

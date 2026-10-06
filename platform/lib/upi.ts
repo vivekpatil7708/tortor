@@ -1,27 +1,35 @@
 import { UPI_APPS } from './constants'
 
-export function buildUpiPayUrl(vpa: string, amount: number, txnId: string, note: string) {
-  const params = new URLSearchParams({
-    pa: vpa,
-    am: amount.toFixed(2),
-    cu: 'INR',
-    mode: '01',
-    tn: note.slice(0, 80),
-    tr: txnId,
-  })
-  return `upi://pay?${params.toString()}`
+/**
+ * A payee name as UPI apps show it: letters, numbers, spaces and simple punctuation, at most 50
+ * characters. Letters include the vowel signs of Indian scripts (\p{M}), so "आशा" stays whole.
+ */
+export function cleanPayeeName(name: string | null | undefined): string {
+  return (name || '').replace(/[^\p{L}\p{M}\p{N} .,&'()-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 50)
 }
 
-export function buildUpiIntentUrl(vpa: string, amount: number, txnId: string, note: string) {
-  const params = new URLSearchParams({
-    pa: vpa,
-    am: amount.toFixed(2),
-    cu: 'INR',
-    mode: '01',
-    tn: note.slice(0, 80),
-    tr: txnId,
-  })
-  return `intent://pay?${params.toString()}#Intent;scheme=upi;end`
+/**
+ * The fields of a UPI payment request. `pn` (payee name) is what most UPI apps
+ * show on the confirmation screen; NPCI's link format expects it.
+ */
+function upiParams(vpa: string, amount: number, txnId: string, note: string, payeeName?: string, withMode = true) {
+  const params = new URLSearchParams({ pa: vpa })
+  const pn = cleanPayeeName(payeeName)
+  if (pn) params.set('pn', pn)
+  params.set('am', amount.toFixed(2))
+  params.set('cu', 'INR')
+  if (withMode) params.set('mode', '01')
+  params.set('tn', note.slice(0, 80))
+  params.set('tr', txnId)
+  return params
+}
+
+export function buildUpiPayUrl(vpa: string, amount: number, txnId: string, note: string, payeeName?: string) {
+  return `upi://pay?${upiParams(vpa, amount, txnId, note, payeeName).toString()}`
+}
+
+export function buildUpiIntentUrl(vpa: string, amount: number, txnId: string, note: string, payeeName?: string) {
+  return `intent://pay?${upiParams(vpa, amount, txnId, note, payeeName).toString()}#Intent;scheme=upi;end`
 }
 
 export function buildAppDeepLink(
@@ -29,15 +37,10 @@ export function buildAppDeepLink(
   vpa: string,
   amount: number,
   txnId: string,
-  note: string
+  note: string,
+  payeeName?: string
 ) {
-  const params = new URLSearchParams({
-    pa: vpa,
-    am: amount.toFixed(2),
-    cu: 'INR',
-    tn: note.slice(0, 80),
-    tr: txnId,
-  })
+  const params = upiParams(vpa, amount, txnId, note, payeeName, false)
 
   if (app.scheme === 'tez') {
     return `tez://upi/pay?${params.toString()}`
@@ -48,7 +51,7 @@ export function buildAppDeepLink(
   if (app.scheme === 'paytmmp') {
     return `paytmmp://pay?${params.toString()}&featuretype=money_transfer`
   }
-  return buildUpiPayUrl(vpa, amount, txnId, note)
+  return buildUpiPayUrl(vpa, amount, txnId, note, payeeName)
 }
 
 export function isValidVpa(vpa: string) {

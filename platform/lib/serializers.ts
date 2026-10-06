@@ -69,6 +69,8 @@ export function serializeCheckoutLink(link: PaymentLink) {
  */
 export const CHECKOUT_MERCHANT_FIELDS = {
   status: true,
+  // Shown so customers know who they're paying (also on closed links and website checkout).
+  businessName: true,
   businessLogoUrl: true,
   bgImageUrl: true,
   brandColorPrimary: true,
@@ -89,9 +91,10 @@ export const CLOSED_LINK_MERCHANT_FIELDS = {
 } satisfies Prisma.MerchantSelect
 
 export function serializeCheckoutMerchant(
-  m: Pick<Merchant, 'businessLogoUrl' | 'bgImageUrl' | 'brandColorPrimary' | 'brandColorSecondary' | 'buttonStyle' | 'pageTheme'>
+  m: Pick<Merchant, 'businessName' | 'businessLogoUrl' | 'bgImageUrl' | 'brandColorPrimary' | 'brandColorSecondary' | 'buttonStyle' | 'pageTheme'>
 ) {
   return {
+    business_name: m.businessName,
     business_logo_url: m.businessLogoUrl,
     bg_image_url: m.bgImageUrl,
     brand_color_primary: m.brandColorPrimary,
