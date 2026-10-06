@@ -3,7 +3,7 @@ import { requireMerchant, getOwnerUser } from '@/lib/tenant'
 import { createProviderShipmentSchema } from '@/lib/validators'
 import { createProviderShipment } from '@/lib/couriers/shipments'
 import { serializeFulfillment, serializePackage } from '@/lib/serializers'
-import { badRequest, handleError } from '@/lib/api-response'
+import { badRequest, handleError, intentionalErrorMessage } from '@/lib/api-response'
 import { zodMessage } from '@/lib/zod-error'
 
 // POST /api/orders/[id]/shipments
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   } catch (err) {
     const msg = zodMessage(err)
     if (msg) return badRequest(msg)
-    const custom = err instanceof Error ? err.message : null
+    const custom = intentionalErrorMessage(err)
     if (custom === 'Unauthorized') return handleError(err)
     if (custom) return badRequest(custom)
     return handleError(err)

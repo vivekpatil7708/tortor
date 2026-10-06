@@ -4,7 +4,7 @@ import { courierPackageActionSchema } from '@/lib/validators'
 import { generateLabelForPackage, schedulePickupForPackage, cancelProviderPackage, initiateReturnForPackage, syncPackageFromProvider } from '@/lib/couriers/shipments'
 import { serializePackage } from '@/lib/serializers'
 import { prisma } from '@/lib/prisma'
-import { badRequest, notFound, handleError } from '@/lib/api-response'
+import { badRequest, handleError, intentionalErrorMessage, notFound } from '@/lib/api-response'
 import { zodMessage } from '@/lib/zod-error'
 
 // PATCH /api/courier/packages/[id] — courier package actions
@@ -58,7 +58,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   } catch (err) {
     const msg = zodMessage(err)
     if (msg) return badRequest(msg)
-    const custom = err instanceof Error ? err.message : null
+    const custom = intentionalErrorMessage(err)
     if (custom === 'Unauthorized') return handleError(err)
     if (custom && !custom.startsWith('Mock')) return badRequest(custom)
     return handleError(err)

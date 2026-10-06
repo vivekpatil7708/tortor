@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getProvider, isSupportedPaymentMethod } from '@/lib/payments'
 import { updateCheckoutCustomer, TOROPAY_PUBLIC_URL } from '@/lib/checkout'
-import { apiError, badRequest, notFound } from '@/lib/api-response'
+import { apiError, badRequest, notFound, publicErrorMessage } from '@/lib/api-response'
 
 /**
  * Begin the payment on the checkout page:
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ session: s
       payment_reference: payment.paymentReference,
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to initialise payment'
+    const message = publicErrorMessage(err, 'Failed to initialise payment')
     return apiError(500, message)
   }
 }

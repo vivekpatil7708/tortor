@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { checkLinkAmount } from '@/lib/link-amount'
+import { publicErrorMessage } from '@/lib/api-response'
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, txn_id: transaction.txnId, status: transaction.status })
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: publicErrorMessage(err, 'Failed') }, { status: 500 })
   }
 }
 

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { serializeLink } from '@/lib/serializers'
 import { isValidRedirectUrl } from '@/lib/validate-url'
 import { isValidWebhookUrl } from '@/lib/safe-fetch'
+import { publicErrorMessage } from '@/lib/api-response'
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -53,7 +54,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     return NextResponse.json({ success: true, link: serializeLink(link) })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Update failed'
+    const msg = publicErrorMessage(err, 'Update failed')
     return NextResponse.json({ error: msg }, { status: msg === 'Unauthorized' ? 401 : 500 })
   }
 }

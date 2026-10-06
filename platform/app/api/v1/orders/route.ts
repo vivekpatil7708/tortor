@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { createCheckout } from '@/lib/checkout'
 import { authorizeApiRequest, logApiRequest } from '@/lib/api-request'
-import { apiError, badRequest } from '@/lib/api-response'
+import { apiError, badRequest, publicErrorMessage } from '@/lib/api-response'
 import { zodMessage } from '@/lib/zod-error'
 
 const itemSchema = z.object({
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(responseBody, { status: statusCode })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to create order'
+    const message = publicErrorMessage(err, 'Failed to create order')
     const statusCode = message.includes('idempotency') ? 409 : 400
     await logApiRequest({
       merchantId: auth.merchantId,

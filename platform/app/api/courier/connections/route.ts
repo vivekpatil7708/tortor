@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireMerchant } from '@/lib/tenant'
 import { courierConnectionSchema } from '@/lib/validators'
 import { saveCourierConnection, listCourierConnections, getSupportedCouriers, setCourierConnectionActive, serializeSupportedCourier } from '@/lib/couriers/connections'
-import { badRequest, handleError } from '@/lib/api-response'
+import { badRequest, handleError, intentionalErrorMessage } from '@/lib/api-response'
 import { zodMessage } from '@/lib/zod-error'
 
 // GET /api/courier/connections — merchant's courier connections + supported providers
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const msg = zodMessage(err)
     if (msg) return badRequest(msg)
-    const custom = err instanceof Error ? err.message : null
+    const custom = intentionalErrorMessage(err)
     if (custom && !custom.startsWith('Mock')) return badRequest(custom)
     return handleError(err)
   }

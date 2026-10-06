@@ -3,6 +3,7 @@ import { requireSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { serializeUpi } from '@/lib/serializers'
 import { isValidVpa, verifyVpaWithSetu } from '@/lib/upi'
+import { publicErrorMessage } from '@/lib/api-response'
 
 export async function GET() {
   try {
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, upi: serializeUpi(upi) })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to add UPI'
+    const msg = publicErrorMessage(err, 'Failed to add UPI')
     if (msg.includes('Unique constraint')) {
       return NextResponse.json({ error: 'This UPI ID is already added' }, { status: 409 })
     }

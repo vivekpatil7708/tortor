@@ -5,6 +5,7 @@ import { decideLinkPaymentChange, type TransitionDecision } from '@/lib/payment-
 import { prisma } from '@/lib/prisma'
 import { serializeTransaction } from '@/lib/serializers'
 import { notifyPaymentStatus } from '@/lib/webhooks'
+import { publicErrorMessage } from '@/lib/api-response'
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ txnId: string }> }) {
   const params = await props.params;
@@ -133,7 +134,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ txnId: 
       redirect_url: statusChanges && newStatus === 'success' ? link?.redirectUrl : null,
     })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Update failed'
+    const msg = publicErrorMessage(err, 'Update failed')
     return NextResponse.json({ error: msg }, { status: msg === 'Unauthorized' ? 401 : 500 })
   }
 }

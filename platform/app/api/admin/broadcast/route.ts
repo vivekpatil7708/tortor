@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { renderTemplate } from '@/lib/messaging'
 import { renderBroadcastEmail } from '@/lib/email'
+import { publicErrorMessage } from '@/lib/api-response'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const fromAddress = process.env.RESEND_FROM || 'ToroPay <onboarding@resend.dev>'
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
       })),
     })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Error'
+    const msg = publicErrorMessage(err, 'Error')
     return NextResponse.json({ error: msg }, { status: msg === 'Forbidden' ? 403 : msg === 'Unauthorized' ? 401 : 500 })
   }
 }
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, total: merchants.length, sent, failed })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Error'
+    const msg = publicErrorMessage(err, 'Error')
     return NextResponse.json({ error: msg }, { status: msg === 'Forbidden' ? 403 : msg === 'Unauthorized' ? 401 : 500 })
   }
 }

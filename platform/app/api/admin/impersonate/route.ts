@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/admin-auth'
 import { clearImpersonation, createImpersonationSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { clientIp } from '@/lib/rate-limit'
+import { publicErrorMessage } from '@/lib/api-response'
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json({ success: true, merchant_email: merchant.email })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed'
+    const msg = publicErrorMessage(err, 'Failed')
     return NextResponse.json({ error: msg }, { status: msg === 'Forbidden' ? 403 : msg === 'Unauthorized' ? 401 : 500 })
   }
 }

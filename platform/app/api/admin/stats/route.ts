@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
+import { publicErrorMessage } from '@/lib/api-response'
 
 export async function GET() {
   try {
@@ -39,7 +40,7 @@ export async function GET() {
       recent_signups: recentSignups.map(s => ({ email: s.email, business_name: s.businessName, created_at: s.createdAt.toISOString() })),
     })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Error'
+    const msg = publicErrorMessage(err, 'Error')
     return NextResponse.json({ error: msg }, { status: msg === 'Forbidden' ? 403 : msg === 'Unauthorized' ? 401 : 500 })
   }
 }

@@ -6,6 +6,7 @@ import { serializeLink } from '@/lib/serializers'
 import { generateSlug } from '@/lib/utils'
 import { isValidRedirectUrl } from '@/lib/validate-url'
 import { isValidWebhookUrl } from '@/lib/safe-fetch'
+import { publicErrorMessage } from '@/lib/api-response'
 
 export async function GET() {
   try {
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, link: serializeLink(link) })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Failed to create link'
+    const msg = publicErrorMessage(err, 'Failed to create link')
     return NextResponse.json({ error: msg }, { status: msg === 'Unauthorized' ? 401 : 500 })
   }
 }

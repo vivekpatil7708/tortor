@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireMerchant } from '@/lib/tenant'
 import { prisma } from '@/lib/prisma'
 import { revokeApiKey, rotateApiKey } from '@/lib/api-key'
-import { apiError, notFound } from '@/lib/api-response'
+import { apiError, notFound, publicErrorMessage } from '@/lib/api-response'
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -44,7 +44,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
     return apiError(400, 'Invalid action')
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to update API key'
+    const msg = publicErrorMessage(err, 'Failed to update API key')
     return apiError(msg === 'Unauthorized' ? 401 : 500, msg)
   }
 }

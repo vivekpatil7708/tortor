@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { PASSWORD_RULE_TEXT, passwordProblem } from '@/lib/password-policy'
 
 function ResetPasswordForm() {
   const router = useRouter()
@@ -23,8 +24,9 @@ function ResetPasswordForm() {
       setError('Missing reset token')
       return
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters')
+    const problem = passwordProblem(password)
+    if (problem) {
+      setError(problem)
       return
     }
     if (password !== confirm) {
@@ -83,6 +85,7 @@ function ResetPasswordForm() {
               <label className="mb-1 block text-xs font-semibold text-gray-500">New password</label>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8}
                 className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
+              <p className="mt-1 text-xs text-gray-400">{PASSWORD_RULE_TEXT}</p>
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-gray-500">Confirm password</label>

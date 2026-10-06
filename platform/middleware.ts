@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
+import { isCrossSiteRequest } from '@/lib/same-site'
 
 const COOKIE_NAME = 'toropay_session'
 const IMPERSONATE_COOKIE = 'toropay_impersonate'
@@ -39,6 +40,11 @@ export async function middleware(req: NextRequest) {
         { error: 'Admin merchant view is read-only. Exit merchant view to make changes.' },
         { status: 403 }
       )
+    }
+    // Sign-in actions only accept requests from ToroPay's own pages, so another
+    // site can't log a visitor into someone else's account.
+    if (pathname.startsWith('/api/auth/') && !SAFE_METHODS.has(req.method) && isCrossSiteRequest(req.headers, req.headers.get('host'))) {
+      return NextResponse.json({ error: 'Request blocked' }, { status: 403 })
     }
     if (!pathname.startsWith('/api/v1')) return NextResponse.next()
   }

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
 import { Resend } from 'resend'
 import { prisma } from '@/lib/prisma'
 import { renderResetEmail } from '@/lib/email'
 import { isRateLimited, recordAttempt } from '@/lib/rate-limit'
+import { newResetToken } from '@/lib/reset-token'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const fromAddress = process.env.RESEND_FROM || 'ToroPay <onboarding@resend.dev>'
@@ -38,10 +38,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: SENT_MESSAGE })
     }
 
-    const token = crypto.randomBytes(32).toString('hex')
+    // The email gets the token; the database keeps only its fingerprint.
+    const { token, stored } = newResetToken()
     await prisma.merchant.update({
       where: { id: merchant.id },
-      data: { resetToken: token, resetTokenExpiry: new Date(Date.now() + RESET_TTL_MS) },
+      data: { resetToken: stored, resetTokenExpiry: new Date(Date.now() + RESET_TTL_MS) },
     })
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'

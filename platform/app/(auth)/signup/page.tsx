@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { api } from '@/lib/api'
+import { PASSWORD_RULE_TEXT, passwordProblem } from '@/lib/password-policy'
 
 declare global {
   interface Window {
@@ -67,6 +68,11 @@ export default function SignupPage() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    const problem = passwordProblem(password)
+    if (problem) {
+      setError(problem)
+      return
+    }
     setLoading(true)
     try {
       await api.signup({ email, phone, password })
@@ -107,8 +113,9 @@ export default function SignupPage() {
         </div>
         <div>
           <label className="mb-1 block text-xs font-semibold text-gray-500">Password</label>
-          <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)}
+          <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
+          <p className="mt-1 text-xs text-gray-400">{PASSWORD_RULE_TEXT}</p>
         </div>
         {error && <p className="text-sm text-red-500">{error}</p>}
         <button type="submit" disabled={loading}

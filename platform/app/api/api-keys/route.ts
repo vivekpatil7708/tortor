@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireMerchant } from '@/lib/tenant'
 import { prisma } from '@/lib/prisma'
 import { createApiKey } from '@/lib/api-key'
-import { apiError } from '@/lib/api-response'
+import { apiError, publicErrorMessage } from '@/lib/api-response'
 import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
 
 /** List API keys for the merchant (secret hashes never leak). */
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ key: rawKey, prefix: key.keyPrefix, mode, scope }, { status: 201 })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Failed to create API key'
+    const msg = publicErrorMessage(err, 'Failed to create API key')
     return apiError(msg === 'Unauthorized' ? 401 : 500, msg)
   }
 }

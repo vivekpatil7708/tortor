@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
+import { publicErrorMessage } from '@/lib/api-response'
 
 export async function GET() {
   try {
@@ -30,7 +31,7 @@ export async function GET() {
       })),
     })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Error'
+    const msg = publicErrorMessage(err, 'Error')
     return NextResponse.json({ error: msg }, { status: msg === 'Forbidden' ? 403 : msg === 'Unauthorized' ? 401 : 500 })
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, merchantToJson, requireSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { publicErrorMessage } from '@/lib/api-response'
 
 export async function GET() {
   const session = await getSession()
@@ -31,7 +32,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ merchant: merchantToJson(merchant) })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Update failed'
+    const msg = publicErrorMessage(err, 'Update failed')
     return NextResponse.json({ error: msg }, { status: msg === 'Unauthorized' ? 401 : 500 })
   }
 }
