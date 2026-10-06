@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { serializeLink } from '@/lib/serializers'
 import { isValidRedirectUrl } from '@/lib/validate-url'
 import { isValidWebhookUrl } from '@/lib/safe-fetch'
-import { publicErrorMessage } from '@/lib/api-response'
+import { handleError, publicErrorMessage } from '@/lib/api-response'
+import { linkUses } from '@/lib/link-uses'
 
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -14,9 +15,11 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
       where: { id: params.id, merchantId: session.id },
     })
     if (!link) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json(serializeLink(link))
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // What counts against a use limit: paid payments, and ones still in progress.
+    const { paid, inProgress } = await linkUses(prisma, link.id)
+    return NextResponse.json({ ...serializeLink(link), paid_count: paid, in_progress_count: inProgress })
+  } catch (err) {
+    return handleError(err, 'Could not load the link')
   }
 }
 

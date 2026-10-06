@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 
 const db = vi.hoisted(() => ({
   paymentLink: { findFirst: vi.fn() },
-  transaction: { findFirst: vi.fn(), findUnique: vi.fn() },
+  transaction: { findFirst: vi.fn(), findUnique: vi.fn(), count: vi.fn() },
   merchant: { findUnique: vi.fn() },
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
@@ -18,6 +18,7 @@ vi.mock('next/link', () => ({
 }))
 
 import CheckoutPage from '@/app/pay/[slug]/page'
+import LinkClosed from '@/app/pay/[slug]/link-closed'
 import StatusPage from '@/app/pay/[slug]/success/page'
 
 const link = (overrides: Record<string, unknown> = {}) => ({
@@ -28,10 +29,14 @@ const link = (overrides: Record<string, unknown> = {}) => ({
 const merchant = (status = 'active') => ({
   status, businessLogoUrl: null, bgImageUrl: null, brandColorPrimary: '#000000', brandColorSecondary: '#111111',
   buttonStyle: 'rounded', pageTheme: 'light',
+  businessName: 'Asha Crafts', supportEmail: 'help@ashacrafts.in', supportPhone: '+91 98765 43210',
 })
 const started = (status: string) => ({ txnId: 'TXN1', amount: 499, status })
+/** Paid payments, and every payment that holds a use (paid, waiting, or started in the last 30 minutes). */
+const uses = (paid: number, taken: number) =>
+  db.transaction.count.mockImplementation(async ({ where }: { where: { status?: unknown } }) => (where.status === 'success' ? paid : taken))
 
-type CheckoutElement = ReactElement<{ resume: unknown }>
+type CheckoutElement = ReactElement<{ resume: unknown; reason: unknown; business: unknown }>
 const open = (query: { txn?: string } = {}) =>
   CheckoutPage({ params: Promise.resolve({ slug: 'abc123' }), searchParams: Promise.resolve(query) }) as Promise<CheckoutElement>
 
@@ -40,6 +45,7 @@ beforeEach(() => {
   db.paymentLink.findFirst.mockResolvedValue(link())
   db.merchant.findUnique.mockResolvedValue(merchant())
   db.transaction.findFirst.mockResolvedValue(null)
+  uses(0, 0)
 })
 
 describe('reopening a payment after a refresh or the UPI app (B3)', () => {
@@ -65,15 +71,18 @@ describe('reopening a payment after a refresh or the UPI app (B3)', () => {
     expect((await open({ txn: 'TXN1' })).props.resume).toEqual({ txn_id: 'TXN1', amount: 499, status: 'pending' })
   })
 
-  it('reopens its own payment on a used-up single-use link, but stays closed to new visitors', async () => {
+  it('reopens its own payment on a full single-use link, but stays closed to new visitors', async () => {
     db.paymentLink.findFirst.mockResolvedValue(link({ maxUses: 1, useCount: 1 }))
+    uses(0, 1) // this customer's own checkout holds the only use
     db.transaction.findFirst.mockResolvedValue(started('initiated'))
     expect((await open({ txn: 'TXN1' })).props.resume).toMatchObject({ txn_id: 'TXN1' })
 
-    await expect(open()).rejects.toThrow('NEXT_NOT_FOUND')
+    const newVisitor = await open()
+    expect(newVisitor.type).toBe(LinkClosed)
+    expect(newVisitor.props.reason).toBe('busy')
 
     db.transaction.findFirst.mockResolvedValue(null) // a payment from another link
-    await expect(open({ txn: 'OTHER' })).rejects.toThrow('NEXT_NOT_FOUND')
+    expect((await open({ txn: 'OTHER' })).props.reason).toBe('busy')
   })
 
   it('ignores a malformed payment ID', async () => {
@@ -101,6 +110,57 @@ describe('a payment that is already settled (B2, B3)', () => {
 
     db.paymentLink.findFirst.mockResolvedValue(link({ redirectUrl: 'https://shop.example/thanks' }))
     await expect(open({ txn: 'TXN1' })).rejects.toThrow('NEXT_REDIRECT https://shop.example/thanks')
+  })
+})
+
+describe('a link that cannot take payments (B10)', () => {
+  it('says an expired link has expired, with the business and its support contacts', async () => {
+    db.paymentLink.findFirst.mockResolvedValue(link({ expiryAt: new Date('2026-01-01T00:00:00Z') }))
+
+    const page = await open()
+
+    expect(page.props.reason).toBe('expired')
+    const html = renderToStaticMarkup(page)
+    expect(html).toContain('This payment link has expired')
+    expect(html).toContain('Asha Crafts')
+    expect(html).toContain('mailto:help@ashacrafts.in')
+    expect(html).toContain('tel:+919876543210')
+  })
+
+  it("says a used-up or switched-off link isn't accepting payments", async () => {
+    db.paymentLink.findFirst.mockResolvedValue(link({ maxUses: 2 }))
+    uses(2, 2)
+    expect((await open()).props.reason).toBe('used-up')
+
+    db.paymentLink.findFirst.mockResolvedValue(link({ status: 'inactive' }))
+    const page = await open()
+    expect(page.props.reason).toBe('inactive')
+    expect(renderToStaticMarkup(page)).toContain('isn&#x27;t accepting payments')
+  })
+
+  it('opens normally while uses are left', async () => {
+    db.paymentLink.findFirst.mockResolvedValue(link({ maxUses: 2 }))
+    uses(1, 1)
+    expect((await open()).props.resume).toBeNull()
+  })
+
+  it('loads only public contact details, never the login email or phone', async () => {
+    db.paymentLink.findFirst.mockResolvedValue(link({ status: 'inactive' }))
+    await open()
+
+    const select = db.merchant.findUnique.mock.calls[0][0].select
+    expect(select).toMatchObject({ businessName: true, supportEmail: true, supportPhone: true })
+    expect(select).not.toHaveProperty('email')
+    expect(select).not.toHaveProperty('phone')
+  })
+
+  it('still shows "not found" for a deleted link or a suspended account', async () => {
+    db.paymentLink.findFirst.mockResolvedValue(null)
+    await expect(open()).rejects.toThrow('NEXT_NOT_FOUND')
+
+    db.paymentLink.findFirst.mockResolvedValue(link({ status: 'inactive' }))
+    db.merchant.findUnique.mockResolvedValue(merchant('suspended'))
+    await expect(open()).rejects.toThrow('NEXT_NOT_FOUND')
   })
 })
 

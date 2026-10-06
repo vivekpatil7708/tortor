@@ -77,6 +77,17 @@ export const CHECKOUT_MERCHANT_FIELDS = {
   pageTheme: true,
 } satisfies Prisma.MerchantSelect
 
+/**
+ * For a link that can't take payments (expired, used up, switched off): who the
+ * customer can contact. Public support details only, never the login email or phone.
+ */
+export const CLOSED_LINK_MERCHANT_FIELDS = {
+  ...CHECKOUT_MERCHANT_FIELDS,
+  businessName: true,
+  supportEmail: true,
+  supportPhone: true,
+} satisfies Prisma.MerchantSelect
+
 export function serializeCheckoutMerchant(
   m: Pick<Merchant, 'businessLogoUrl' | 'bgImageUrl' | 'brandColorPrimary' | 'brandColorSecondary' | 'buttonStyle' | 'pageTheme'>
 ) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { checkLinkAmount } from '@/lib/link-amount'
+import { usesTakenWhere } from '@/lib/link-uses'
 import { publicErrorMessage } from '@/lib/api-response'
 
 export async function POST(req: NextRequest) {
@@ -22,9 +23,6 @@ export async function POST(req: NextRequest) {
     if (link.expiryAt && link.expiryAt < new Date()) {
       return NextResponse.json({ error: 'Payment link expired' }, { status: 410 })
     }
-    if (link.maxUses && link.useCount >= link.maxUses) {
-      return NextResponse.json({ error: 'Payment link usage limit reached' }, { status: 410 })
-    }
 
     // The link decides the price; the amount the browser sent must match it.
     const { _selected_products: selectedProducts, ...fieldValues } =
@@ -38,29 +36,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Transaction already exists' }, { status: 409 })
     }
 
-    const transaction = await prisma.transaction.create({
-      data: {
-        merchantId: link.merchantId,
-        paymentLinkId: link.id,
-        txnId: String(body.txn_id),
-        amount: checked.amount,
-        customerName: body.customer_name || null,
-        customerPhone: body.customer_phone || null,
-        customerEmail: body.customer_email || null,
-        customerNote: body.customer_note || null,
-        customFieldValues: JSON.stringify(
-          checked.products ? { ...fieldValues, _selected_products: checked.products } : fieldValues
-        ),
-        status: 'initiated',
-        ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || null,
-        userAgent: req.headers.get('user-agent') || null,
-      },
-    })
+    const data = {
+      merchantId: link.merchantId,
+      paymentLinkId: link.id,
+      txnId: String(body.txn_id),
+      amount: checked.amount,
+      customerName: body.customer_name || null,
+      customerPhone: body.customer_phone || null,
+      customerEmail: body.customer_email || null,
+      customerNote: body.customer_note || null,
+      customFieldValues: JSON.stringify(
+        checked.products ? { ...fieldValues, _selected_products: checked.products } : fieldValues
+      ),
+      status: 'initiated',
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || null,
+      userAgent: req.headers.get('user-agent') || null,
+    }
 
-    await prisma.paymentLink.update({
-      where: { id: link.id },
-      data: { useCount: { increment: 1 } },
+    const transaction = await prisma.$transaction(async (tx) => {
+      if (link.maxUses) {
+        // One checkout at a time on a limited link, so two customers can't both take its last use.
+        await tx.$queryRaw`SELECT id FROM payment_links WHERE id = ${link.id} FOR UPDATE`
+        const taken = await tx.transaction.count({ where: usesTakenWhere(link.id) })
+        if (taken >= link.maxUses) return null
+      }
+      const created = await tx.transaction.create({ data })
+      // Counts checkouts started (shown on the links list); limits use usesTakenWhere.
+      await tx.paymentLink.update({ where: { id: link.id }, data: { useCount: { increment: 1 } } })
+      return created
     })
+    if (!transaction) {
+      return NextResponse.json({ error: 'This payment link has no uses left right now. Please try again later.' }, { status: 410 })
+    }
 
     return NextResponse.json({ success: true, txn_id: transaction.txnId, status: transaction.status })
   } catch (err: unknown) {

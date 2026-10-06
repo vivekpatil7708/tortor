@@ -118,7 +118,14 @@ export default function LinkDetailPage() {
           <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-semibold">{link.amount ? formatAmount(Number(link.amount)) : 'Flexible'}</span></div>
           <div className="flex justify-between"><span className="text-gray-500">Button Text</span><span className="font-semibold">{(link.button_text as string) || 'Continue to Pay'}</span></div>
           <div className="flex justify-between"><span className="text-gray-500">UPI ID</span><span className="font-semibold">{link.upi_id as string}</span></div>
-          <div className="flex justify-between"><span className="text-gray-500">Uses</span><span className="font-semibold">{link.use_count as number}{link.max_uses ? ` / ${link.max_uses}` : ''}</span></div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Paid</span>
+            <span className="font-semibold">
+              {Number(link.paid_count ?? 0)}{link.max_uses ? ` / ${link.max_uses}` : ''}
+              {Number(link.in_progress_count ?? 0) > 0 && <span className="font-normal text-gray-400"> · {Number(link.in_progress_count)} in progress</span>}
+            </span>
+          </div>
+          <div className="flex justify-between"><span className="text-gray-500">Checkouts started</span><span className="font-semibold">{link.use_count as number}</span></div>
           <div className="flex justify-between"><span className="text-gray-500">Created</span><span className="font-semibold">{formatDate(link.created_at as string)}</span></div>
         </div>
         <div className="mt-4 flex gap-2">

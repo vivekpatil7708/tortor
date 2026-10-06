@@ -51,7 +51,7 @@ export default function LinksPage() {
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(l.status as string)}`}>{l.status as string}</span>
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
-                  {l.amount ? formatAmount(Number(l.amount)) : 'Flexible amount'} · {l.use_count as number} uses · Created {formatDate(l.created_at as string)}
+                  {l.amount ? formatAmount(Number(l.amount)) : 'Flexible amount'} · {l.use_count as number} checkouts started · Created {formatDate(l.created_at as string)}
                 </p>
               </div>
               <div className="flex items-center gap-2">
