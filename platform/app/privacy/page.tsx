@@ -11,7 +11,7 @@ export default function PrivacyPage() {
       <div className="mx-auto max-w-3xl px-6 pb-24">
         <h1 className="mb-8 text-3xl font-bold tracking-tight">Privacy Policy</h1>
         <div className="space-y-6 text-sm leading-relaxed text-gray-600">
-          <p><strong>Last updated:</strong> June 2026</p>
+          <p><strong>Last updated:</strong> October 2026</p>
 
           <h2 className="text-lg font-bold text-charcoal">1. Information We Collect</h2>
           <p>We collect information you provide when creating an account, including:</p>
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
           <p>We do not sell, trade, or transfer your personal data to third parties. We may share data with service providers who assist in operating the Service (e.g., database hosting), bound by confidentiality agreements.</p>
 
           <h2 className="text-lg font-bold text-charcoal">5. Data Retention</h2>
-          <p>We retain your data for as long as your account is active. You may delete your account at any time, which will remove your personal data and transaction records.</p>
+          <p>We retain your data for as long as your account is active. To delete your account, email support@toropay.co.in from the email address on your account. We will delete your personal data within 30 days, except records we are required by law to keep (such as payment and tax records).</p>
 
           <h2 className="text-lg font-bold text-charcoal">6. Security</h2>
           <p>We implement industry-standard security measures including encryption in transit (TLS), password hashing, and rate limiting on authentication endpoints. However, no method of electronic storage is 100% secure.</p>

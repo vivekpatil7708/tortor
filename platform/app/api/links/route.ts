@@ -32,6 +32,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Title and UPI ID are required' }, { status: 400 })
     }
 
+    // Links only pay into one of the merchant's saved UPI IDs, so a typo can't
+    // send customers' money to a stranger.
+    const savedUpi = await prisma.upiId.findFirst({
+      where: { merchantId: session.id, vpa: { equals: String(body.upi_id).trim(), mode: 'insensitive' } },
+    })
+    if (!savedUpi) {
+      return NextResponse.json({ error: 'Add this UPI ID under UPI IDs first, then choose it for the link.' }, { status: 400 })
+    }
+
     if (body.redirect_url && !isValidRedirectUrl(body.redirect_url)) {
       return NextResponse.json({ error: 'Invalid redirect URL' }, { status: 400 })
     }
@@ -44,7 +53,7 @@ export async function POST(req: NextRequest) {
     const link = await prisma.paymentLink.create({
       data: {
         merchantId: session.id,
-        upiId: body.upi_id,
+        upiId: savedUpi.vpa,
         title: body.title,
         description: body.description || null,
         amount: body.amount != null ? Number(body.amount) : null,

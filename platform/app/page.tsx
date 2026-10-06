@@ -277,13 +277,13 @@ export default function LandingPage() {
           <div className="rounded-2xl border border-white/80 bg-white/50 p-6 backdrop-blur-sm">
             <h3 className="mb-2 text-lg font-bold">Data protection</h3>
             <p className="text-sm leading-relaxed text-gray-500">
-              Your data is encrypted in transit and at rest. We use <a href="https://vercel.com/security" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Vercel</a> for hosting and <a href="https://neon.tech/security" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Neon PostgreSQL</a> for database — both SOC 2 compliant. Sessions are secured with HTTP-only encrypted cookies.
+              Your data is encrypted in transit and at rest. We use <a href="https://vercel.com/security" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Vercel</a> for hosting and <a href="https://neon.tech/security" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Neon PostgreSQL</a> for database — both SOC 2 compliant. Sessions use HTTP-only, signed cookies.
             </p>
           </div>
           <div className="rounded-2xl border border-white/80 bg-white/50 p-6 backdrop-blur-sm">
-            <h3 className="mb-2 text-lg font-bold">Rate-limited & monitored</h3>
+            <h3 className="mb-2 text-lg font-bold">Rate-limited & audited</h3>
             <p className="text-sm leading-relaxed text-gray-500">
-              Login attempts are rate-limited (account locks after 5 failures). All authentication events are logged for audit. We actively monitor for unusual activity to keep the platform safe.
+              Login attempts are rate-limited (account locks after 5 failures). All authentication events are logged for audit, and an automatic health check regularly tests the database.
             </p>
           </div>
         </div>

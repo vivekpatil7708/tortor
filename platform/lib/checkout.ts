@@ -312,12 +312,34 @@ export interface CheckoutView {
 export async function getCheckoutView(checkoutSessionId: string): Promise<CheckoutView | null> {
   const payment = await prisma.payment.findUnique({
     where: { checkoutSessionId },
-    include: { order: { include: { orderItems: true, customer: true } }, merchant: { include: { upiIds: true } } },
+    include: {
+      order: { include: { orderItems: true, customer: true } },
+      // Only what the page shows, never the merchant's whole account record.
+      merchant: {
+        select: {
+          id: true,
+          businessName: true,
+          businessLogoUrl: true,
+          bgImageUrl: true,
+          brandColorPrimary: true,
+          brandColorSecondary: true,
+          brandFont: true,
+          buttonStyle: true,
+          pageTheme: true,
+          supportEmail: true,
+          supportPhone: true,
+          upiIds: { select: { vpa: true, status: true, isPrimary: true } },
+        },
+      },
+    },
   })
   if (!payment?.order || !payment.merchant) return null
   if (payment.expiresAt && payment.expiresAt < new Date() && payment.status === 'pending') return null
 
   const o = payment.order
+  // Contact details saved before this order (from an earlier purchase) aren't
+  // shown on this public page; the shopper types them again.
+  const savedEarlier = !!o.customer && o.customer.createdAt.getTime() < o.createdAt.getTime() - 60_000
   const activeUpi = payment.merchant.upiIds
     .filter(u => u.status === 'active')
     .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary))[0]?.vpa ?? null
@@ -343,9 +365,9 @@ export async function getCheckoutView(checkoutSessionId: string): Promise<Checko
       tax_amount: o.taxAmount.toNumber(),
       total_amount: o.totalAmount.toNumber(),
       currency: o.currency,
-      customer_name: o.customer?.fullName ?? null,
-      customer_email: o.customer?.email ?? null,
-      customer_phone: o.customer?.phone ?? null,
+      customer_name: savedEarlier ? null : o.customer?.fullName ?? null,
+      customer_email: savedEarlier ? null : o.customer?.email ?? null,
+      customer_phone: savedEarlier ? null : o.customer?.phone ?? null,
       items: o.orderItems.map(i => ({
         name: i.productNameSnapshot,
         sku: i.skuSnapshot,
@@ -381,7 +403,8 @@ export interface UpdateCheckoutCustomerInput {
 
 /**
  * Update the order's customer with details collected on the checkout form.
- * Reuses existing customer rows (by email/phone) within the merchant scope.
+ * Reuses an existing customer row (same merchant) only when both email and
+ * phone match.
  */
 export async function updateCheckoutCustomer(input: UpdateCheckoutCustomerInput): Promise<CheckoutView | null> {
   const payment = await prisma.payment.findUnique({
@@ -400,13 +423,11 @@ export async function updateCheckoutCustomer(input: UpdateCheckoutCustomerInput)
   const phone = (input.phone || '').trim() || null
 
   let customer = order.customer
-  if (!customerId && (email || phone)) {
+  // A saved customer is only reused when both email and phone match, so typing
+  // someone else's email or phone can't attach this order to their record.
+  if (!customerId && email && phone) {
     const existing = await prisma.customer.findFirst({
-      where: {
-        merchantId: payment.merchantId,
-        ...(email ? { email } : {}),
-        ...(phone && !email ? { phone } : {}),
-      },
+      where: { merchantId: payment.merchantId, email, phone },
     })
     if (existing) {
       customer = existing

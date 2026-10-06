@@ -53,12 +53,13 @@ export default function UpiPage() {
             <div className="flex items-center gap-3">
               <div className="font-mono font-bold">{u.vpa as string}</div>
               {Boolean(u.is_primary) && <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-600">Primary</span>}
+              {/* Only the name@bank format is checked; nothing confirms who owns the account. */}
               {u.verified_at
-                ? <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-600">Verified</span>
-                : <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-600">Unverified</span>}
+                ? <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600" title="The format looks right. Send yourself ₹1 to confirm it reaches your account.">Format checked</span>
+                : <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-600">Not checked</span>}
             </div>
             <div className="flex gap-2">
-              {!u.verified_at && <Button variant="ghost" size="sm" onClick={() => verifyUpi(u.id as string)}>Verify</Button>}
+              {!u.verified_at && <Button variant="ghost" size="sm" onClick={() => verifyUpi(u.id as string)}>Check format</Button>}
               {!Boolean(u.is_primary) && <Button variant="ghost" size="sm" onClick={() => api.setPrimaryUpi(u.id as string).then(load)}>Make primary</Button>}
               <Button variant="ghost" size="sm" onClick={() => api.deleteUpi(u.id as string).then(load)} className="text-red-500">Remove</Button>
             </div>
