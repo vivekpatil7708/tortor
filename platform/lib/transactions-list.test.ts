@@ -117,6 +117,46 @@ describe('transactions list (B5)', () => {
   })
 })
 
+describe('transactions search (U19)', () => {
+  it('searches name, phone and reference, within your own payments only', async () => {
+    await get('limit=50&q=%20Arjun%20')
+
+    const where = db.transaction.findMany.mock.calls[0][0].where
+    expect(where).toEqual({
+      merchantId: 'm1',
+      OR: [
+        { customerName: { contains: 'Arjun', mode: 'insensitive' } },
+        { customerPhone: { contains: 'Arjun' } },
+        { txnId: { contains: 'Arjun', mode: 'insensitive' } },
+        { upiTxnId: { contains: 'Arjun', mode: 'insensitive' } },
+        { upiPaymentRef: { contains: 'Arjun', mode: 'insensitive' } },
+      ],
+    })
+    expect(db.transaction.count).toHaveBeenCalledWith({ where })
+  })
+
+  it('works together with the status and date filters', async () => {
+    await get('limit=50&status=pending&from=2026-10-01&q=TXN17')
+    expect(db.transaction.findMany.mock.calls[0][0].where).toMatchObject({
+      merchantId: 'm1', status: 'pending', createdAt: { gte: new Date('2026-09-30T18:30:00Z') },
+      OR: expect.arrayContaining([{ txnId: { contains: 'TXN17', mode: 'insensitive' } }]),
+    })
+  })
+
+  it('finds a phone number typed with spaces', async () => {
+    await get('limit=50&q=98765%2043210')
+    expect(db.transaction.findMany.mock.calls[0][0].where.OR).toContainEqual({ customerPhone: { contains: '9876543210' } })
+  })
+
+  it('refuses a search over 64 characters, and ignores a blank one', async () => {
+    expect((await get(`limit=50&q=${'a'.repeat(65)}`)).status).toBe(400)
+    expect(db.transaction.findMany).not.toHaveBeenCalled()
+
+    await get('limit=50&q=%20%20')
+    expect(db.transaction.findMany.mock.calls[0][0].where).toEqual({ merchantId: 'm1' })
+  })
+})
+
 describe('dashboard totals (B5)', () => {
   const totals = () => summary(new NextRequest('http://localhost/api/analytics/summary'))
 

@@ -37,14 +37,15 @@ async function loginHasEnded(): Promise<boolean> {
   }
 }
 
-export type TransactionFilters = { status?: string; from?: string; to?: string; link?: string }
+/** `q` searches name, phone and reference on the server. */
+export type TransactionFilters = { status?: string; from?: string; to?: string; link?: string; q?: string }
 export type TransactionQuery = TransactionFilters & { limit?: number; cursor?: string }
 /** One page of transactions, newest first. `total` is counted on the first page only. */
 export type TransactionPage = { transactions: Record<string, unknown>[]; next_cursor: string | null; total: number | null }
 
 function transactionParams(query: TransactionQuery): string {
   const params = new URLSearchParams({ limit: String(query.limit ?? 50) })
-  for (const key of ['cursor', 'status', 'from', 'to', 'link'] as const) {
+  for (const key of ['cursor', 'status', 'from', 'to', 'link', 'q'] as const) {
     const value = query[key]
     if (value) params.set(key, value)
   }

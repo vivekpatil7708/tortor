@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, Globe, Code2, Truck, Package, LogOut, Menu, X
+  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, Globe, Code2, Truck, Package, LogOut, Menu, Plus, X
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -71,10 +71,18 @@ export function Sidebar() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)}
+      <button onClick={() => setOpen(true)} aria-label="Open menu"
         className="fixed left-4 top-4 z-40 rounded-xl border border-gray-200 bg-white p-2.5 shadow-md lg:hidden">
         <Menu className="h-5 w-5 text-charcoal" />
       </button>
+
+      {/* Phones: the most common job, one tap away on every page. */}
+      {!open && pathname !== '/dashboard/links/new' && (
+        <Link href="/dashboard/links/new"
+          className="fixed right-4 top-4 z-40 inline-flex items-center gap-1 rounded-xl bg-charcoal px-3 py-2.5 text-xs font-semibold text-white shadow-md lg:hidden">
+          <Plus className="h-4 w-4" aria-hidden /> New link
+        </Link>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setOpen(false)} />

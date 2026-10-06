@@ -9,7 +9,7 @@ import { UPI_APPS } from '@/lib/constants'
 import { buildAppDeepLink, buildUpiIntentUrl, buildUpiPayUrl } from '@/lib/upi'
 import { buttonRadius, formatAmount, generateTxnId } from '@/lib/utils'
 import { isValidRedirectUrl } from '@/lib/validate-url'
-import CopyButton from './copy-button'
+import CopyButton from '@/components/ui/copy-button'
 
 interface CheckoutData {
   link: {

@@ -3,9 +3,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { formatAmount, formatDate, statusColor } from '@/lib/utils'
-import { Send, ExternalLink } from 'lucide-react'
+import { formatAmount, formatDate } from '@/lib/utils'
+import { ExternalLink } from 'lucide-react'
+import CopyButton from '@/components/ui/copy-button'
 import SendConfirmationModal from '@/components/dashboard/send-confirmation-modal'
+import { useStatusAction } from '@/components/dashboard/status-action'
+import { NextStepCard } from '@/components/dashboard/transaction-row'
 
 export default function TransactionDetailPage() {
   const { txnId } = useParams<{ txnId: string }>()
@@ -15,6 +18,8 @@ export default function TransactionDetailPage() {
   const [error, setError] = useState('')
   const [showSendModal, setShowSendModal] = useState(false)
   const [logs, setLogs] = useState<Record<string, any>[]>([])
+  // The saved payment comes back without its link details, so keep those.
+  const statusAction = useStatusAction(updated => setTxn(prev => ({ ...prev, ...updated })))
 
   const fetchTxn = useCallback(async () => {
     try {
@@ -52,21 +57,17 @@ export default function TransactionDetailPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <button onClick={() => router.push('/dashboard/transactions')} className="mb-2 text-xs font-medium text-gray-400 hover:text-gray-600">&larr; Transactions</button>
-          <h1 className="text-2xl font-bold tracking-tight">{txn.txn_id}</h1>
-          <p className="text-sm text-gray-500">{formatDate(txn.created_at)}</p>
-        </div>
-        <div className="flex gap-2">
-          <span className={`rounded-xl px-3 py-1.5 text-xs font-semibold ${statusColor(txn.status)}`}>{txn.status}</span>
-          {(txn.status === 'success' || txn.status === 'pending') && (
-            <button onClick={() => setShowSendModal(true)} className="flex items-center gap-1.5 rounded-xl bg-charcoal px-4 py-2 text-xs font-semibold text-white hover:opacity-90">
-              <Send className="h-3.5 w-3.5" /> Send Confirmation
-            </button>
-          )}
+      <div className="mb-6">
+        <button onClick={() => router.push('/dashboard/transactions')} className="mb-2 text-xs font-medium text-gray-400 hover:text-gray-600">&larr; Transactions</button>
+        <h1 className="text-2xl font-bold tracking-tight">{formatAmount(txn.amount)} from {txn.customer_name || 'a customer'}</h1>
+        <p className="mt-1 text-sm text-gray-500">{formatDate(txn.created_at)}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+          <span>Reference: <span className="break-all font-mono">{txn.txn_id}</span></span>
+          <CopyButton text={txn.txn_id} className="border border-gray-200 bg-white hover:bg-gray-50" />
         </div>
       </div>
+
+      <NextStepCard txn={txn} onAction={statusAction.ask} onSend={() => setShowSendModal(true)} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
@@ -100,10 +101,6 @@ export default function TransactionDetailPage() {
               <div>
                 <p className="text-xs text-gray-400">UTR / UPI Ref</p>
                 <p className="text-sm font-medium">{txn.upi_txn_id || txn.upi_payment_ref || '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">Merchant</p>
-                <p className="text-sm font-medium">{txn.merchant?.business_name || txn.merchant?.email || '—'}</p>
               </div>
             </div>
           </div>
@@ -168,6 +165,7 @@ export default function TransactionDetailPage() {
       </div>
 
       {showSendModal && <SendConfirmationModal txn={txn} onClose={() => setShowSendModal(false)} onSent={() => { setShowSendModal(false); fetchTxn() }} />}
+      {statusAction.dialog}
     </div>
   )
 }

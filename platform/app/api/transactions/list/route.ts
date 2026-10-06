@@ -8,7 +8,23 @@ import { serializeTransaction } from '@/lib/serializers'
 
 const STATUSES = new Set(['initiated', 'pending', 'success', 'failed'])
 const MAX_LIMIT = 500
+const MAX_SEARCH = 64
 const ID = /^[A-Za-z0-9-]{1,64}$/
+
+/** Name, phone or reference (ToroPay's TXN code or the UPI reference/UTR) containing the search text. */
+function searchWhere(q: string): Prisma.TransactionWhereInput {
+  const or: Prisma.TransactionWhereInput[] = [
+    { customerName: { contains: q, mode: 'insensitive' } },
+    { customerPhone: { contains: q } },
+    { txnId: { contains: q, mode: 'insensitive' } },
+    { upiTxnId: { contains: q, mode: 'insensitive' } },
+    { upiPaymentRef: { contains: q, mode: 'insensitive' } },
+  ]
+  // "98765 43210" also finds a phone saved as "9876543210".
+  const digits = q.replace(/[\s-]/g, '')
+  if (digits !== q && /^\+?\d+$/.test(digits)) or.push({ customerPhone: { contains: digits } })
+  return { OR: or }
+}
 
 type Query = { limit: number; cursor?: string; filters: Prisma.TransactionWhereInput }
 
@@ -38,6 +54,11 @@ function readQuery(params: URLSearchParams): Query | { error: string } {
     const lt = to ? istDayEnd(to) : undefined
     if (gte === null || lt === null) return { error: 'Dates must look like 2026-10-06' }
     filters.createdAt = { ...(gte ? { gte } : {}), ...(lt ? { lt } : {}) }
+  }
+  const q = (params.get('q') || '').trim()
+  if (q) {
+    if (q.length > MAX_SEARCH) return { error: `Search must be ${MAX_SEARCH} characters or fewer` }
+    Object.assign(filters, searchWhere(q))
   }
   return { limit, cursor, filters }
 }

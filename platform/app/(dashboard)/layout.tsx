@@ -1,6 +1,5 @@
 import { AdminViewBanner } from '@/components/dashboard/admin-view-banner'
 import { Sidebar } from '@/components/dashboard/sidebar'
-import { DonationPrompt } from '@/components/dashboard/donation-prompt'
 import { OnboardingTour } from '@/components/dashboard/onboarding-tour'
 import { VerifyEmailBanner } from '@/components/dashboard/verify-email-banner'
 import { ToastProvider } from '@/components/toast'
@@ -29,7 +28,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {children}
           </div>
         </main>
-        <DonationPrompt />
         <OnboardingTour />
       </div>
     </ToastProvider>

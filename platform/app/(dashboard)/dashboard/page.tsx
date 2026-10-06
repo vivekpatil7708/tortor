@@ -2,15 +2,22 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { formatAmount, formatDate, statusColor } from '@/lib/utils'
-import { Link2, Banknote, TrendingUp, CheckCircle2 } from 'lucide-react'
+import { formatAmount, formatDate } from '@/lib/utils'
+import { Link2, Banknote, TrendingUp, CheckCircle2, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { LoadError } from '@/components/ui/load-error'
+import { DonationCard } from '@/components/dashboard/donation-prompt'
+import { NeedsAction } from '@/components/dashboard/needs-action'
+import { useStatusAction } from '@/components/dashboard/status-action'
+import { paymentHref, StatusBadge } from '@/components/dashboard/transaction-row'
+
+/** How many "customer says paid" payments Overview lists; "View all" opens the rest. */
+const NEEDS_ACTION_SHOWN = 10
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<{ totalLinks: number; totalTxns: number; totalRevenue: number; successRate: number | null; abandoned: number }>(
-    { totalLinks: 0, totalTxns: 0, totalRevenue: 0, successRate: null, abandoned: 0 }
+  const [stats, setStats] = useState<{ totalLinks: number; totalTxns: number; totalRevenue: number; successRate: number | null; abandoned: number; paid: number }>(
+    { totalLinks: 0, totalTxns: 0, totalRevenue: 0, successRate: null, abandoned: 0, paid: 0 }
   )
   const [recentTxns, setRecentTxns] = useState<Record<string, unknown>[]>([])
   const [recentState, setRecentState] = useState<'loading' | 'ready' | 'failed'>('loading')
@@ -19,9 +26,12 @@ export default function DashboardPage() {
   const [merchant, setMerchant] = useState<Record<string, unknown> | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [pendingUpi, setPendingUpi] = useState<Record<string, unknown>[]>([])
+  const [claimed, setClaimed] = useState<{ rows: Record<string, unknown>[]; total: number }>({ rows: [], total: 0 })
   const [confirmTarget, setConfirmTarget] = useState<Record<string, unknown> | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [confirmError, setConfirmError] = useState('')
+  // Confirm / Reject for link payments: afterwards, refresh everything that counts them.
+  const statusAction = useStatusAction(() => { loadPending(); loadRecent(); loadTotals() })
 
   async function confirmUpi() {
     if (!confirmTarget || confirming) return
@@ -88,10 +98,18 @@ export default function DashboardPage() {
       .catch(() => setRecentState('failed'))
   }
 
+  /** Payments waiting for you: link payments the customer marked as paid, and website-checkout UPI payments. */
   function loadPending() {
-    api.getPendingUpiPayments()
-      .then(({ payments }) => { setPendingUpi(payments); setPendingFailed(false) })
-      .catch(() => setPendingFailed(true))
+    Promise.allSettled([
+      api.getPendingUpiPayments(),
+      api.getTransactions({ status: 'pending', limit: NEEDS_ACTION_SHOWN }),
+    ]).then(([checkout, links]) => {
+      if (checkout.status === 'fulfilled') setPendingUpi(checkout.value.payments)
+      if (links.status === 'fulfilled') {
+        setClaimed({ rows: links.value.transactions, total: links.value.total ?? links.value.transactions.length })
+      }
+      setPendingFailed(checkout.status === 'rejected' || links.status === 'rejected')
+    })
   }
 
   function loadTotals() {
@@ -105,6 +123,7 @@ export default function DashboardPage() {
         // Paid out of paid + rejected: abandoned checkouts don't count as failures.
         successRate: summary.success_rate == null ? null : Math.round(Number(summary.success_rate)),
         abandoned: Number(summary.abandoned_checkouts) || 0,
+        paid: Number(summary.successful_payments) || 0,
       }))
     }).catch(() => setTotalsFailed(true))
   }
@@ -131,12 +150,28 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">
-          Welcome{merchant?.business_name ? `, ${merchant.business_name}` : ''}
-        </h1>
-        <p className="text-sm text-gray-500">Here&apos;s what&apos;s happening with your payments today.</p>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Welcome{merchant?.business_name ? `, ${merchant.business_name}` : ''}
+          </h1>
+          <p className="text-sm text-gray-500">Here&apos;s what&apos;s happening with your payments today.</p>
+        </div>
+        {/* Smaller screens have "+ New link" at the top of every page instead. */}
+        <Link href="/dashboard/links/new"
+          className="hidden items-center gap-1.5 rounded-xl bg-charcoal px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 lg:inline-flex">
+          <Plus className="h-4 w-4" aria-hidden /> New payment link
+        </Link>
       </div>
+
+      {pendingFailed && <LoadError what="payments waiting for your confirmation" onRetry={loadPending} className="mb-8" />}
+      <NeedsAction
+        linkPayments={claimed.rows}
+        linkTotal={claimed.total}
+        checkoutPayments={pendingUpi}
+        onAction={statusAction.ask}
+        onConfirmCheckout={p => { setConfirmError(''); setConfirmTarget(p) }}
+      />
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map(({ label, value, note, icon: Icon, bg, color }: { label: string; value: string | number; note?: string; icon: typeof Link2; bg: string; color: string }) => (
@@ -152,40 +187,6 @@ export default function DashboardPage() {
       </div>
 
       {totalsFailed && <LoadError what="your totals" onRetry={loadTotals} className="mb-8" />}
-      {pendingFailed && <LoadError what="payments waiting for your confirmation" onRetry={loadPending} className="mb-8" />}
-
-      {pendingUpi.length > 0 && (
-        <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50/60 p-6 backdrop-blur-sm">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-bold text-amber-900">UPI payments awaiting your confirmation</h2>
-            <span className="rounded-full bg-amber-200/70 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
-              {pendingUpi.length}
-            </span>
-          </div>
-          <div className="space-y-2">
-            {pendingUpi.map(p => {
-              const pid = p.id as string
-              return (
-                <div key={pid} className="flex items-center justify-between rounded-xl border border-amber-200/60 bg-white/60 px-4 py-3">
-                  <div>
-                    <p className="text-sm font-semibold">{p.payment_reference as string}</p>
-                    <p className="text-xs text-gray-400">
-                      {(p.order_number as string ?? '' ? `Order ${p.order_number as string} · ` : '')}{formatDate(p.created_at as string)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <p className="text-sm font-bold">{formatAmount(Number(p.amount))}</p>
-                    <button onClick={() => { setConfirmError(''); setConfirmTarget(p) }}
-                      className="rounded-xl bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700">
-                      Confirm paid
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
         <div className="mb-4 flex items-center justify-between">
@@ -209,16 +210,16 @@ export default function DashboardPage() {
               const hasDetails = !!(cfv && (cfv as Record<string, unknown>)._selected_products || (cfv && Object.keys(cfv as Record<string, unknown>).length > 0) || t.customer_note)
               return (
               <div key={tid} className="rounded-xl border border-gray-100 bg-white/50 px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold">{(t.customer_name as string) || 'Anonymous'} · {(t.customer_phone as string) || '—'}</p>
-                    <p className="text-xs text-gray-400">{t.txn_id as string} · {formatDate(t.created_at as string)}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={paymentHref(t)} className="text-sm font-semibold hover:underline">
+                      {(t.customer_name as string) || 'Anonymous'} · {(t.customer_phone as string) || '—'}
+                    </Link>
+                    <p className="break-words text-xs text-gray-400">{t.txn_id as string} · {formatDate(t.created_at as string)}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="shrink-0 text-right">
                     <p className="text-sm font-bold">{formatAmount(Number(t.amount))}</p>
-                    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(t.status as string)}`}>
-                      {t.status as string}
-                    </span>
+                    <StatusBadge txn={t} />
                   </div>
                 </div>
                 {hasDetails && (
@@ -233,6 +234,10 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      <DonationCard paidCount={totalsFailed ? 0 : stats.paid} />
+
+      {statusAction.dialog}
       {confirmTarget && (
         <ConfirmDialog
           open

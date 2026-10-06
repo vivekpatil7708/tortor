@@ -1,53 +1,50 @@
 'use client'
 
-import { useState } from 'react'
-import { api, fetchAllTransactions } from '@/lib/api'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Search } from 'lucide-react'
+import { fetchAllTransactions } from '@/lib/api'
 import { useTransactionPages } from '@/lib/use-transaction-pages'
-import { formatAmount, formatDate, statusColor } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { ConfirmDialog } from '@/components/ui/dialog'
 import { exportToCSV } from '@/lib/export-csv'
-import { CONFIRM_UNDO_MINUTES } from '@/lib/payment-transitions'
-import { Send } from 'lucide-react'
+import { STATUS_FILTERS } from '@/lib/payment-status'
 import SendConfirmationModal from '@/components/dashboard/send-confirmation-modal'
+import { useStatusAction } from '@/components/dashboard/status-action'
+import { TransactionRow } from '@/components/dashboard/transaction-row'
 
-type StatusAction = { txn: Record<string, unknown>; status: 'success' | 'failed'; undo?: boolean }
-
-/** A confirmation can be undone for a short while, in case it was a mistake. */
-function canUndo(txn: Record<string, unknown>): boolean {
-  if (txn.status !== 'success' || !txn.confirmed_at) return false
-  return Date.now() - new Date(txn.confirmed_at as string).getTime() < CONFIRM_UNDO_MINUTES * 60_000
-}
-
-function actionMessage({ txn, status, undo }: StatusAction): string {
-  const amount = formatAmount(Number(txn.amount))
-  const customer = (txn.customer_name as string) || 'this customer'
-  if (undo) {
-    return `Mark ${amount} from ${customer} as not received? Use this only if you confirmed it by mistake. If this link sends updates to your website, it will be told the payment failed.`
-  }
-  if (status === 'failed') {
-    return `Mark ${amount} from ${customer} as failed? Do this only if the money did not arrive.`
-  }
-  const notDeclared = txn.status === 'initiated'
-    ? ' The customer has NOT marked this payment as sent.'
-    : ''
-  return `Only confirm if ${amount} from ${customer} has reached your bank or UPI app.${notDeclared}`
-}
+const FILTER_VALUES = new Set<string>(STATUS_FILTERS.map(f => f.value))
+/** The longest search the server accepts. */
+const MAX_SEARCH = 64
 
 export default function TransactionsPage() {
-  const [filter, setFilter] = useState('all')
+  // "View all" on Overview opens this page on one status (?status=pending).
+  const requested = useSearchParams().get('status')
+  const [filter, setFilter] = useState(requested && FILTER_VALUES.has(requested) ? requested : 'all')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
-  // Filters run on the server over every transaction; dates are Indian calendar days.
-  const filters = { status: filter === 'all' ? undefined : filter, from: fromDate || undefined, to: toDate || undefined }
+  const [search, setSearch] = useState('')
+  const [query, setQuery] = useState('')
+  // Search once typing pauses, not on every key.
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(search.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [search])
+  // Filters and search run on the server over every transaction; dates are Indian calendar days.
+  const filters = {
+    status: filter === 'all' ? undefined : filter,
+    from: fromDate || undefined,
+    to: toDate || undefined,
+    q: query || undefined,
+  }
   const { rows: txns, total, loading, error: loadError, hasMore, loadMore, reload, replaceRow, removeRow } = useTransactionPages(filters)
   const [exporting, setExporting] = useState('')
   const [exportError, setExportError] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [sendTxn, setSendTxn] = useState<Record<string, any> | null>(null)
-  const [pendingAction, setPendingAction] = useState<StatusAction | null>(null)
-  const [updating, setUpdating] = useState(false)
-  const [actionError, setActionError] = useState('')
+  const statusAction = useStatusAction(transaction => {
+    // Update the row where it is, so the list keeps its place. It leaves a status filter it no longer matches.
+    if (filter !== 'all' && transaction.status !== filter) removeRow(transaction.id)
+    else replaceRow(transaction)
+  })
 
   function toggleExpand(id: string) {
     setExpanded(prev => {
@@ -96,28 +93,6 @@ export default function TransactionsPage() {
     )
   }
 
-  function askStatus(txn: Record<string, unknown>, status: StatusAction['status'], undo = false) {
-    setActionError('')
-    setPendingAction({ txn, status, undo })
-  }
-
-  async function applyStatus() {
-    if (!pendingAction || updating) return
-    setUpdating(true)
-    setActionError('')
-    try {
-      const { transaction } = await api.updateTransaction(pendingAction.txn.txn_id as string, { status: pendingAction.status, merchant_action: true })
-      setPendingAction(null)
-      // Update the row where it is, so the list keeps its place. It leaves a status filter it no longer matches.
-      if (filter !== 'all' && transaction.status !== filter) removeRow(transaction.id)
-      else replaceRow(transaction)
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not update the payment')
-    } finally {
-      setUpdating(false)
-    }
-  }
-
   async function handleExport() {
     if (exporting) return
     setExportError('')
@@ -156,7 +131,7 @@ export default function TransactionsPage() {
 
   return (
     <div>
-      <div data-tour="tour-transactions" className="mb-6 flex items-center justify-between">
+      <div data-tour="tour-transactions" className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
           <p className="text-sm text-gray-500">All payment transactions made through your links.</p>
@@ -168,20 +143,27 @@ export default function TransactionsPage() {
       </div>
       {exportError && <p className="mb-4 text-sm text-red-500">Export failed: {exportError}</p>}
 
+      <div className="relative mb-3 w-full sm:max-w-sm">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden />
+        <input type="search" value={search} maxLength={MAX_SEARCH} onChange={e => setSearch(e.target.value)}
+          placeholder="Search name, phone or reference" aria-label="Search payments by name, phone or reference"
+          className="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-200" />
+      </div>
+
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex flex-wrap gap-2">
-          {['all', 'success', 'pending', 'initiated', 'failed'].map(f => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${filter === f ? 'bg-charcoal text-white' : 'bg-white/60 text-gray-500 hover:bg-white'}`}>
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+          {STATUS_FILTERS.map(f => (
+            <button key={f.value} onClick={() => setFilter(f.value)} aria-pressed={filter === f.value}
+              className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${filter === f.value ? 'bg-charcoal text-white' : 'bg-white/60 text-gray-500 hover:bg-white'}`}>
+              {f.label}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
+          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} aria-label="From date"
             className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 outline-none" />
           <span className="text-gray-400">to</span>
-          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)}
+          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} aria-label="To date"
             className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 outline-none" />
           {(fromDate || toDate) && (
             <button onClick={() => { setFromDate(''); setToDate('') }}
@@ -198,61 +180,28 @@ export default function TransactionsPage() {
         <div className="rounded-2xl border border-white/80 bg-white/60 p-12 text-center text-sm text-gray-400 backdrop-blur-sm">
           {loadError ? (
             <>Couldn&apos;t load transactions. <button onClick={reload} className="font-semibold text-charcoal underline">Retry</button></>
-          ) : loading ? 'Loading…' : 'No transactions found.'}
+          ) : loading ? 'Loading…' : query ? `No payments match "${query}".` : 'No transactions found.'}
         </div>
       ) : (
         <div className="space-y-2">
           {txns.map((t) => {
             const tid = t.id as string
-            const txnId = t.txn_id as string
             const isExpanded = expanded.has(tid)
             const hasDetails = !!(t.custom_field_values && (t.custom_field_values as Record<string, unknown>)._selected_products ||
               (t.custom_field_values && Object.keys(t.custom_field_values as Record<string, unknown>).length > 0) ||
               t.customer_note)
             return (
-            <div key={tid} className="rounded-2xl border border-white/80 bg-white/60 p-5 backdrop-blur-sm">
-              <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold">{(t.customer_name as string) || 'Anonymous'} · {(t.customer_phone as string) || '—'}</p>
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(t.status as string)}`}>{t.status as string}</span>
-                    </div>
-                    <p className="mt-1 text-xs text-gray-400">
-                      {txnId} · {formatDate(t.created_at as string)}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-400">Settlement: {t.settlement_status as string}</p>
-                  </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold">{formatAmount(Number(t.amount))}</p>
-                  <div className="mt-2 flex gap-1">
-                    {(t.status === 'success' || t.status === 'pending') && (
-                      <button onClick={() => setSendTxn(t as Record<string, any>)}
-                        className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-charcoal hover:bg-gray-50">
-                        <Send className="h-3 w-3" /> Send
-                      </button>
-                    )}
-                    {(t.status === 'pending' || t.status === 'initiated') && (
-                      <>
-                        <Button size="sm" onClick={() => askStatus(t, 'success')}>Confirm</Button>
-                        <Button size="sm" variant="danger" onClick={() => askStatus(t, 'failed')}>Reject</Button>
-                      </>
-                    )}
-                    {canUndo(t) && (
-                      <Button size="sm" variant="danger" onClick={() => askStatus(t, 'failed', true)}>Undo</Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {hasDetails && (
-                <>
-                  <button onClick={() => toggleExpand(tid)}
-                    className="mt-2 text-xs font-semibold opacity-60 hover:opacity-100">
-                    {isExpanded ? '▲ Hide details' : '▼ View order details'}
-                  </button>
-                  {isExpanded && renderOrderDetails(t)}
-                </>
-              )}
-            </div>
+              <TransactionRow key={tid} txn={t} onAction={statusAction.ask} onSend={row => setSendTxn(row as Record<string, any>)}>
+                {hasDetails && (
+                  <>
+                    <button onClick={() => toggleExpand(tid)}
+                      className="mt-2 text-xs font-semibold opacity-60 hover:opacity-100">
+                      {isExpanded ? '▲ Hide details' : '▼ View order details'}
+                    </button>
+                    {isExpanded && renderOrderDetails(t)}
+                  </>
+                )}
+              </TransactionRow>
             )
           })}
         </div>
@@ -269,18 +218,7 @@ export default function TransactionsPage() {
       )}
 
       {sendTxn && <SendConfirmationModal txn={sendTxn} onClose={() => setSendTxn(null)} onSent={() => { setSendTxn(null); reload() }} />}
-      {pendingAction && (
-        <ConfirmDialog
-          open
-          onClose={() => { if (!updating) setPendingAction(null) }}
-          onConfirm={applyStatus}
-          title={pendingAction.undo ? 'Undo confirmation?' : pendingAction.status === 'success' ? 'Confirm payment?' : 'Reject payment?'}
-          message={actionMessage(pendingAction) + (actionError ? ` Error: ${actionError}` : '')}
-          confirmLabel={pendingAction.undo ? 'Undo confirmation' : pendingAction.status === 'success' ? 'Yes, I received it' : 'Reject payment'}
-          danger={pendingAction.status === 'failed'}
-          busy={updating}
-        />
-      )}
+      {statusAction.dialog}
     </div>
   )
 }
