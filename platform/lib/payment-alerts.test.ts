@@ -27,6 +27,8 @@ const claim = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.spyOn(console, 'info').mockImplementation(() => {})
+  vi.spyOn(console, 'error').mockImplementation(() => {})
   db.merchantSettings.findUnique.mockResolvedValue({ emailEnabled: true, notificationEmail: null })
   db.merchant.findUnique.mockResolvedValue({ email: 'owner@ashacrafts.in' })
   db.auditLog.count.mockResolvedValue(0)
@@ -94,6 +96,22 @@ describe('payment alert emails (B9)', () => {
 
     db.merchantSettings.findUnique.mockRejectedValueOnce(new Error('database down'))
     expect(await sendPaidClaimAlert(claim)).toBe('failed')
+  })
+
+  it('logs one line per alert saying what happened, never the email address', async () => {
+    await sendPaidClaimAlert(claim)
+    expect(console.info).toHaveBeenLastCalledWith('Payment alert sent for transaction t1')
+
+    db.merchantSettings.findUnique.mockResolvedValueOnce({ emailEnabled: false, notificationEmail: null })
+    await sendPaidClaimAlert(claim)
+    expect(console.info).toHaveBeenLastCalledWith('Payment alert off for transaction t1 (alerts are switched off)')
+
+    send.mockResolvedValueOnce({ ok: false, providerMessageId: null, error: 'HTTP 403 validation_error' })
+    await sendPaidClaimAlert(claim)
+    expect(console.error).toHaveBeenLastCalledWith('Payment alert failed for transaction t1 (HTTP 403 validation_error)')
+
+    const logged = JSON.stringify([...vi.mocked(console.info).mock.calls, ...vi.mocked(console.error).mock.calls])
+    expect(logged).not.toContain('owner@ashacrafts.in')
   })
 
   it("sends after the customer's answer has gone out", async () => {

@@ -24,26 +24,37 @@ ${reference}<p style="margin:0 0 16px">Check that the money reached your bank or
 </div>`
 }
 
+type AlertOutcome = 'sent' | 'off' | 'limit' | 'failed'
+
 /**
  * Emails the merchant (Settings → Notifications) when a customer says they've
  * paid. It holds only the amount, the merchant's own link name and the payment
  * reference, never anything the customer typed. Never throws.
  */
-export async function sendPaidClaimAlert(payment: ClaimedPayment): Promise<'sent' | 'off' | 'limit' | 'failed'> {
+export async function sendPaidClaimAlert(payment: ClaimedPayment): Promise<AlertOutcome> {
+  const { outcome, detail } = await attemptPaidClaimAlert(payment)
+  // One line per alert, so a missing email can be traced. Never the address.
+  const line = `Payment alert ${outcome} for transaction ${payment.id}${detail ? ` (${detail})` : ''}`
+  if (outcome === 'failed') console.error(line)
+  else console.info(line)
+  return outcome
+}
+
+async function attemptPaidClaimAlert(payment: ClaimedPayment): Promise<{ outcome: AlertOutcome; detail?: string }> {
   try {
     const settings = await prisma.merchantSettings.findUnique({
       where: { merchantId: payment.merchantId },
       select: { emailEnabled: true, notificationEmail: true },
     })
-    if (!settings?.emailEnabled) return 'off'
+    if (!settings?.emailEnabled) return { outcome: 'off', detail: 'alerts are switched off' }
     const merchant = await prisma.merchant.findUnique({ where: { id: payment.merchantId }, select: { email: true } })
     const to = settings.notificationEmail?.trim() || merchant?.email
-    if (!to) return 'off'
+    if (!to) return { outcome: 'off', detail: 'no address to send to' }
 
     const sentLastHour = await prisma.auditLog.count({
       where: { merchantId: payment.merchantId, action: ALERT_SENT, createdAt: { gte: new Date(Date.now() - 60 * 60_000) } },
     })
-    if (sentLastHour >= ALERTS_PER_HOUR) return 'limit'
+    if (sentLastHour >= ALERTS_PER_HOUR) return { outcome: 'limit', detail: `${ALERTS_PER_HOUR} already sent this hour` }
 
     const link = payment.paymentLinkId
       ? await prisma.paymentLink.findUnique({ where: { id: payment.paymentLinkId }, select: { title: true } })
@@ -60,12 +71,11 @@ export async function sendPaidClaimAlert(payment: ClaimedPayment): Promise<'sent
         transactionsUrl: `${appUrl}/dashboard/transactions`,
       }),
     })
-    if (!result.ok) return 'failed'
+    if (!result.ok) return { outcome: 'failed', detail: result.error ?? 'email service refused it' }
     await logAudit({ merchantId: payment.merchantId, action: ALERT_SENT, entityType: 'transaction', entityId: payment.id })
-    return 'sent'
+    return { outcome: 'sent' }
   } catch (err) {
-    console.error('Payment alert email failed:', err instanceof Error ? err.message : 'unknown error')
-    return 'failed'
+    return { outcome: 'failed', detail: err instanceof Error ? err.message.slice(0, 160) : 'unknown error' }
   }
 }
 
