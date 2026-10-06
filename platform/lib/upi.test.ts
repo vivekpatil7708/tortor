@@ -61,3 +61,14 @@ describe('payee name in UPI payment requests', () => {
     expect(query(String(toBuffer.mock.calls[1][0])).has('pn')).toBe(false)
   })
 })
+
+describe('payment note in the QR code', () => {
+  it('keeps the vowel signs of Hindi link titles', async () => {
+    const toBuffer = vi.spyOn(QRCode, 'toBuffer')
+    const res = await qr(new NextRequest(
+      `http://localhost/api/qr?vpa=shop@okaxis&amount=499&txn_id=TXN1&note=${encodeURIComponent('दिवाली उपहार <b>')}`
+    ))
+    expect(res.status).toBe(200)
+    expect(query(String(toBuffer.mock.calls[0][0])).get('tn')).toBe('दिवाली उपहार b')
+  })
+})

@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
   const vpa = searchParams.get('vpa') || ''
   const amount = Number(searchParams.get('amount'))
   const txnId = searchParams.get('txn_id') || ''
-  // Letters, numbers, spaces and simple punctuation only, as UPI apps show it.
-  const note = (searchParams.get('note') || 'Payment').replace(/[^\p{L}\p{N} .,&'()/-]/gu, '').trim().slice(0, 80) || 'Payment'
+  // Letters (with the vowel signs of Indian scripts, \p{M}), numbers, spaces and simple punctuation only, as UPI apps show it.
+  const note = (searchParams.get('note') || 'Payment').replace(/[^\p{L}\p{M}\p{N} .,&'()/-]/gu, '').trim().slice(0, 80) || 'Payment'
 
   if (!isValidVpa(vpa)) {
     return NextResponse.json({ error: 'A valid UPI ID is required' }, { status: 400 })
