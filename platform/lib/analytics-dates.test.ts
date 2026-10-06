@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 import { createdAtRange, istDayKey } from './ist-day'
 
 const db = vi.hoisted(() => ({
-  transaction: { findMany: vi.fn(), groupBy: vi.fn() },
+  transaction: { findMany: vi.fn(), groupBy: vi.fn(), count: vi.fn(async () => 0) },
   paymentLink: { findMany: vi.fn() },
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))

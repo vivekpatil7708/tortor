@@ -152,9 +152,9 @@ export default function AnalyticsPage() {
             <KPICard label="Total Orders" value={String(summary?.total_orders || 0)} color="text-charcoal" />
             <KPICard label="Successful" value={String(summary?.successful_payments || 0)} color="text-green-600" subtitle={summary?.conversion_rate ? `${summary.conversion_rate}% conversion` : undefined} />
             <KPICard label="Failed" value={String(summary?.failed_payments || 0)} color="text-red-600" />
-            <KPICard label="Pending" value={String(summary?.pending_orders || 0)} color="text-amber-600" />
+            <KPICard label="Waiting for you" value={String(summary?.waiting_payments || 0)} color="text-amber-600" subtitle="Customers say they've paid" />
             <KPICard label="Gross Volume" value={formatAmount(Number(summary?.gross_payment_volume || 0))} color="text-purple-600" />
-            <KPICard label="Refunds" value={formatAmount(Number(summary?.refund_amount || 0))} color="text-orange-600" />
+            <KPICard label="Abandoned" value={String(summary?.abandoned_checkouts || 0)} color="text-gray-500" subtitle="Started, not paid in 30 min" />
             <KPICard label="Avg Order Value" value={formatAmount(Number(summary?.average_order_value || 0))} color="text-blue-600" />
             <KPICard label="Conv. Rate" value={summary?.conversion_rate ? `${summary.conversion_rate}%` : '0%'} color="text-emerald-600" />
           </div>

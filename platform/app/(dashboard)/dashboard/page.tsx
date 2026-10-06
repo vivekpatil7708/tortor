@@ -9,7 +9,9 @@ import { ConfirmDialog } from '@/components/ui/dialog'
 import { LoadError } from '@/components/ui/load-error'
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({ totalLinks: 0, totalTxns: 0, totalRevenue: 0, successRate: 0 })
+  const [stats, setStats] = useState<{ totalLinks: number; totalTxns: number; totalRevenue: number; successRate: number | null; abandoned: number }>(
+    { totalLinks: 0, totalTxns: 0, totalRevenue: 0, successRate: null, abandoned: 0 }
+  )
   const [recentTxns, setRecentTxns] = useState<Record<string, unknown>[]>([])
   const [recentState, setRecentState] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [totalsFailed, setTotalsFailed] = useState(false)
@@ -96,13 +98,13 @@ export default function DashboardPage() {
     setTotalsFailed(false)
     // Totals are counted in the database, so they include every transaction.
     api.getAnalyticsSummary().then(summary => {
-      const total = Number(summary.total_orders) || 0
-      const successful = Number(summary.successful_payments) || 0
       setStats(s => ({
         ...s,
-        totalTxns: total,
+        totalTxns: Number(summary.total_orders) || 0,
         totalRevenue: Number(summary.gross_payment_volume) || 0,
-        successRate: total > 0 ? Math.round((successful / total) * 100) : 0,
+        // Paid out of paid + rejected: abandoned checkouts don't count as failures.
+        successRate: summary.success_rate == null ? null : Math.round(Number(summary.success_rate)),
+        abandoned: Number(summary.abandoned_checkouts) || 0,
       }))
     }).catch(() => setTotalsFailed(true))
   }
@@ -119,7 +121,12 @@ export default function DashboardPage() {
     { label: 'Payment Links', value: stats.totalLinks, icon: Link2, bg: 'bg-blue-50', color: 'text-blue-600' },
     { label: 'Transactions', value: totalsFailed ? '—' : stats.totalTxns, icon: Banknote, bg: 'bg-green-50', color: 'text-green-600' },
     { label: 'Revenue', value: totalsFailed ? '—' : formatAmount(stats.totalRevenue), icon: TrendingUp, bg: 'bg-purple-50', color: 'text-purple-600' },
-    { label: 'Success Rate', value: totalsFailed ? '—' : `${stats.successRate}%`, icon: CheckCircle2, bg: 'bg-amber-50', color: 'text-amber-600' },
+    {
+      label: 'Success Rate',
+      value: totalsFailed || stats.successRate === null ? '—' : `${stats.successRate}%`,
+      note: !totalsFailed && stats.abandoned > 0 ? `${stats.abandoned} abandoned checkout${stats.abandoned === 1 ? '' : 's'} not counted` : undefined,
+      icon: CheckCircle2, bg: 'bg-amber-50', color: 'text-amber-600',
+    },
   ]
 
   return (
@@ -132,13 +139,14 @@ export default function DashboardPage() {
       </div>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map(({ label, value, icon: Icon, bg, color }) => (
+        {cards.map(({ label, value, note, icon: Icon, bg, color }: { label: string; value: string | number; note?: string; icon: typeof Link2; bg: string; color: string }) => (
           <div key={label} className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-500">{label}</span>
               <div className={`${bg} ${color} rounded-xl p-2.5`}><Icon className="h-4 w-4" /></div>
             </div>
             <p className="mt-3 text-2xl font-bold tracking-tight">{value}</p>
+            {note && <p className="mt-1 text-xs text-gray-400">{note}</p>}
           </div>
         ))}
       </div>

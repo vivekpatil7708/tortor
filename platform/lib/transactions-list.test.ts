@@ -128,6 +128,8 @@ describe('dashboard totals (B5)', () => {
       { status: 'initiated', _count: { _all: 40 }, _sum: { amount: 4000 } },
     ])
 
+    db.transaction.count.mockResolvedValue(25) // initiated more than 30 minutes ago
+
     const body = await (await totals()).json()
 
     expect(body).toEqual({
@@ -139,14 +141,41 @@ describe('dashboard totals (B5)', () => {
       refund_amount: 0,
       conversion_rate: 75,
       average_order_value: 100,
+      success_rate: 90,
+      waiting_payments: 60,
+      abandoned_checkouts: 25,
+      in_progress_checkouts: 15,
     })
     expect(db.transaction.groupBy).toHaveBeenCalledWith(expect.objectContaining({ by: ['status'], where: { merchantId: 'm1' } }))
     expect(db.transaction.findMany).not.toHaveBeenCalled()
   })
 
-  it('shows zeros for a merchant with no transactions', async () => {
+  it('shows zeros for a merchant with no transactions, and no success rate yet', async () => {
     db.transaction.groupBy.mockResolvedValue([])
-    expect(await (await totals()).json()).toMatchObject({ total_orders: 0, gross_payment_volume: 0, conversion_rate: 0 })
+    db.transaction.count.mockResolvedValue(0)
+    expect(await (await totals()).json()).toMatchObject({
+      total_orders: 0, gross_payment_volume: 0, conversion_rate: 0, success_rate: null, abandoned_checkouts: 0,
+    })
+  })
+
+  it("doesn't count abandoned checkouts as failures (B13)", async () => {
+    // 9 paid, 1 rejected, 30 checkouts opened and left: 90%, not 9 out of 40.
+    db.transaction.groupBy.mockResolvedValue([
+      { status: 'success', _count: { _all: 9 }, _sum: { amount: 900 } },
+      { status: 'failed', _count: { _all: 1 }, _sum: { amount: 100 } },
+      { status: 'initiated', _count: { _all: 30 }, _sum: { amount: 3000 } },
+    ])
+    db.transaction.count.mockResolvedValue(30)
+
+    const body = await (await totals()).json()
+
+    expect(body.success_rate).toBe(90)
+    expect(body.conversion_rate).toBe(22.5)
+    expect(body.abandoned_checkouts).toBe(30)
+    const { where } = db.transaction.count.mock.calls[0][0]
+    expect(where.AND[0]).toEqual({ merchantId: 'm1' })
+    expect(where.AND[1].status).toBe('initiated')
+    expect(Date.now() - where.AND[1].createdAt.lt.getTime()).toBeGreaterThanOrEqual(30 * 60_000 - 1000)
   })
 
   it('keeps the date range the analytics page already sends', async () => {

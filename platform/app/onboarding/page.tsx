@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { finishOnboarding } from '@/lib/onboarding'
 import { Button } from '@/components/ui/button'
+import { LoadError } from '@/components/ui/load-error'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -12,13 +14,19 @@ export default function OnboardingPage() {
   const [vpa, setVpa] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadFailed, setLoadFailed] = useState(false)
 
-  useEffect(() => {
+  // A failed load is a connection problem, not a sign-out (an ended login is
+  // handled by lib/api.ts), so it offers a retry instead of the login page.
+  function load() {
+    setLoadFailed(false)
     api.me().then(({ merchant }) => {
       if (merchant?.onboarding_complete) router.push('/dashboard')
       if (merchant?.business_name) setBusinessName(merchant.business_name as string)
-    }).catch(() => router.push('/login'))
-  }, [router])
+    }).catch(() => setLoadFailed(true))
+  }
+
+  useEffect(() => { load() }, [])
 
   async function saveBusiness() {
     if (!businessName.trim()) { setError('Business name is required'); return }
@@ -37,9 +45,9 @@ export default function OnboardingPage() {
   async function addUpiAndFinish() {
     if (!vpa.includes('@')) { setError('Enter a valid UPI ID (e.g. shop@paytm)'); return }
     setLoading(true)
+    setError('')
     try {
-      await api.addUpi(vpa)
-      await api.completeOnboarding()
+      await finishOnboarding(api, vpa)
       router.push('/dashboard/links/new')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed')
@@ -56,7 +64,9 @@ export default function OnboardingPage() {
           <p className="mt-1 text-sm text-gray-500">Set up your account — step {step} of 2</p>
         </div>
 
-        {step === 1 ? (
+        {loadFailed ? (
+          <LoadError what="your account" onRetry={load} />
+        ) : step === 1 ? (
           <div className="space-y-4">
             <div>
               <label className="mb-1 block text-xs font-semibold text-gray-500">Business Name</label>
