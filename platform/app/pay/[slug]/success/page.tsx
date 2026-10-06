@@ -11,7 +11,11 @@ const STATES = {
   unknown: { icon: '?', title: 'Payment not found', color: 'text-gray-600', note: 'We could not find this payment.' },
 } as const
 
-export default async function SuccessPage({ params, searchParams }: { params: { slug: string }; searchParams: { txn?: string } }) {
+export default async function SuccessPage(
+  props: { params: Promise<{ slug: string }>; searchParams: Promise<{ txn?: string }> }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   // Always show the status stored in the database, never one taken from the URL.
   const txn = searchParams.txn
     ? await prisma.transaction.findUnique({

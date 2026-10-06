@@ -1,4 +1,8 @@
-export default async function FailedPage({ params, searchParams }: { params: { slug: string }; searchParams: { txn?: string } }) {
+export default async function FailedPage(
+  props: { params: Promise<{ slug: string }>; searchParams: Promise<{ txn?: string }> }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream p-4">
       <div className="w-full max-w-sm rounded-3xl border border-white/80 bg-white/60 p-8 text-center backdrop-blur-md">

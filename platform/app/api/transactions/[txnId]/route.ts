@@ -6,7 +6,8 @@ import { prisma } from '@/lib/prisma'
 import { serializeTransaction } from '@/lib/serializers'
 import { notifyPaymentStatus } from '@/lib/webhooks'
 
-export async function GET(_req: NextRequest, { params }: { params: { txnId: string } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ txnId: string }> }) {
+  const params = await props.params;
   const txn = await prisma.transaction.findUnique({
     where: { txnId: params.txnId },
     include: { paymentLink: { select: { title: true, slug: true, amount: true } }, merchant: { select: { businessName: true, email: true, phone: true } } },
@@ -25,7 +26,8 @@ export async function GET(_req: NextRequest, { params }: { params: { txnId: stri
   return NextResponse.json({ ...serializeTransaction(txn), payment_link: txn.paymentLink, merchant: txn.merchant })
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { txnId: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ txnId: string }> }) {
+  const params = await props.params;
   try {
     const body = await req.json()
     const txn = await prisma.transaction.findUnique({ where: { txnId: params.txnId } })

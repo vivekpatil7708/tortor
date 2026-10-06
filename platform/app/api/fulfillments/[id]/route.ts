@@ -7,7 +7,8 @@ import { serializeFulfillment } from '@/lib/serializers'
 import { notFound, badRequest, handleError } from '@/lib/api-response'
 import { zodMessage } from '@/lib/zod-error'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await requireMerchant()
     const fulfillment = await prisma.fulfillment.findFirst({
@@ -25,7 +26,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await requireMerchant()
     const owner = await getOwnerUser(session.id)

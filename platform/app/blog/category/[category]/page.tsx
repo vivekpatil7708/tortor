@@ -7,13 +7,14 @@ import BlogFooter from '@/components/blog/BlogFooter'
 import ArticleCard from '@/components/blog/ArticleCard'
 import SearchBar from '@/components/blog/SearchBar'
 
-type Props = { params: { category: string } }
+type Props = { params: Promise<{ category: string }> }
 
 export function generateStaticParams() {
   return getBlogCategories().map(c => ({ category: c.toLowerCase() }))
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const category = getBlogCategories().find(c => c.toLowerCase() === params.category.toLowerCase())
   if (!category) return { title: 'Not Found' }
   return {
@@ -23,7 +24,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default function CategoryPage({ params }: Props) {
+export default async function CategoryPage(props: Props) {
+  const params = await props.params;
   const category = getBlogCategories().find(c => c.toLowerCase() === params.category.toLowerCase())
   if (!category) notFound()
 

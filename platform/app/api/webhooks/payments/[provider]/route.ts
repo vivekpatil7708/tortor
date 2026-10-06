@@ -10,8 +10,8 @@ import { processProviderWebhook } from '@/lib/payments/webhook-processor'
  * Responds 2xx to the provider as fast as possible; processing happens
  * inline (idempotent on provider event id).
  */
-export async function POST(req: NextRequest, ctx: { params: { provider: string } }) {
-  const provider = ctx.params.provider
+export async function POST(req: NextRequest, ctx: { params: Promise<{ provider: string }> }) {
+  const provider = (await ctx.params).provider
   if (provider === 'mock' && !mockPaymentsAllowed()) {
     return NextResponse.json({ error: 'Provider not configured' }, { status: 503 })
   }

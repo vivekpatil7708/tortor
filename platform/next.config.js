@@ -1,5 +1,9 @@
+const path = require('path')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // This folder is the app's root. Stops Next.js guessing from stray lockfiles elsewhere on a machine.
+  outputFileTracingRoot: path.join(__dirname),
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },

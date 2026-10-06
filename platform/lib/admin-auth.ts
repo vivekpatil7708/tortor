@@ -17,7 +17,7 @@ export function isAdminEmail(email: string): boolean {
 
 /** True when this browser passed the authenticator-code check for this account. */
 export async function hasAdminSecondFactor(merchantId: string): Promise<boolean> {
-  const token = cookies().get(ADMIN_SECOND_FACTOR_COOKIE)?.value
+  const token = (await cookies()).get(ADMIN_SECOND_FACTOR_COOKIE)?.value
   if (!token) return false
   try {
     const { payload } = await jwtVerify(token, getSecret())
@@ -35,7 +35,8 @@ export async function grantAdminSecondFactor(merchantId: string) {
     .setExpirationTime(`${SECOND_FACTOR_HOURS}h`)
     .sign(getSecret())
 
-  cookies().set(ADMIN_SECOND_FACTOR_COOKIE, token, {
+  const cookieStore = await cookies()
+  cookieStore.set(ADMIN_SECOND_FACTOR_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

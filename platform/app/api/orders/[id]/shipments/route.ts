@@ -8,7 +8,8 @@ import { zodMessage } from '@/lib/zod-error'
 
 // POST /api/orders/[id]/shipments
 // Create a provider-backed shipment (idempotent on request_id).
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await requireMerchant()
     const owner = await getOwnerUser(session.id)

@@ -6,13 +6,14 @@ import BlogNavbar from '@/components/blog/BlogNavbar'
 import BlogFooter from '@/components/blog/BlogFooter'
 import ArticleCard from '@/components/blog/ArticleCard'
 
-type Props = { params: { author: string } }
+type Props = { params: Promise<{ author: string }> }
 
 export function generateStaticParams() {
   return getBlogAuthors().map(a => ({ author: a.slug }))
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const author = getAuthor(params.author)
   if (!author) return { title: 'Not Found' }
   return {
@@ -22,7 +23,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default function AuthorPage({ params }: Props) {
+export default async function AuthorPage(props: Props) {
+  const params = await props.params;
   const author = getAuthor(params.author)
   if (!author) notFound()
 

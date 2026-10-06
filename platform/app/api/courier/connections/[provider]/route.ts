@@ -8,7 +8,8 @@ import { notFound, badRequest, handleError } from '@/lib/api-response'
 import { zodMessage } from '@/lib/zod-error'
 
 // GET /api/courier/connections/[provider] — one connection incl. webhook secret
-export async function GET(_req: NextRequest, { params }: { params: { provider: string } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ provider: string }> }) {
+  const params = await props.params;
   try {
     const session = await requireMerchant()
     const connection = await prisma.courierConnection.findUnique({
@@ -27,7 +28,8 @@ export async function GET(_req: NextRequest, { params }: { params: { provider: s
 
 // PATCH /api/courier/connections/[provider]
 // body: { action: 'test' } | { active: boolean } | courierConnectionSchema fields
-export async function PATCH(req: NextRequest, { params }: { params: { provider: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ provider: string }> }) {
+  const params = await props.params;
   try {
     const session = await requireMerchant()
     const body = await req.json()
@@ -67,7 +69,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { provider: 
 }
 
 // DELETE /api/courier/connections/[provider]
-export async function DELETE(_req: NextRequest, { params }: { params: { provider: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ provider: string }> }) {
+  const params = await props.params;
   try {
     const session = await requireMerchant()
     await deleteCourierConnection(session.id, params.provider)

@@ -5,7 +5,8 @@ import { createFulfillmentSchema } from '@/lib/validators'
 import { handleError, badRequest } from '@/lib/api-response'
 import { zodMessage } from '@/lib/zod-error'
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await requireMerchant()
     const body = createFulfillmentSchema.parse(await req.json())

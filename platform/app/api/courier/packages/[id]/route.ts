@@ -9,7 +9,8 @@ import { zodMessage } from '@/lib/zod-error'
 
 // PATCH /api/courier/packages/[id] — courier package actions
 // body: { action: 'label' | 'pickup' | 'cancel' | 'return' | 'sync', pickup_date?, reason? }
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await requireMerchant()
     const owner = await getOwnerUser(session.id)

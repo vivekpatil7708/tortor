@@ -35,7 +35,7 @@ describe('public payment pages', () => {
   })
 
   it('GET /api/pay/[slug] asks the database for just those fields', async () => {
-    const res = await GET(new Request('http://localhost/api/pay/u3MfoJlCOF'), { params: { slug: 'u3MfoJlCOF' } })
+    const res = await GET(new Request('http://localhost/api/pay/u3MfoJlCOF'), { params: Promise.resolve({ slug: 'u3MfoJlCOF' }) })
 
     expect(res.status).toBe(200)
     expect(db.merchant.findUnique).toHaveBeenCalledWith({ where: { id: 'm1' }, select: CHECKOUT_MERCHANT_FIELDS })
@@ -47,7 +47,7 @@ describe('public payment pages', () => {
 
   it('still hides links of suspended merchants', async () => {
     db.merchant.findUnique.mockResolvedValue({ ...branding, status: 'suspended' })
-    const res = await GET(new Request('http://localhost/api/pay/u3MfoJlCOF'), { params: { slug: 'u3MfoJlCOF' } })
+    const res = await GET(new Request('http://localhost/api/pay/u3MfoJlCOF'), { params: Promise.resolve({ slug: 'u3MfoJlCOF' }) })
     expect(res.status).toBe(403)
   })
 })

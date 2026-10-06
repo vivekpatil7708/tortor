@@ -13,12 +13,12 @@ const mockProvider = new MockPaymentProvider()
  * outgoing webhooks) is exercised. Only available for `mock` provider payments,
  * and for live-mode payments only where mock payments are enabled.
  */
-export async function POST(req: NextRequest, ctx: { params: { session: string } }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ session: string }> }) {
   const body = (await req.json().catch(() => null)) as { event?: string; amount?: number } | null
   const event = body?.event === 'payment.failed' ? 'payment.failed' : 'payment.succeeded'
 
   const payment = await prisma.payment.findUnique({
-    where: { checkoutSessionId: ctx.params.session },
+    where: { checkoutSessionId: (await ctx.params).session },
     include: { order: true },
   })
   if (!payment) return notFound('Checkout not found')

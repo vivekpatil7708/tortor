@@ -13,13 +13,14 @@ import TableOfContents from '@/components/blog/TableOfContents'
 import ReadingProgress from '@/components/blog/ReadingProgress'
 import TagChip from '@/components/blog/TagChip'
 
-type Props = { params: { slug: string } }
+type Props = { params: Promise<{ slug: string }> }
 
 export function generateStaticParams() {
   return BLOG_POSTS.map(p => ({ slug: p.slug }))
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const post = getBlogPost(params.slug)
   if (!post) return { title: 'Not Found' }
   return {
@@ -47,7 +48,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default function BlogPostPage({ params }: Props) {
+export default async function BlogPostPage(props: Props) {
+  const params = await props.params;
   const post = getBlogPost(params.slug)
   if (!post) notFound()
 

@@ -5,7 +5,7 @@ import BlogNavbar from '@/components/blog/BlogNavbar'
 import BlogFooter from '@/components/blog/BlogFooter'
 import ArticleCard from '@/components/blog/ArticleCard'
 
-type Props = { params: { tag: string } }
+type Props = { params: Promise<{ tag: string }> }
 
 export function generateStaticParams() {
   const tags = new Set<string>()
@@ -13,7 +13,8 @@ export function generateStaticParams() {
   return Array.from(tags).map(tag => ({ tag }))
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const tag = decodeURIComponent(params.tag).replace(/-/g, ' ')
   return {
     title: `"${tag}" — ToroPay Blog`,
@@ -22,7 +23,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default function TagPage({ params }: Props) {
+export default async function TagPage(props: Props) {
+  const params = await props.params;
   const tagSlug = params.tag
   const tagLabel = decodeURIComponent(tagSlug).replace(/-/g, ' ')
   const posts = BLOG_POSTS.filter(p =>

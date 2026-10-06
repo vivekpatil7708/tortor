@@ -3,12 +3,12 @@ import { prisma } from '@/lib/prisma'
 import { authorizeApiRequest, logApiRequest } from '@/lib/api-request'
 import { apiError, notFound } from '@/lib/api-response'
 
-export async function GET(req: NextRequest, ctx: { params: { id: string } }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const authorized = await authorizeApiRequest(req, 'read')
   if (authorized instanceof NextResponse) return authorized
   const { auth, mode } = authorized
 
-  const orderId = ctx.params.id
+  const orderId = (await ctx.params).id
   const route = `/api/v1/orders/${orderId}`
 
   const order = await prisma.order.findFirst({

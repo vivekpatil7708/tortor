@@ -30,7 +30,7 @@ function txn(overrides: Record<string, unknown> = {}) {
 
 async function patch(body: Record<string, unknown>) {
   const req = new NextRequest('http://localhost/api/transactions/TXN1', { method: 'PATCH', body: JSON.stringify(body) })
-  const res = await PATCH(req, { params: { txnId: 'TXN1' } })
+  const res = await PATCH(req, { params: Promise.resolve({ txnId: 'TXN1' }) })
   return { status: res.status, json: await res.json() }
 }
 

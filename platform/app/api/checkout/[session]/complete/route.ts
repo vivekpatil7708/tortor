@@ -11,13 +11,13 @@ import { apiError, badRequest, notFound } from '@/lib/api-response'
  *  - (re)initialises the provider payment session
  *  - returns the URL the customer should be sent to
  */
-export async function POST(req: NextRequest, ctx: { params: { session: string } }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ session: string }> }) {
   const body = (await req.json().catch(() => null)) as
     | { name?: string; email?: string; phone?: string; method?: string }
     | null
 
   const view = await updateCheckoutCustomer({
-    checkoutSessionId: ctx.params.session,
+    checkoutSessionId: (await ctx.params).session,
     name: body?.name ?? null,
     email: body?.email ?? null,
     phone: body?.phone ?? null,
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, ctx: { params: { session: string } 
   if (!isSupportedPaymentMethod(method)) return badRequest('Unsupported payment method')
 
   const payment = await prisma.payment.findUnique({
-    where: { checkoutSessionId: ctx.params.session },
+    where: { checkoutSessionId: (await ctx.params).session },
     include: { order: true },
   })
   if (!payment) return notFound('Checkout not found')

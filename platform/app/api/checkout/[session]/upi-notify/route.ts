@@ -8,9 +8,9 @@ import { apiError, notFound } from '@/lib/api-response'
  * Marks the payment as `processing` so the merchant still has to confirm it
  * before the order is considered paid.
  */
-export async function POST(req: NextRequest, ctx: { params: { session: string } }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ session: string }> }) {
   const payment = await prisma.payment.findUnique({
-    where: { checkoutSessionId: ctx.params.session },
+    where: { checkoutSessionId: (await ctx.params).session },
   })
   if (!payment) return notFound('Checkout not found')
   if (payment.provider !== 'upi') return apiError(400, 'Only UPI checkouts support this')

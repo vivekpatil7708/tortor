@@ -8,7 +8,7 @@ import { apiError, notFound } from '@/lib/api-response'
  * Merchant dashboard action: confirm a direct UPI payment as paid.
  * Idempotent — already-paid payments are a safe no-op.
  */
-export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   let merchantId: string
   try {
     merchantId = (await requireSession()).id
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
   }
 
   const payment = await prisma.payment.findFirst({
-    where: { id: ctx.params.id, merchantId },
+    where: { id: (await ctx.params).id, merchantId },
   })
   if (!payment) return notFound('Payment not found')
 

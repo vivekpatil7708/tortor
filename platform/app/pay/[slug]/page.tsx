@@ -22,7 +22,8 @@ async function getLinkData(slug: string) {
   }
 }
 
-export default async function CheckoutPage({ params }: { params: { slug: string } }) {
+export default async function CheckoutPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const data = await getLinkData(params.slug)
   if (!data) notFound()
   return <CheckoutClient data={data} />

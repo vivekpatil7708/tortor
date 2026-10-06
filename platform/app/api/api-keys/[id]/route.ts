@@ -4,10 +4,10 @@ import { prisma } from '@/lib/prisma'
 import { revokeApiKey, rotateApiKey } from '@/lib/api-key'
 import { apiError, notFound } from '@/lib/api-response'
 
-export async function GET(_req: NextRequest, ctx: { params: { id: string } }) {
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireMerchant()
-    const key = await prisma.apiKey.findFirst({ where: { id: ctx.params.id, merchantId: session.id } })
+    const key = await prisma.apiKey.findFirst({ where: { id: (await ctx.params).id, merchantId: session.id } })
     if (!key) return notFound('API key not found')
     return NextResponse.json({
       id: key.id,
@@ -25,19 +25,19 @@ export async function GET(_req: NextRequest, ctx: { params: { id: string } }) {
   }
 }
 
-export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireMerchant()
     const body = (await req.json().catch(() => ({}))) as { action?: string }
 
     if (body.action === 'revoke') {
-      const ok = await revokeApiKey(ctx.params.id, session.id)
+      const ok = await revokeApiKey((await ctx.params).id, session.id)
       if (!ok) return notFound('API key not found')
       return NextResponse.json({ success: true, action: 'revoked' })
     }
 
     if (body.action === 'rotate') {
-      const created = await rotateApiKey(ctx.params.id, session.id)
+      const created = await rotateApiKey((await ctx.params).id, session.id)
       if (!created) return notFound('API key not found')
       return NextResponse.json({ success: true, action: 'rotated', key: created.rawKey, prefix: created.key.keyPrefix })
     }
@@ -49,10 +49,10 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   }
 }
 
-export async function DELETE(_req: NextRequest, ctx: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireMerchant()
-    const ok = await revokeApiKey(ctx.params.id, session.id)
+    const ok = await revokeApiKey((await ctx.params).id, session.id)
     if (!ok) return notFound('API key not found')
     return NextResponse.json({ success: true })
   } catch {

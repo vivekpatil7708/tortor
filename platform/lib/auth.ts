@@ -32,7 +32,8 @@ export async function createSession(merchantId: string, email: string) {
     .setExpirationTime('7d')
     .sign(getSecret())
 
-  cookies().set(COOKIE_NAME, token, {
+  const cookieStore = await cookies()
+  cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -42,9 +43,10 @@ export async function createSession(merchantId: string, email: string) {
 }
 
 export async function destroySession() {
-  cookies().delete(COOKIE_NAME)
-  cookies().delete(IMPERSONATE_COOKIE)
-  cookies().delete(ADMIN_SECOND_FACTOR_COOKIE)
+  const cookieStore = await cookies()
+  cookieStore.delete(COOKIE_NAME)
+  cookieStore.delete(IMPERSONATE_COOKIE)
+  cookieStore.delete(ADMIN_SECOND_FACTOR_COOKIE)
 }
 
 /** Ends every existing login for this account, on all devices. */
@@ -62,7 +64,7 @@ async function getImpersonationInfo(token: string) {
 }
 
 export async function getImpersonation() {
-  const token = cookies().get(IMPERSONATE_COOKIE)?.value
+  const token = (await cookies()).get(IMPERSONATE_COOKIE)?.value
   if (!token) return null
   try {
     return await getImpersonationInfo(token)
@@ -79,7 +81,8 @@ export async function createImpersonationSession(merchantId: string, adminEmail:
     .setExpirationTime('1h')
     .sign(getSecret())
 
-  cookies().set(IMPERSONATE_COOKIE, token, {
+  const cookieStore = await cookies()
+  cookieStore.set(IMPERSONATE_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -89,7 +92,8 @@ export async function createImpersonationSession(merchantId: string, adminEmail:
 }
 
 export async function clearImpersonation() {
-  cookies().delete(IMPERSONATE_COOKIE)
+  const cookieStore = await cookies()
+  cookieStore.delete(IMPERSONATE_COOKIE)
 }
 
 export async function getSession() {
@@ -97,7 +101,7 @@ export async function getSession() {
   // Session version in the login cookie; null for admin "view as merchant".
   let tokenVersion: number | null = null
 
-  const impToken = cookies().get(IMPERSONATE_COOKIE)?.value
+  const impToken = (await cookies()).get(IMPERSONATE_COOKIE)?.value
   if (impToken) {
     try {
       const info = await getImpersonationInfo(impToken)
@@ -108,7 +112,7 @@ export async function getSession() {
   }
 
   if (!merchantId) {
-    const token = cookies().get(COOKIE_NAME)?.value
+    const token = (await cookies()).get(COOKIE_NAME)?.value
     if (!token) return null
     try {
       const { payload } = await jwtVerify(token, getSecret())

@@ -11,7 +11,8 @@ const SIGNATURE_HEADERS: Record<string, string[]> = {
 // POST /api/webhooks/shipping/[provider]
 // Inbound courier tracking webhook. We always ACK 200 after processing so the
 // courier never retries events we have already persisted.
-export async function POST(req: NextRequest, { params }: { params: { provider: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ provider: string }> }) {
+  const params = await props.params;
   try {
     const provider = params.provider
     const rawBody = await req.text()

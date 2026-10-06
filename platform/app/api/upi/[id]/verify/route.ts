@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { serializeUpi } from '@/lib/serializers'
 import { isValidVpa } from '@/lib/upi'
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await requireSession()
     const upi = await prisma.upiId.findFirst({

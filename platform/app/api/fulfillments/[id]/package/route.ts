@@ -6,7 +6,8 @@ import { packageSchema, shipmentEventSchema, statusChangeSchema } from '@/lib/va
 import { notFound, badRequest, handleError } from '@/lib/api-response'
 import { zodMessage } from '@/lib/zod-error'
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await requireMerchant()
     const owner = await getOwnerUser(session.id)
@@ -80,7 +81,8 @@ function resolvePackage(body: Record<string, unknown>, packages: PackageRow[]): 
   ) ?? (packages ?? [])[0]
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await requireMerchant()
     const owner = await getOwnerUser(session.id)
