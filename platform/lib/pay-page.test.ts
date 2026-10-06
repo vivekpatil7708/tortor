@@ -36,7 +36,7 @@ const started = (status: string) => ({ txnId: 'TXN1', amount: 499, status })
 const uses = (paid: number, taken: number) =>
   db.transaction.count.mockImplementation(async ({ where }: { where: { status?: unknown } }) => (where.status === 'success' ? paid : taken))
 
-type CheckoutElement = ReactElement<{ resume: unknown; reason: unknown; business: unknown }>
+type CheckoutElement = ReactElement<{ resume: unknown; reason: unknown; business: unknown; data: { merchant: Record<string, unknown> } }>
 const open = (query: { txn?: string } = {}) =>
   CheckoutPage({ params: Promise.resolve({ slug: 'abc123' }), searchParams: Promise.resolve(query) }) as Promise<CheckoutElement>
 
@@ -53,6 +53,10 @@ describe('reopening a payment after a refresh or the UPI app (B3)', () => {
     const page = await open()
     expect(page.props.resume).toBeNull()
     expect(db.transaction.findFirst).not.toHaveBeenCalled()
+  })
+
+  it('tells the form who the customer is paying (U1)', async () => {
+    expect((await open()).props.data.merchant.business_name).toBe('Asha Crafts')
   })
 
   it('reopens the same payment, with the amount from the database', async () => {
@@ -164,9 +168,17 @@ describe('a link that cannot take payments (B10)', () => {
   })
 })
 
-describe('status page (B2)', () => {
-  const show = async (status: string) => {
-    db.transaction.findUnique.mockResolvedValue({ ...started(status), paymentLink: { slug: 'abc123' } })
+describe('status page (B2, U11)', () => {
+  const stored = (status: string, overrides: Record<string, unknown> = {}) => ({
+    ...started(status),
+    createdAt: new Date('2026-10-07T10:15:00Z'),
+    confirmedAt: status === 'success' ? new Date('2026-10-07T10:20:00Z') : null,
+    paymentLink: { slug: 'abc123', title: 'Order #12' },
+    merchant: { businessName: 'Asha Crafts', businessLogoUrl: null, supportEmail: 'help@ashacrafts.in', supportPhone: '+91 98765 43210' },
+    ...overrides,
+  })
+  const show = async (status: string, overrides: Record<string, unknown> = {}) => {
+    db.transaction.findUnique.mockResolvedValue(stored(status, overrides))
     const page = await StatusPage({ params: Promise.resolve({ slug: 'abc123' }), searchParams: Promise.resolve({ txn: 'TXN1' }) })
     return renderToStaticMarkup(page)
   }
@@ -181,5 +193,53 @@ describe('status page (B2)', () => {
   it("doesn't offer Try again while waiting or after a confirmed payment", async () => {
     expect(await show('pending')).not.toContain('Try again')
     expect(await show('success')).not.toContain('Try again')
+  })
+
+  it('shows a receipt: who was paid, for what, when (India time) and the reference', async () => {
+    const html = await show('success')
+    expect(html).toContain('Payment confirmed')
+    expect(html).toContain('Asha Crafts has confirmed your payment')
+    expect(html).toContain('Order #12')
+    expect(html).toMatch(/7 Oct 2026, 3:45\spm IST/)
+    expect(html).toMatch(/7 Oct 2026, 3:50\spm IST/) // confirmed
+    expect(html).toContain('TXN1')
+    expect(html).toContain('Copy')
+    expect(html).toContain('mailto:help@ashacrafts.in')
+    expect(html).toContain('tel:+919876543210')
+    // The customer never goes to ToroPay's own home page from here.
+    expect(html).not.toContain('Back to home')
+    expect(html).not.toContain('href="/"')
+  })
+
+  it('shows no confirmation time until the seller confirms', async () => {
+    const html = await show('pending')
+    expect(html).toContain('Waiting for confirmation')
+    expect(html).toMatch(/3:45\spm IST/)
+    expect(html).not.toContain('Confirmed')
+  })
+
+  it('works for a business without a name or support contacts', async () => {
+    const html = await show('pending', { merchant: { businessName: '', businessLogoUrl: null, supportEmail: null, supportPhone: null } })
+    expect(html).toContain('The seller will confirm your payment')
+    expect(html).not.toContain('Paid to')
+    expect(html).not.toContain('Questions about this payment')
+  })
+
+  it('loads only public business details, never the login email or phone', async () => {
+    await show('success')
+    const select = db.transaction.findUnique.mock.calls[0][0].select
+    expect(select.merchant.select).toEqual({ businessName: true, businessLogoUrl: true, supportEmail: true, supportPhone: true })
+  })
+
+  it("shows nothing about a payment from another link, or one that doesn't exist", async () => {
+    const other = await show('success', { paymentLink: { slug: 'other1', title: 'Other' } })
+    expect(other).toContain('Payment not found')
+    expect(other).not.toContain('TXN1')
+    expect(other).not.toContain('Asha Crafts')
+
+    db.transaction.findUnique.mockResolvedValue(null)
+    const missing = renderToStaticMarkup(await StatusPage({ params: Promise.resolve({ slug: 'abc123' }), searchParams: Promise.resolve({ txn: 'NOPE' }) }))
+    expect(missing).toContain('Payment not found')
+    expect(missing).not.toContain('Try again')
   })
 })
