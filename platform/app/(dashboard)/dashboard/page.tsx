@@ -173,15 +173,16 @@ export default function DashboardPage() {
         onConfirmCheckout={p => { setConfirmError(''); setConfirmTarget(p) }}
       />
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Two by two on phones, so the totals don't push everything else down (U25). */}
+      <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {cards.map(({ label, value, note, icon: Icon, bg, color }: { label: string; value: string | number; note?: string; icon: typeof Link2; bg: string; color: string }) => (
-          <div key={label} className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-500">{label}</span>
-              <div className={`${bg} ${color} rounded-xl p-2.5`}><Icon className="h-4 w-4" /></div>
+          <div key={label} className="rounded-2xl border border-white/80 bg-white/60 p-4 backdrop-blur-sm sm:p-6">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-gray-500 sm:text-sm">{label}</span>
+              <div className={`${bg} ${color} hidden rounded-xl p-2.5 sm:block`}><Icon className="h-4 w-4" /></div>
             </div>
-            <p className="mt-3 text-2xl font-bold tracking-tight">{value}</p>
-            {note && <p className="mt-1 text-xs text-gray-400">{note}</p>}
+            <p className="mt-2 text-xl font-bold tracking-tight sm:mt-3 sm:text-2xl">{value}</p>
+            {note && <p className="mt-1 text-xs text-gray-500">{note}</p>}
           </div>
         ))}
       </div>

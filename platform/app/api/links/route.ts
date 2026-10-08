@@ -1,24 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
 import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
+import { linkLimitsInput } from '@/lib/link-limits'
 import { linkAmountInput } from '@/lib/money'
 import { prisma } from '@/lib/prisma'
 import { serializeLink } from '@/lib/serializers'
 import { generateSlug } from '@/lib/utils'
 import { isValidRedirectUrl } from '@/lib/validate-url'
 import { isValidWebhookUrl } from '@/lib/safe-fetch'
-import { publicErrorMessage } from '@/lib/api-response'
+import { handleError, publicErrorMessage } from '@/lib/api-response'
 
 export async function GET() {
   try {
     const session = await requireSession()
-    const links = await prisma.paymentLink.findMany({
-      where: { merchantId: session.id },
-      orderBy: { createdAt: 'desc' },
-    })
-    return NextResponse.json(links.map(serializeLink))
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const [links, paid] = await Promise.all([
+      prisma.paymentLink.findMany({
+        where: { merchantId: session.id },
+        orderBy: { createdAt: 'desc' },
+      }),
+      // What each link has brought in, counted in the database in one go.
+      prisma.transaction.groupBy({
+        by: ['paymentLinkId'],
+        where: { merchantId: session.id, status: 'success', paymentLinkId: { not: null } },
+        _count: { _all: true },
+        _sum: { amount: true },
+      }),
+    ])
+    const byLink = new Map(paid.map(p => [p.paymentLinkId, p]))
+    return NextResponse.json(links.map(link => {
+      const totals = byLink.get(link.id)
+      return {
+        ...serializeLink(link),
+        paid_count: totals?._count._all ?? 0,
+        paid_total: Math.round((totals?._sum.amount ?? 0) * 100) / 100,
+      }
+    }))
+  } catch (err) {
+    return handleError(err, 'Could not load your links')
   }
 }
 
@@ -61,6 +79,9 @@ export async function POST(req: NextRequest) {
     if (minAmount.ok && maxAmount.ok && minAmount.value && maxAmount.value && minAmount.value > maxAmount.value) {
       return NextResponse.json({ error: "The minimum amount can't be more than the maximum" }, { status: 400 })
     }
+    // Optional limits: a bad number or date used to reach the database as is.
+    const limits = linkLimitsInput(body.max_uses, body.expiry_at)
+    if (!limits.ok) return NextResponse.json({ error: limits.error }, { status: 400 })
 
     const slug = body.slug || generateSlug()
     const link = await prisma.paymentLink.create({
@@ -74,8 +95,8 @@ export async function POST(req: NextRequest) {
         minAmount: minAmount.ok ? minAmount.value : null,
         maxAmount: maxAmount.ok ? maxAmount.value : null,
         customFields: JSON.stringify(body.custom_fields || []),
-        expiryAt: body.expiry_at ? new Date(body.expiry_at) : null,
-        maxUses: body.max_uses != null ? Number(body.max_uses) : null,
+        expiryAt: limits.expiryAt,
+        maxUses: limits.maxUses,
         buttonText: body.button_text || null,
         redirectUrl: body.redirect_url || null,
         webhookUrl: body.webhook_url || null,

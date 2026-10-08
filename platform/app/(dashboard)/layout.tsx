@@ -15,16 +15,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <ToastProvider>
-      <div className="flex min-h-screen overflow-x-hidden bg-cream">
+      {/* Printing (a link's poster) shows only the page itself. */}
+      <div className="flex min-h-screen overflow-x-hidden bg-cream print:block print:min-h-0 print:bg-white">
         {impersonation && (
-          <div className="fixed inset-x-0 top-0 z-50">
+          <div className="fixed inset-x-0 top-0 z-50 print:hidden">
             <AdminViewBanner merchantEmail={session.email} adminEmail={impersonation.adminEmail} />
           </div>
         )}
         <Sidebar />
-        <main className="flex-1 overflow-auto pt-16 lg:pt-0">
-          <div className="mx-auto max-w-6xl px-4 py-4 sm:px-8 sm:py-8">
-            {!session.emailVerifiedAt && !impersonation && <VerifyEmailBanner email={session.email} />}
+        <main className="flex-1 overflow-auto pt-16 lg:pt-0 print:overflow-visible print:pt-0">
+          <div className="mx-auto max-w-6xl px-4 py-4 sm:px-8 sm:py-8 print:max-w-none print:p-0">
+            {!session.emailVerifiedAt && !impersonation && <div className="print:hidden"><VerifyEmailBanner email={session.email} /></div>}
             {children}
           </div>
         </main>

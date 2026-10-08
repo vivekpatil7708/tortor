@@ -17,8 +17,16 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
     })
     if (!link) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     // What counts against a use limit: paid payments, and ones still in progress.
-    const { paid, inProgress } = await linkUses(prisma, link.id)
-    return NextResponse.json({ ...serializeLink(link), paid_count: paid, in_progress_count: inProgress })
+    const [{ paid, inProgress }, received] = await Promise.all([
+      linkUses(prisma, link.id),
+      prisma.transaction.aggregate({ where: { paymentLinkId: link.id, status: 'success' }, _sum: { amount: true } }),
+    ])
+    return NextResponse.json({
+      ...serializeLink(link),
+      paid_count: paid,
+      in_progress_count: inProgress,
+      paid_total: Math.round((received._sum.amount ?? 0) * 100) / 100,
+    })
   } catch (err) {
     return handleError(err, 'Could not load the link')
   }
