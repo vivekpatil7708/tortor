@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
+import { amountRangeHint } from '@/lib/checkout-form'
+import { istDayKey } from '@/lib/ist-day'
+import { expiryMoment, limitsProblem, rangeProblem } from '@/lib/link-limits'
 import { LoadError } from '@/components/ui/load-error'
 import { Button } from '@/components/ui/button'
-import { Zap, ShoppingBag, ChevronDown, Check, ArrowRight } from 'lucide-react'
+import { Zap, ShoppingBag, ChevronDown, ArrowRight } from 'lucide-react'
 
 interface CustomField {
   name: string
@@ -33,12 +36,13 @@ const emptyProduct = (): ProductItem => ({
 })
 
 const inputClass =
-  'w-full rounded-xl border border-gray-200 bg-white/80 px-4 py-3.5 text-base text-charcoal outline-none transition-all placeholder:text-gray-300 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10'
+  'w-full rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-base text-charcoal outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10'
 
 export default function NewLinkPage() {
   const router = useRouter()
   const [merchant, setMerchant] = useState<Record<string, unknown> | null>(null)
   const [upis, setUpis] = useState<Record<string, unknown>[]>([])
+  const [upisLoaded, setUpisLoaded] = useState(false)
   const [upisFailed, setUpisFailed] = useState(false)
   const [mode, setMode] = useState<'quick' | 'sell'>('quick')
 
@@ -48,9 +52,15 @@ export default function NewLinkPage() {
     redirect_url: '', webhook_url: '',
   })
   const [sell, setSell] = useState({ unit_price: '', quantity: '1', customer_updates_qty: false })
+  // Optional: stop after this many paid payments, and/or at the end of a day.
+  const [limits, setLimits] = useState({ max_uses: '', expires_on: '' })
   const [fields, setFields] = useState<CustomField[]>([])
   const [products, setProducts] = useState<ProductItem[]>([])
   const [advancedOpen, setAdvancedOpen] = useState(false)
+
+  const [newVpa, setNewVpa] = useState('')
+  const [addingUpi, setAddingUpi] = useState(false)
+  const [upiAddError, setUpiAddError] = useState('')
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -61,6 +71,7 @@ export default function NewLinkPage() {
     setUpisFailed(false)
     api.getUpis().then(upiList => {
       setUpis(upiList)
+      setUpisLoaded(true)
       const primary = upiList.find(u => u.is_primary) || upiList[0]
       if (primary) setForm(f => ({ ...f, upi_id: primary.vpa as string }))
     }).catch(() => setUpisFailed(true))
@@ -96,6 +107,23 @@ export default function NewLinkPage() {
     }
   }, [])
 
+  /** Adds a UPI ID without leaving the form, and picks it for this link. */
+  async function addUpiHere() {
+    if (addingUpi || !newVpa.trim()) return
+    setAddingUpi(true)
+    setUpiAddError('')
+    try {
+      const { upi } = await api.addUpi(newVpa.trim())
+      setUpis(prev => [...prev, upi])
+      setForm(f => ({ ...f, upi_id: upi.vpa as string }))
+      setNewVpa('')
+    } catch (err: unknown) {
+      setUpiAddError(err instanceof Error ? err.message : 'Could not add this UPI ID')
+    } finally {
+      setAddingUpi(false)
+    }
+  }
+
   function addField() {
     setFields([...fields, { name: '', label: '', type: 'text', required: false, options: [] }])
   }
@@ -127,6 +155,7 @@ export default function NewLinkPage() {
   const unitPrice = Number(sell.unit_price) || 0
   const quantity = Math.max(1, Number(sell.quantity) || 1)
   const sellTotal = unitPrice * quantity
+  const customerAmount = mode === 'quick' && form.amount_flexible
 
   function titleError() {
     if (!touched.title && form.title) return ''
@@ -137,7 +166,7 @@ export default function NewLinkPage() {
     return form.upi_id ? '' : 'Select the UPI ID you want to receive money on'
   }
   function amountError() {
-    if (mode !== 'quick') return ''
+    if (mode !== 'quick' || form.amount_flexible) return ''
     if (!touched.amount && form.amount) return ''
     const a = Number(form.amount)
     if (!form.amount) return 'Enter the amount your customer should pay'
@@ -159,19 +188,27 @@ export default function NewLinkPage() {
     if (isNaN(q) || q < 1) return 'Quantity must be at least 1'
     return ''
   }
+  const rangeError = customerAmount ? rangeProblem(form.min_amount, form.max_amount) : ''
+  const limitsError = limitsProblem(limits.max_uses, limits.expires_on)
 
-  const canSubmit =
-    (form.title.trim() ? true : false) &&
-    (form.upi_id ? true : false) &&
-    (mode === 'quick'
-      ? (form.amount !== '' && Number(form.amount) > 0)
-      : (unitPrice > 0 && Number(sell.quantity) >= 1))
+  // Why "Create" can't be pressed yet, shown next to it on every screen size (U23).
+  const missing =
+    !form.title.trim() ? 'Add a title to continue'
+    : !form.upi_id ? (upis.length ? 'Choose a UPI ID to continue' : 'Add a UPI ID to continue')
+    : mode === 'quick'
+      ? (!form.amount_flexible && !(Number(form.amount) > 0) ? 'Add the amount to continue' : rangeError)
+      : unitPrice <= 0 ? 'Add the unit price to continue'
+      : Number(sell.quantity) < 1 ? 'Add a quantity to continue'
+      : ''
+  const blocker = missing || limitsError
+  const canSubmit = !blocker
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const errs = { title: titleError(), upi: upiError(), amount: amountError(), unit: unitPriceError(), qty: quantityError() }
-    if (Object.values(errs).some(Boolean)) {
+    if (Object.values(errs).some(Boolean) || blocker) {
       setTouched({ title: true, upi_id: true, amount: true, unit_price: true, quantity: true })
+      if (limitsError) setAdvancedOpen(true)
       return
     }
     setSaving(true)
@@ -198,17 +235,22 @@ export default function NewLinkPage() {
         upi_id: form.upi_id,
         title: form.title,
         description: form.description || null,
-        amount: mode === 'quick' ? (form.amount ? Number(form.amount) : null) : (sell.customer_updates_qty ? null : sellTotal),
-        amount_flexible: mode === 'quick' ? form.amount_flexible : false,
-        min_amount: mode === 'quick' ? (form.min_amount ? Number(form.min_amount) : null) : null,
-        max_amount: mode === 'quick' ? (form.max_amount ? Number(form.max_amount) : null) : null,
+        amount: mode === 'quick'
+          ? (!form.amount_flexible && form.amount ? Number(form.amount) : null)
+          : (sell.customer_updates_qty ? null : sellTotal),
+        amount_flexible: customerAmount,
+        min_amount: customerAmount && form.min_amount ? Number(form.min_amount) : null,
+        max_amount: customerAmount && form.max_amount ? Number(form.max_amount) : null,
         button_text: form.button_text || null,
         custom_fields: customFields.filter(f => f._type === 'products' || (f.name && f.label)),
         redirect_url: form.redirect_url || null,
         webhook_url: form.webhook_url || null,
+        max_uses: limits.max_uses.trim() ? Number(limits.max_uses) : null,
+        expiry_at: expiryMoment(limits.expires_on),
       }
-      await api.createLink(payload)
-      router.push('/dashboard/links')
+      const { link } = await api.createLink(payload)
+      // Straight to the new link, ready to share.
+      router.push(`/dashboard/links/${link.id as string}?created=1`)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create link')
     } finally {
@@ -237,7 +279,10 @@ export default function NewLinkPage() {
         sub: `${quantity} item${quantity > 1 ? 's' : ''} × ₹${unitPrice.toLocaleString('en-IN')} = ₹${sellTotal.toLocaleString('en-IN')}`,
       }
     }
-    if (form.amount_flexible) return { main: '₹___', sub: 'Customer enters any amount' }
+    if (form.amount_flexible) {
+      const range = rangeError ? '' : amountRangeHint(Number(form.min_amount) || null, Number(form.max_amount) || null)
+      return { main: '₹___', sub: range ? `Customer enters the amount · ${range}` : 'Customer enters the amount' }
+    }
     const amt = Number(form.amount) || 0
     return { main: amt > 0 ? `₹${amt.toLocaleString('en-IN')}` : '₹___', sub: amt > 0 ? '' : 'Enter an amount' }
   }
@@ -245,126 +290,142 @@ export default function NewLinkPage() {
   const preview = previewAmount()
   const showPreviewQty = mode === 'sell' && sell.customer_updates_qty
   const effectiveQty = Math.min(Math.max(1, previewQty), Math.max(1, quantity))
+  const createLabel = saving ? 'Creating...' : (mode === 'sell' ? 'Create & Share Link' : 'Create Payment Link')
+  const choiceClass = (on: boolean) =>
+    `rounded-lg px-3 py-2 text-sm font-semibold transition-all ${on ? 'bg-charcoal text-white shadow-sm' : 'text-gray-600 hover:text-charcoal'}`
 
   return (
-    <div className="mx-auto max-w-xl pb-24 md:pb-0">
+    <div className="mx-auto max-w-xl pb-28 md:pb-0 lg:max-w-5xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Create Payment Link</h1>
         <p className="text-sm text-gray-500">Done in under a minute. Pick a mode and fill the basics.</p>
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-white/80 bg-white/60 p-1.5 backdrop-blur-sm">
-        <button type="button" onClick={() => setMode('quick')}
-          className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${mode === 'quick' ? 'bg-charcoal text-white shadow-md' : 'text-gray-500 hover:text-charcoal'}`}>
-          <Zap className="h-4 w-4" /> Quick Link
-        </button>
-        <button type="button" onClick={() => setMode('sell')}
-          className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${mode === 'sell' ? 'bg-charcoal text-white shadow-md' : 'text-gray-500 hover:text-charcoal'}`}>
-          <ShoppingBag className="h-4 w-4" /> Sell Items
-        </button>
-      </div>
-
-      <div className="mb-6 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Live Preview</p>
-          <span className="flex items-center gap-1 text-[10px] font-semibold text-green-600"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />Updates live</span>
-        </div>
-        <div className="rounded-xl border bg-white/80 p-6 text-center shadow-sm">
-          {(merchant?.business_logo_url as string) && (
-            <img src={merchant?.business_logo_url as string} className="mx-auto mb-3 h-10 object-contain" alt="" />
-          )}
-          <p className="text-lg font-bold" style={{ color: secondaryColor }}>{form.title || 'Your Payment Page'}</p>
-          {form.description && <p className="mt-1 text-xs text-gray-400 line-clamp-1">{form.description}</p>}
-          <div className="my-4">
-            <div className="text-4xl font-extrabold tracking-tight" style={{ color: secondaryColor }}>{preview.main}</div>
-            {preview.sub && <p className="mt-1 text-xs text-gray-400">{preview.sub}</p>}
-          </div>
-          {showPreviewQty && unitPrice > 0 && (
-            <div className="mx-auto mb-3 flex w-fit items-center gap-3 rounded-full border border-gray-200 bg-gray-50 px-2 py-1">
-              <button type="button" onClick={() => setPreviewQty(prev => Math.max(1, prev - 1))}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-base font-bold text-charcoal shadow-sm">−</button>
-              <span className="min-w-6 text-center text-sm font-bold">{effectiveQty}</span>
-              <button type="button" onClick={() => setPreviewQty(prev => Math.min(Math.max(1, quantity), prev + 1))}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-base font-bold text-charcoal shadow-sm">+</button>
-            </div>
-          )}
-          <button type="button" className={`w-full py-3 text-base font-bold text-white ${btnRadius}`} style={{ backgroundColor: primaryColor }}>
-            {buttonText}
-          </button>
-          <p className="mt-3 text-xs text-gray-400">Powered by ToroPay</p>
-        </div>
-      </div>
-
+      {/* The form, with its live preview beside it on wide screens and below it on phones (U23). */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8">
       <form onSubmit={handleSubmit}>
+        <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-white/80 bg-white/60 p-1.5 backdrop-blur-sm">
+          <button type="button" onClick={() => setMode('quick')} aria-pressed={mode === 'quick'}
+            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${mode === 'quick' ? 'bg-charcoal text-white shadow-md' : 'text-gray-500 hover:text-charcoal'}`}>
+            <Zap className="h-4 w-4" /> Quick Link
+          </button>
+          <button type="button" onClick={() => setMode('sell')} aria-pressed={mode === 'sell'}
+            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${mode === 'sell' ? 'bg-charcoal text-white shadow-md' : 'text-gray-500 hover:text-charcoal'}`}>
+            <ShoppingBag className="h-4 w-4" /> Sell Items
+          </button>
+        </div>
+
         <div className="space-y-5 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-gray-700">Title <span className="text-red-400">*</span></label>
-            <input value={form.title} onChange={e => { setForm({ ...form, title: e.target.value }); setTouched({ ...touched, title: true }) }}
+            <label htmlFor="link-title" className="mb-1.5 block text-sm font-semibold text-gray-700">Title <span className="text-red-400">*</span></label>
+            <input id="link-title" value={form.title} onChange={e => { setForm({ ...form, title: e.target.value }); setTouched({ ...touched, title: true }) }}
               placeholder={mode === 'sell' ? 'e.g. Premium Tiffin Pack' : 'e.g. Website Design Fee'}
               className={inputClass} />
-            {touched.title && titleError() && <p className="mt-1.5 text-xs text-red-500">{titleError()}</p>}
-            {!touched.title && <p className="mt-1.5 text-xs text-gray-400">Shown to your customer at checkout.</p>}
+            {touched.title && titleError() && <p className="mt-1.5 text-xs text-red-600">{titleError()}</p>}
+            {!touched.title && <p className="mt-1.5 text-xs text-gray-500">Shown to your customer at checkout.</p>}
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-gray-700">UPI ID <span className="text-red-400">*</span></label>
-            <select value={form.upi_id} onChange={e => { setForm({ ...form, upi_id: e.target.value }); setTouched({ ...touched, upi_id: true }) }}
-              className={`${inputClass} ${!form.upi_id ? 'text-gray-400' : ''}`}>
-              <option value="">Select UPI ID</option>
-              {upis.map(u => <option key={u.id as string} value={u.vpa as string}>{u.vpa as string}</option>)}
-            </select>
-            {upisFailed
-              ? <LoadError what="your UPI IDs" onRetry={loadUpis} className="mt-2" />
-              : upis.length === 0 && <p className="mt-1.5 text-xs text-amber-600">No UPI IDs yet. <a href="/dashboard/upi" className="underline">Add one first</a>.</p>}
-            {touched.upi_id && upiError() && <p className="mt-1.5 text-xs text-red-500">{upiError()}</p>}
-            {!touched.upi_id && upis.length > 0 && <p className="mt-1.5 text-xs text-gray-400">Money comes directly to this UPI ID.</p>}
+            <label htmlFor="link-upi" className="mb-1.5 block text-sm font-semibold text-gray-700">UPI ID <span className="text-red-400">*</span></label>
+            {upis.length > 0 && (
+              <select id="link-upi" value={form.upi_id} onChange={e => { setForm({ ...form, upi_id: e.target.value }); setTouched({ ...touched, upi_id: true }) }}
+                className={`${inputClass} ${!form.upi_id ? 'text-gray-400' : ''}`}>
+                <option value="">Select UPI ID</option>
+                {upis.map(u => <option key={u.id as string} value={u.vpa as string}>{u.vpa as string}</option>)}
+              </select>
+            )}
+            {upisFailed && <LoadError what="your UPI IDs" onRetry={loadUpis} className="mt-2" />}
+            {upisLoaded && upis.length === 0 && (
+              // No UPI ID yet: add one here instead of leaving the form.
+              <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4">
+                <p className="text-sm text-amber-900">Add the UPI ID you want customers to pay into.</p>
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                  <input id="link-upi" value={newVpa} onChange={e => setNewVpa(e.target.value)} placeholder="yourname@okaxis"
+                    autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addUpiHere() } }}
+                    className={inputClass} />
+                  <Button type="button" onClick={addUpiHere} disabled={addingUpi || !newVpa.trim()}>{addingUpi ? 'Adding…' : 'Add UPI ID'}</Button>
+                </div>
+                {upiAddError && <p className="mt-1.5 text-xs text-red-600">{upiAddError}</p>}
+              </div>
+            )}
+            {touched.upi_id && upiError() && <p className="mt-1.5 text-xs text-red-600">{upiError()}</p>}
+            {!touched.upi_id && upis.length > 0 && <p className="mt-1.5 text-xs text-gray-500">Money comes directly to this UPI ID.</p>}
           </div>
 
           {mode === 'quick' ? (
             <>
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Amount (₹) <span className="text-red-400">*</span></label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-gray-400">₹</span>
-                  <input type="number" min="1" inputMode="decimal" value={form.amount}
-                    onChange={e => { setForm({ ...form, amount: e.target.value }); setTouched({ ...touched, amount: true }) }}
-                    placeholder="500"
-                    className={`${inputClass} pl-9`} />
+              <fieldset>
+                <legend className="mb-1.5 block text-sm font-semibold text-gray-700">Amount <span className="text-red-400">*</span></legend>
+                <div className="mb-3 inline-flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
+                  <button type="button" aria-pressed={!form.amount_flexible} onClick={() => setForm({ ...form, amount_flexible: false })}
+                    className={choiceClass(!form.amount_flexible)}>Fixed amount</button>
+                  <button type="button" aria-pressed={form.amount_flexible} onClick={() => setForm({ ...form, amount_flexible: true })}
+                    className={choiceClass(form.amount_flexible)}>Customer enters amount</button>
                 </div>
-                {touched.amount && amountError() && <p className="mt-1.5 text-xs text-red-500">{amountError()}</p>}
-                {!touched.amount && <p className="mt-1.5 text-xs text-gray-400">Fixed amount your customer pays.</p>}
-              </div>
+                {form.amount_flexible ? (
+                  <div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="link-min" className="mb-1 block text-xs font-semibold text-gray-600">Minimum (₹, optional)</label>
+                        <input id="link-min" type="number" min="1" inputMode="decimal" value={form.min_amount}
+                          onChange={e => setForm({ ...form, min_amount: e.target.value })} placeholder="10" className={inputClass} />
+                      </div>
+                      <div>
+                        <label htmlFor="link-max" className="mb-1 block text-xs font-semibold text-gray-600">Maximum (₹, optional)</label>
+                        <input id="link-max" type="number" min="1" inputMode="decimal" value={form.max_amount}
+                          onChange={e => setForm({ ...form, max_amount: e.target.value })} placeholder="5000" className={inputClass} />
+                      </div>
+                    </div>
+                    {rangeError
+                      ? <p className="mt-1.5 text-xs text-red-600">{rangeError}</p>
+                      : <p className="mt-1.5 text-xs text-gray-500">Good for donations, advances and custom orders. The customer types the amount.</p>}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-gray-400">₹</span>
+                      <input id="link-amount" aria-label="Amount in rupees" type="number" min="1" inputMode="decimal" value={form.amount}
+                        onChange={e => { setForm({ ...form, amount: e.target.value }); setTouched({ ...touched, amount: true }) }}
+                        placeholder="500"
+                        className={`${inputClass} pl-9`} />
+                    </div>
+                    {touched.amount && amountError() && <p className="mt-1.5 text-xs text-red-600">{amountError()}</p>}
+                    {!touched.amount && <p className="mt-1.5 text-xs text-gray-500">Fixed amount your customer pays.</p>}
+                  </div>
+                )}
+              </fieldset>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Button Text</label>
-                <input value={form.button_text} onChange={e => setForm({ ...form, button_text: e.target.value })}
+                <label htmlFor="link-button" className="mb-1.5 block text-sm font-semibold text-gray-700">Button Text</label>
+                <input id="link-button" value={form.button_text} onChange={e => setForm({ ...form, button_text: e.target.value })}
                   placeholder="e.g. Pay Now, Book, Donate"
                   className={inputClass} />
-                <p className="mt-1.5 text-xs text-gray-400">Shown on the pay button. Default: &quot;Continue to Pay&quot;.</p>
+                <p className="mt-1.5 text-xs text-gray-500">Shown on the pay button. Default: &quot;Continue to Pay&quot;.</p>
               </div>
             </>
           ) : (
             <>
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Unit Price (₹) <span className="text-red-400">*</span></label>
+                <label htmlFor="link-unit-price" className="mb-1.5 block text-sm font-semibold text-gray-700">Unit Price (₹) <span className="text-red-400">*</span></label>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-gray-400">₹</span>
-                  <input type="number" min="1" inputMode="decimal" value={sell.unit_price}
+                  <input id="link-unit-price" type="number" min="1" inputMode="decimal" value={sell.unit_price}
                     onChange={e => { setSell({ ...sell, unit_price: e.target.value }); setTouched({ ...touched, unit_price: true }) }}
                     placeholder="250"
                     className={`${inputClass} pl-9`} />
                 </div>
-                {touched.unit_price && unitPriceError() && <p className="mt-1.5 text-xs text-red-500">{unitPriceError()}</p>}
-                {!touched.unit_price && <p className="mt-1.5 text-xs text-gray-400">Price for a single item.</p>}
+                {touched.unit_price && unitPriceError() && <p className="mt-1.5 text-xs text-red-600">{unitPriceError()}</p>}
+                {!touched.unit_price && <p className="mt-1.5 text-xs text-gray-500">Price for a single item.</p>}
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">{sell.customer_updates_qty ? 'Max Quantity' : 'Quantity'} <span className="text-red-400">*</span></label>
-                <input type="number" min="1" inputMode="numeric" value={sell.quantity}
+                <label htmlFor="link-quantity" className="mb-1.5 block text-sm font-semibold text-gray-700">{sell.customer_updates_qty ? 'Max Quantity' : 'Quantity'} <span className="text-red-400">*</span></label>
+                <input id="link-quantity" type="number" min="1" inputMode="numeric" value={sell.quantity}
                   onChange={e => { setSell({ ...sell, quantity: e.target.value }); setTouched({ ...touched, quantity: true }) }}
                   className={inputClass} />
-                {touched.quantity && quantityError() && <p className="mt-1.5 text-xs text-red-500">{quantityError()}</p>}
-                {!touched.quantity && <p className="mt-1.5 text-xs text-gray-400">{sell.customer_updates_qty ? `The most a customer can buy. Total is price × quantity, updated live.` : 'How many items this link sells.'}</p>}
+                {touched.quantity && quantityError() && <p className="mt-1.5 text-xs text-red-600">{quantityError()}</p>}
+                {!touched.quantity && <p className="mt-1.5 text-xs text-gray-500">{sell.customer_updates_qty ? `The most a customer can buy. Total is price × quantity, updated live.` : 'How many items this link sells.'}</p>}
               </div>
 
               <div className="rounded-xl border border-primary-500/20 bg-primary-50/60 px-4 py-3">
@@ -375,16 +436,16 @@ export default function NewLinkPage() {
                   </span>
                 </div>
                 {unitPrice > 0 && quantity >= 1 && (
-                  <p className="mt-0.5 text-xs text-gray-400">{quantity} × ₹{unitPrice.toLocaleString('en-IN')} = ₹{sellTotal.toLocaleString('en-IN')}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">{quantity} × ₹{unitPrice.toLocaleString('en-IN')} = ₹{sellTotal.toLocaleString('en-IN')}</p>
                 )}
               </div>
 
               <div className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 bg-white/70 p-4">
                 <div>
                   <p className="text-sm font-semibold text-gray-700">Customer can update quantity</p>
-                  <p className="mt-0.5 text-xs text-gray-400">Fixed unit price. Let buyers choose how many items to pay for at checkout (up to {quantity >= 1 ? quantity : '—'}).</p>
+                  <p className="mt-0.5 text-xs text-gray-500">Fixed unit price. Let buyers choose how many items to pay for at checkout (up to {quantity >= 1 ? quantity : '—'}).</p>
                 </div>
-                <button type="button" role="switch" aria-checked={sell.customer_updates_qty}
+                <button type="button" role="switch" aria-checked={sell.customer_updates_qty} aria-label="Customer can update quantity"
                   onClick={() => setSell({ ...sell, customer_updates_qty: !sell.customer_updates_qty })}
                   className={`relative h-7 w-12 flex-shrink-0 rounded-full transition-colors ${sell.customer_updates_qty ? 'bg-primary-500' : 'bg-gray-300'}`}>
                   <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${sell.customer_updates_qty ? 'left-[22px]' : 'left-0.5'}`} />
@@ -393,7 +454,7 @@ export default function NewLinkPage() {
             </>
           )}
 
-          <button type="button" onClick={() => setAdvancedOpen(!advancedOpen)}
+          <button type="button" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen}
             className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm font-semibold text-gray-600 transition-colors hover:bg-white">
             <span>Advanced options</span>
             <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
@@ -402,26 +463,45 @@ export default function NewLinkPage() {
           {advancedOpen && (
             <div className="space-y-5 border-t border-gray-100 pt-5">
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Description</label>
-                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3}
+                <label htmlFor="link-description" className="mb-1.5 block text-sm font-semibold text-gray-700">Description</label>
+                <textarea id="link-description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3}
                   placeholder="Optional short note about this payment."
                   className={`${inputClass} resize-none`} />
               </div>
 
+              <fieldset>
+                <legend className="mb-1.5 block text-sm font-semibold text-gray-700">Limits</legend>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="link-max-uses" className="mb-1 block text-xs font-semibold text-gray-600">Stop after (paid payments)</label>
+                    <input id="link-max-uses" type="number" min="1" step="1" inputMode="numeric" value={limits.max_uses}
+                      onChange={e => setLimits({ ...limits, max_uses: e.target.value })} placeholder="No limit" className={inputClass} />
+                  </div>
+                  <div>
+                    <label htmlFor="link-expires" className="mb-1 block text-xs font-semibold text-gray-600">Expires on</label>
+                    <input id="link-expires" type="date" min={istDayKey(new Date())} value={limits.expires_on}
+                      onChange={e => setLimits({ ...limits, expires_on: e.target.value })} className={inputClass} />
+                  </div>
+                </div>
+                {limitsError
+                  ? <p className="mt-1.5 text-xs text-red-600">{limitsError}</p>
+                  : <p className="mt-1.5 text-xs text-gray-500">Optional. The link stops taking payments after this many paid payments, or once that day ends.</p>}
+              </fieldset>
+
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Redirect URL</label>
-                <input value={form.redirect_url} onChange={e => setForm({ ...form, redirect_url: e.target.value })}
+                <label htmlFor="link-redirect" className="mb-1.5 block text-sm font-semibold text-gray-700">Redirect URL</label>
+                <input id="link-redirect" value={form.redirect_url} onChange={e => setForm({ ...form, redirect_url: e.target.value })}
                   placeholder="https://yourapp.com/thank-you"
                   className={inputClass} />
-                <p className="mt-1.5 text-xs text-gray-400">Send the customer here after a successful payment.</p>
+                <p className="mt-1.5 text-xs text-gray-500">Send the customer here after a successful payment.</p>
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Webhook URL</label>
-                <input value={form.webhook_url} onChange={e => setForm({ ...form, webhook_url: e.target.value })}
+                <label htmlFor="link-webhook" className="mb-1.5 block text-sm font-semibold text-gray-700">Webhook URL</label>
+                <input id="link-webhook" value={form.webhook_url} onChange={e => setForm({ ...form, webhook_url: e.target.value })}
                   placeholder="https://yourapp.com/webhook/toropay"
                   className={inputClass} />
-                <p className="mt-1.5 text-xs text-gray-400">Receive payment events on your server.</p>
+                <p className="mt-1.5 text-xs text-gray-500">Receive payment events on your server.</p>
               </div>
 
               <div>
@@ -434,12 +514,12 @@ export default function NewLinkPage() {
                     <div key={i} className="rounded-xl border border-gray-100 bg-white/60 p-4">
                       <div className="flex items-start gap-3">
                         <div className="flex-1 space-y-2">
-                          <input placeholder="Field name" value={f.name} onChange={e => updateField(i, 'name', e.target.value)}
+                          <input placeholder="Field name" aria-label="Field name" value={f.name} onChange={e => updateField(i, 'name', e.target.value)}
                             className="w-full rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
-                          <input placeholder="Label" value={f.label} onChange={e => updateField(i, 'label', e.target.value)}
+                          <input placeholder="Label" aria-label="Field label" value={f.label} onChange={e => updateField(i, 'label', e.target.value)}
                             className="w-full rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
                           <div className="flex gap-2">
-                            <select value={f.type} onChange={e => updateField(i, 'type', e.target.value)}
+                            <select value={f.type} aria-label="Field type" onChange={e => updateField(i, 'type', e.target.value)}
                               className="rounded-lg border border-gray-200 bg-white/80 px-2 py-2.5 text-sm outline-none">
                               <option value="text">Text</option>
                               <option value="number">Number</option>
@@ -447,7 +527,7 @@ export default function NewLinkPage() {
                               <option value="multiselect">Multi-select</option>
                             </select>
                             {f.type === 'multiselect' && (
-                              <input placeholder="Options (comma-separated)" value={(f.options || []).join(', ')}
+                              <input placeholder="Options (comma-separated)" aria-label="Options" value={(f.options || []).join(', ')}
                                 onChange={e => updateField(i, 'options', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
                                 className="flex-1 rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
                             )}
@@ -463,7 +543,7 @@ export default function NewLinkPage() {
                       </div>
                     </div>
                   ))}
-                  {fields.length === 0 && <p className="text-xs text-gray-400">Collect extra info like email or booking date.</p>}
+                  {fields.length === 0 && <p className="text-xs text-gray-500">Collect extra info like email or booking date.</p>}
                 </div>
               </div>
 
@@ -473,7 +553,7 @@ export default function NewLinkPage() {
                   <button type="button" onClick={addProduct} className="text-sm font-semibold text-primary-600 hover:underline">+ Add item</button>
                 </div>
                 {products.length === 0 ? (
-                  <p className="text-xs text-gray-400">Add products to build a multi-item order form (used with the Sell Items mode).</p>
+                  <p className="text-xs text-gray-500">Add products to build a multi-item order form (used with the Sell Items mode).</p>
                 ) : (
                   <div className="space-y-3">
                     {products.map((p, i) => (
@@ -483,30 +563,30 @@ export default function NewLinkPage() {
                           <button type="button" onClick={() => removeProduct(i)} className="text-xs font-medium text-red-500">Remove</button>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
-                          <input placeholder="Name *" required value={p.name} onChange={e => updateProduct(i, 'name', e.target.value)}
+                          <input placeholder="Name *" aria-label="Item name" required value={p.name} onChange={e => updateProduct(i, 'name', e.target.value)}
                             className="col-span-2 rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
-                          <input placeholder="Category" value={p.category} onChange={e => updateProduct(i, 'category', e.target.value)}
+                          <input placeholder="Category" aria-label="Item category" value={p.category} onChange={e => updateProduct(i, 'category', e.target.value)}
                             className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
-                          <input type="number" placeholder="Price (₹)" value={p.price} onChange={e => updateProduct(i, 'price', e.target.value)}
+                          <input type="number" placeholder="Price (₹)" aria-label="Item price in rupees" value={p.price} onChange={e => updateProduct(i, 'price', e.target.value)}
                             className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
-                          <input type="number" min="1" placeholder="Max qty (optional)" value={p.quantity || ''} onChange={e => updateProduct(i, 'quantity', e.target.value)}
+                          <input type="number" min="1" placeholder="Max qty (optional)" aria-label="Most a customer can buy" value={p.quantity || ''} onChange={e => updateProduct(i, 'quantity', e.target.value)}
                             className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
-                          <textarea placeholder="Description" value={p.description} onChange={e => updateProduct(i, 'description', e.target.value)} rows={2}
+                          <textarea placeholder="Description" aria-label="Item description" value={p.description} onChange={e => updateProduct(i, 'description', e.target.value)} rows={2}
                             className="col-span-2 rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none resize-none" />
-                          <select value={p.delivery} onChange={e => updateProduct(i, 'delivery', e.target.value)}
+                          <select value={p.delivery} aria-label="Delivery" onChange={e => updateProduct(i, 'delivery', e.target.value)}
                             className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none">
                             <option value="delivery">Delivery</option>
                             <option value="pickup">Pickup</option>
                             <option value="both">Both</option>
                             <option value="digital">Digital</option>
                           </select>
-                          <select value={p.availability} onChange={e => updateProduct(i, 'availability', e.target.value)}
+                          <select value={p.availability} aria-label="Availability" onChange={e => updateProduct(i, 'availability', e.target.value)}
                             className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none">
                             <option value="in-stock">In Stock</option>
                             <option value="out-of-stock">Out of Stock</option>
                             <option value="pre-order">Pre-order</option>
                           </select>
-                          <label className="col-span-2 flex items-center gap-3 rounded-lg border border-dashed border-gray-200 px-3 py-2.5 text-sm text-gray-400">
+                          <label className="col-span-2 flex items-center gap-3 rounded-lg border border-dashed border-gray-200 px-3 py-2.5 text-sm text-gray-500">
                             <input type="file" accept="image/*" className="hidden" onChange={e => {
                               const file = e.target.files?.[0]
                               if (file) {
@@ -527,13 +607,14 @@ export default function NewLinkPage() {
             </div>
           )}
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
-          <div className="hidden md:flex gap-3 pt-2">
-            <Button type="submit" disabled={saving || !canSubmit} size="lg" className="flex-1">
-              {saving ? 'Creating...' : (mode === 'sell' ? 'Create & Share Link' : 'Create Payment Link')}
-            </Button>
-            <Button type="button" variant="secondary" size="lg" onClick={() => router.push('/dashboard/links')}>Cancel</Button>
+          <div className="hidden pt-2 md:block">
+            <div className="flex gap-3">
+              <Button type="submit" disabled={saving || !canSubmit} size="lg" className="flex-1">{createLabel}</Button>
+              <Button type="button" variant="secondary" size="lg" onClick={() => router.push('/dashboard/links')}>Cancel</Button>
+            </div>
+            {blocker && <p className="mt-2 text-xs text-gray-500">{blocker}</p>}
           </div>
         </div>
 
@@ -541,14 +622,45 @@ export default function NewLinkPage() {
           <button type="submit" disabled={saving || !canSubmit}
             className="flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-bold text-white shadow-lg disabled:opacity-50"
             style={{ backgroundColor: canSubmit ? primaryColor : '#d1d5db' }}>
-            {saving ? 'Creating...' : (mode === 'sell' ? 'Create & Share Link' : 'Create Payment Link')}
+            {createLabel}
             {!saving && <ArrowRight className="h-4 w-4" />}
           </button>
-          <p className="mt-2 text-center text-[11px] text-gray-400">
-            {!form.title ? 'Add a title to continue' : !form.upi_id ? 'Select a UPI ID to continue' : mode === 'quick' ? (!form.amount ? 'Add the amount to continue' : '') : (unitPrice <= 0 ? 'Add unit price to continue' : Number(sell.quantity) < 1 ? 'Add quantity to continue' : '')}
-          </p>
+          {blocker && <p className="mt-2 text-center text-xs text-gray-500">{blocker}</p>}
         </div>
       </form>
+
+      <aside aria-label="Live preview" className="mt-6 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm lg:sticky lg:top-8 lg:mt-0">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Live Preview</p>
+          <span className="flex items-center gap-1 text-xs font-semibold text-green-700"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />Updates live</span>
+        </div>
+        <div className="rounded-xl border bg-white/80 p-6 text-center shadow-sm">
+          {(merchant?.business_logo_url as string) && (
+            <img src={merchant?.business_logo_url as string} className="mx-auto mb-3 h-10 object-contain" alt="" />
+          )}
+          {(merchant?.business_name as string) && <p className="mb-1 text-xs font-semibold text-gray-500">{merchant?.business_name as string}</p>}
+          <p className="text-lg font-bold" style={{ color: secondaryColor }}>{form.title || 'Your Payment Page'}</p>
+          {form.description && <p className="mt-1 text-xs text-gray-500 line-clamp-1">{form.description}</p>}
+          <div className="my-4">
+            <div className="text-4xl font-extrabold tracking-tight" style={{ color: secondaryColor }}>{preview.main}</div>
+            {preview.sub && <p className="mt-1 text-xs text-gray-500">{preview.sub}</p>}
+          </div>
+          {showPreviewQty && unitPrice > 0 && (
+            <div className="mx-auto mb-3 flex w-fit items-center gap-3 rounded-full border border-gray-200 bg-gray-50 px-2 py-1">
+              <button type="button" aria-label="One less" onClick={() => setPreviewQty(prev => Math.max(1, prev - 1))}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-base font-bold text-charcoal shadow-sm">−</button>
+              <span className="min-w-6 text-center text-sm font-bold">{effectiveQty}</span>
+              <button type="button" aria-label="One more" onClick={() => setPreviewQty(prev => Math.min(Math.max(1, quantity), prev + 1))}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-base font-bold text-charcoal shadow-sm">+</button>
+            </div>
+          )}
+          <button type="button" tabIndex={-1} aria-hidden className={`w-full py-3 text-base font-bold text-white ${btnRadius}`} style={{ backgroundColor: primaryColor }}>
+            {buttonText}
+          </button>
+          <p className="mt-3 text-xs text-gray-500">You pay {(merchant?.business_name as string) || 'the seller'} directly with UPI.</p>
+        </div>
+      </aside>
+      </div>
     </div>
   )
 }
