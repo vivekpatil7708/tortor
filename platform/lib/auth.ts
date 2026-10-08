@@ -145,6 +145,8 @@ export async function getSession() {
       pageTheme: true,
       customDomain: true,
       bgImageUrl: true,
+      supportEmail: true,
+      supportPhone: true,
       status: true,
       onboardingComplete: true,
       emailVerifiedAt: true,
@@ -179,6 +181,8 @@ export function merchantToJson(m: {
   pageTheme: string
   customDomain: string | null
   bgImageUrl: string | null
+  supportEmail?: string | null
+  supportPhone?: string | null
   status: string
   onboardingComplete: boolean
   emailVerifiedAt?: Date | null
@@ -197,6 +201,9 @@ export function merchantToJson(m: {
     button_style: m.buttonStyle,
     page_theme: m.pageTheme,
     custom_domain: m.customDomain,
+    // Public contact details customers see on receipts and closed links (Settings → Business profile).
+    support_email: m.supportEmail ?? null,
+    support_phone: m.supportPhone ?? null,
     status: m.status,
     onboarding_complete: m.onboardingComplete,
     email_verified: Boolean(m.emailVerifiedAt),

@@ -3,6 +3,7 @@ import { getSession, merchantToJson, requireSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { publicErrorMessage } from '@/lib/api-response'
 import { imageValueProblem } from '@/lib/image-input'
+import { supportEmailInput, supportPhoneInput } from '@/lib/support-contact'
 
 export async function GET() {
   const session = await getSession()
@@ -34,7 +35,18 @@ export async function PATCH(req: NextRequest) {
     }
 
     const data: Record<string, unknown> = {}
-    if (body.business_name !== undefined) data.businessName = body.business_name
+    if (body.business_name !== undefined) data.businessName = String(body.business_name ?? '').trim().slice(0, 100)
+    // Support contacts are shown to customers, so they must be a real email and phone (or empty).
+    if (body.support_email !== undefined) {
+      const email = supportEmailInput(body.support_email)
+      if (!email.ok) return NextResponse.json({ error: email.error }, { status: 400 })
+      data.supportEmail = email.value
+    }
+    if (body.support_phone !== undefined) {
+      const phone = supportPhoneInput(body.support_phone)
+      if (!phone.ok) return NextResponse.json({ error: phone.error }, { status: 400 })
+      data.supportPhone = phone.value
+    }
     if (body.business_logo_url !== undefined) data.businessLogoUrl = body.business_logo_url
     if (body.brand_color_primary !== undefined) data.brandColorPrimary = body.brand_color_primary
     if (body.brand_color_secondary !== undefined) data.brandColorSecondary = body.brand_color_secondary

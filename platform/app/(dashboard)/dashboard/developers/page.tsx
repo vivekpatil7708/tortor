@@ -2,7 +2,67 @@
 
 import { useEffect, useState } from 'react'
 import { Copy, Check, Plus, RotateCcw, Trash2, KeyRound } from 'lucide-react'
+import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { LoadError } from '@/components/ui/load-error'
+
+/** The webhook signing secret (moved here from Settings). Saving sends only this setting. */
+function WebhookSecret() {
+  const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading')
+  const [secret, setSecret] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  function load() {
+    setState('loading')
+    api.getSettings()
+      .then(s => { setSecret(String(s.webhook_secret ?? '')); setState('ready') })
+      .catch(() => setState('failed'))
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault()
+    if (state !== 'ready' || saving) return
+    setSaving(true)
+    setError('')
+    setMessage('')
+    try {
+      const { settings } = await api.saveSettings({ webhook_secret: secret })
+      setSecret(String(settings.webhook_secret ?? ''))
+      setMessage('Webhook secret saved')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not save the webhook secret')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
+      <h2 className="mb-1 font-bold">Webhook signing secret</h2>
+      <p className="mb-4 text-sm text-gray-500">
+        Every webhook is signed in the X-ToroPay-Signature header. To check signatures on your server,
+        enter your own secret here and use the same value there.
+      </p>
+      {state === 'failed' && <LoadError what="your webhook secret" onRetry={load} />}
+      {state === 'loading' && <p className="text-sm text-gray-400">Loading…</p>}
+      {state === 'ready' && (
+        <form onSubmit={save} className="space-y-3">
+          <label htmlFor="webhook-secret" className="sr-only">Webhook signing secret</label>
+          <input id="webhook-secret" value={secret} onChange={e => setSecret(e.target.value)} autoComplete="off" spellCheck={false}
+            placeholder="Created automatically with your first webhook"
+            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 font-mono text-sm outline-none focus:border-gray-500" />
+          {error && <p role="alert" className="text-sm text-red-600">Couldn&apos;t save: {error}</p>}
+          {message && <p role="status" className="text-sm text-green-700">{message}</p>}
+          <Button type="submit" size="sm" disabled={saving}>{saving ? 'Saving…' : 'Save secret'}</Button>
+        </form>
+      )}
+    </section>
+  )
+}
 
 interface ApiKey {
   id: string
@@ -199,6 +259,8 @@ export default function DevelopersPage() {
           ))}
         </div>
       )}
+
+      <WebhookSecret />
     </div>
   )
 }

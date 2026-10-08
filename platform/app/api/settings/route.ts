@@ -39,6 +39,19 @@ export async function PUT(req: NextRequest) {
         ? existing?.webhookSecret ?? null
         : body.webhook_secret || null
 
+    // Only the settings sent are changed: Developers saves just the webhook secret and
+    // Settings just the notifications, so neither can reset the other (e.g. turn alerts off).
+    const sent = (key: string) => Object.prototype.hasOwnProperty.call(body, key)
+    const changes = {
+      ...(sent('sms_enabled') ? { smsEnabled: Boolean(body.sms_enabled) } : {}),
+      ...(sent('email_enabled') ? { emailEnabled: Boolean(body.email_enabled) } : {}),
+      ...(sent('auto_settlement') ? { autoSettlement: Boolean(body.auto_settlement) } : {}),
+      ...(sent('settlement_frequency') ? { settlementFrequency: body.settlement_frequency || 'daily' } : {}),
+      ...(sent('notification_email') ? { notificationEmail: notificationEmail || null } : {}),
+      ...(sent('notification_phone') ? { notificationPhone: body.notification_phone || null } : {}),
+      ...(sent('webhook_secret') ? { webhookSecret } : {}),
+    }
+
     const settings = await prisma.merchantSettings.upsert({
       where: { merchantId: session.id },
       create: {
@@ -51,15 +64,7 @@ export async function PUT(req: NextRequest) {
         notificationPhone: body.notification_phone || null,
         webhookSecret,
       },
-      update: {
-        smsEnabled: Boolean(body.sms_enabled),
-        emailEnabled: Boolean(body.email_enabled),
-        autoSettlement: Boolean(body.auto_settlement),
-        settlementFrequency: body.settlement_frequency || 'daily',
-        notificationEmail: notificationEmail || null,
-        notificationPhone: body.notification_phone || null,
-        webhookSecret,
-      },
+      update: changes,
     })
 
     return NextResponse.json({ settings: serializeSettings(settings) })
