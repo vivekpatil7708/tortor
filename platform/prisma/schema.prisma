@@ -81,6 +81,7 @@ enum WebhookEventState {
   processing
   processed
   failed_processing
+  skipped
   duplicate
   bad_signature
 }
@@ -609,6 +610,7 @@ enum CourierWebhookEventState {
   processing
   processed
   failed_processing
+  skipped
   duplicate
   bad_signature
   out_of_order
