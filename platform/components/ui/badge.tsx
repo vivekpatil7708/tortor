@@ -5,7 +5,7 @@ const styles: Record<string, string> = {
   yellow: 'bg-amber-50 text-amber-700 ring-amber-200',
   blue: 'bg-blue-50 text-blue-700 ring-blue-200',
   red: 'bg-red-50 text-red-700 ring-red-200',
-  gray: 'bg-gray-100 text-gray-600 ring-gray-200',
+  gray: 'bg-gray-100 text-gray-700 ring-gray-200',
 }
 
 export type BadgeTone = keyof typeof styles
@@ -22,7 +22,7 @@ export function statusTone(status: string): BadgeTone {
 export function Badge({ tone, className, children }: { tone?: BadgeTone; className?: string; children: React.ReactNode }) {
   const t = tone ?? statusTone(String(children ?? '').replace(/[_]/g, ' '))
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset', styles[t], className)}>
+    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-[13px] font-semibold ring-1 ring-inset', styles[t], className)}>
       {children}
     </span>
   )

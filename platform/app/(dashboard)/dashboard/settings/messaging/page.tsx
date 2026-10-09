@@ -106,7 +106,7 @@ export default function MessagingTemplatesPage() {
         <h1 className="mb-6 text-2xl font-bold tracking-tight">Messaging Templates</h1>
         {templatesState === 'failed'
           ? <LoadError what="your message templates" onRetry={loadTemplates} />
-          : <p className="text-sm text-gray-400">Loading…</p>}
+          : <p className="text-sm text-gray-500">Loading…</p>}
       </div>
     )
   }
@@ -168,7 +168,7 @@ export default function MessagingTemplatesPage() {
           </div>
 
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-            <p className="mb-2 text-xs font-semibold text-gray-400">Available Variables</p>
+            <p className="mb-2 text-xs font-semibold text-gray-500">Available Variables</p>
             <div className="flex flex-wrap gap-1">
               {SUPPORTED_VARIABLES.map(v => (
                 <code key={v} className="rounded-md bg-white px-1.5 py-0.5 text-xs text-gray-500">{`{{${v}}}`}</code>
@@ -179,7 +179,7 @@ export default function MessagingTemplatesPage() {
 
         {showPreview && (
           <div className="rounded-2xl border border-white/80 bg-white/60 p-5 backdrop-blur-sm">
-            <p className="mb-3 text-xs font-semibold text-gray-400">LIVE PREVIEW</p>
+            <p className="mb-3 text-xs font-semibold text-gray-500">LIVE PREVIEW</p>
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
               {renderedSubject && <p className="mb-2 text-xs font-medium text-gray-600">Subject: {renderedSubject}</p>}
               <p className="whitespace-pre-wrap text-sm text-gray-700">{renderedBody}</p>

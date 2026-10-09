@@ -144,7 +144,7 @@ export default function TransactionsPage() {
       {exportError && <p className="mb-4 text-sm text-red-500">Export failed: {exportError}</p>}
 
       <div className="relative mb-3 w-full sm:max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" aria-hidden />
         <input type="search" value={search} maxLength={MAX_SEARCH} onChange={e => setSearch(e.target.value)}
           placeholder="Search name, phone or reference" aria-label="Search payments by name, phone or reference"
           className="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-200" />
@@ -162,22 +162,22 @@ export default function TransactionsPage() {
         <div className="flex items-center gap-2 text-xs">
           <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} aria-label="From date"
             className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 outline-none" />
-          <span className="text-gray-400">to</span>
+          <span className="text-gray-500">to</span>
           <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} aria-label="To date"
             className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 outline-none" />
           {(fromDate || toDate) && (
             <button onClick={() => { setFromDate(''); setToDate('') }}
-              className="text-gray-400 hover:text-charcoal">Clear</button>
+              className="text-gray-500 hover:text-charcoal">Clear</button>
           )}
         </div>
       </div>
 
       {total !== null && txns.length > 0 && (
-        <p className="mb-2 text-xs text-gray-400">Showing {txns.length} of {total}</p>
+        <p className="mb-2 text-xs text-gray-500">Showing {txns.length} of {total}</p>
       )}
 
       {txns.length === 0 ? (
-        <div className="rounded-2xl border border-white/80 bg-white/60 p-12 text-center text-sm text-gray-400 backdrop-blur-sm">
+        <div className="rounded-2xl border border-white/80 bg-white/60 p-12 text-center text-sm text-gray-500 backdrop-blur-sm">
           {loadError ? (
             <>Couldn&apos;t load transactions. <button onClick={reload} className="font-semibold text-charcoal underline">Retry</button></>
           ) : loading ? 'Loading…' : query ? `No payments match "${query}".` : 'No transactions found.'}

@@ -86,18 +86,18 @@ export default function CheckoutClient({ data, resume }: Props) {
   const headingColor = isDark ? undefined : secondaryColor
   const theme = isDark
     ? {
-        card: 'border-white/10 bg-gray-900/95 text-white', muted: 'text-white/75', subtle: 'text-white/60',
+        card: 'border-white/10 bg-gray-900/95 text-white', muted: 'text-white/80', subtle: 'text-white/70',
         panel: 'border-white/15 bg-white/5', selected: 'border-white/70 bg-white/15',
         control: 'border-white/20 bg-white/10', ghost: 'border-white/20 bg-white/10 hover:bg-white/20',
-        input: 'border-white/30 bg-white/10 text-white placeholder:text-white/40 focus:border-white/70 focus:ring-white/20',
+        input: 'border-white/40 bg-white/10 text-white placeholder:text-white/50 focus:border-white/80 focus:ring-white/30',
         strong: 'bg-white text-gray-900', footer: 'border-white/10 bg-gray-900/95', error: 'text-red-300',
         inStock: 'text-green-400', outOfStock: 'text-red-300', preOrder: 'text-amber-300',
       }
     : {
-        card: 'border-white bg-white/95 text-charcoal', muted: 'text-gray-600', subtle: 'text-gray-500',
+        card: 'border-white bg-white/95 text-charcoal', muted: 'text-gray-700', subtle: 'text-gray-600',
         panel: 'border-gray-200 bg-gray-50', selected: 'border-gray-500 bg-white ring-1 ring-gray-400',
         control: 'border-gray-300 bg-white', ghost: 'border-gray-200 bg-white hover:bg-gray-50',
-        input: 'border-gray-400 bg-white text-charcoal placeholder:text-gray-400 focus:border-gray-600 focus:ring-gray-200',
+        input: 'border-gray-400 bg-white text-charcoal placeholder:text-gray-500 focus:border-gray-700 focus:ring-primary-200',
         strong: 'bg-charcoal text-white', footer: 'border-gray-200 bg-white/95', error: 'text-red-600',
         inStock: 'text-green-700', outOfStock: 'text-red-600', preOrder: 'text-amber-700',
       }
@@ -341,7 +341,7 @@ export default function CheckoutClient({ data, resume }: Props) {
     ? <img src={merchant.business_logo_url} className="mx-auto mb-2 h-12 object-contain" alt="" />
     : null
   const trustLine = (
-    <p className={`mt-5 flex items-start justify-center gap-1.5 text-center text-xs ${theme.subtle}`}>
+    <p className={`mt-5 flex items-start justify-center gap-1.5 text-center text-[13px] ${theme.subtle}`}>
       <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
       <span>You pay {seller} directly with UPI. ToroPay never holds your money.</span>
     </p>
@@ -362,7 +362,7 @@ export default function CheckoutClient({ data, resume }: Props) {
           </div>
 
           <div className={`mb-5 rounded-2xl border px-4 py-3 ${theme.panel}`}>
-            <p className={`text-xs ${theme.subtle}`}>Paying</p>
+            <p className={`text-[13px] ${theme.subtle}`}>Paying</p>
             {payeeName && <p className="font-semibold">{payeeName}</p>}
             <div className="mt-0.5 flex items-center justify-between gap-2">
               <span className="break-all font-mono text-sm">{link.upi_id}</span>
@@ -388,7 +388,7 @@ export default function CheckoutClient({ data, resume }: Props) {
                   style={{ backgroundColor: primaryColor }}>
                   Pay {formatAmount(amount)} with any UPI app
                 </button>
-                <p className={`mb-2 mt-3 text-xs ${theme.subtle}`}>Or open a specific app</p>
+                <p className={`mb-2 mt-3 text-[13px] ${theme.subtle}`}>Or open a specific app</p>
                 <div className="grid grid-cols-3 gap-2">
                   {UPI_APPS.map(app => (
                     <button key={app.name} onClick={() => openUpi(app.name)}
@@ -411,7 +411,7 @@ export default function CheckoutClient({ data, resume }: Props) {
               <div className={`text-center ${COMPUTER_ONLY}`}>
                 <p className="mb-3 text-sm font-semibold">1. Scan with any UPI app on your phone</p>
                 <img src={qrSrc} className="mx-auto h-52 w-52 rounded-xl bg-white p-2" alt={qrAlt} />
-                <p className={`mt-2 text-xs ${theme.subtle}`}>Google Pay, PhonePe, Paytm, BHIM and other UPI apps all work.</p>
+                <p className={`mt-2 text-[13px] ${theme.subtle}`}>Google Pay, PhonePe, Paytm, BHIM and other UPI apps all work.</p>
               </div>
 
               <div className={`mt-5 rounded-2xl border p-4 ${theme.panel}`}>
@@ -435,7 +435,7 @@ export default function CheckoutClient({ data, resume }: Props) {
             </p>
           )}
 
-          <div className={`mt-5 flex flex-wrap items-center justify-center gap-2 text-xs ${theme.subtle}`}>
+          <div className={`mt-5 flex flex-wrap items-center justify-center gap-2 text-[13px] ${theme.subtle}`}>
             <span>Reference: <span className="font-mono">{txnId}</span></span>
             <CopyButton text={txnId} label="Copy" className={`border ${theme.ghost}`} />
           </div>

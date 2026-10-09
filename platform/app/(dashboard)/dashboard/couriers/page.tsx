@@ -108,7 +108,7 @@ export default function CourierIntegrationsPage() {
       {msg && <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700">{msg}</div>}
 
       {loading ? (
-        <p className="text-sm text-gray-400">Loading integrations…</p>
+        <p className="text-sm text-gray-500">Loading integrations…</p>
       ) : (
         <div className="grid gap-5 lg:grid-cols-2">
           {supported.map(info => (
@@ -226,7 +226,7 @@ function CourierCard({ info, connection, onChanged, onFlash, copied, onCopy }: {
           </div>
           <p className="mt-1 text-xs text-gray-500">{info.description}</p>
         </div>
-        <div className="flex shrink-0 gap-1 text-[10px] font-bold uppercase text-gray-400">
+        <div className="flex shrink-0 gap-1 text-[10px] font-bold uppercase text-gray-500">
           {info.supports_label && <span className="rounded-full bg-gray-100 px-2 py-0.5">Label</span>}
           {info.supports_pickup && <span className="rounded-full bg-gray-100 px-2 py-0.5">Pickup</span>}
           {info.supports_rto && <span className="rounded-full bg-gray-100 px-2 py-0.5">RTO</span>}
@@ -283,7 +283,7 @@ function CourierCard({ info, connection, onChanged, onFlash, copied, onCopy }: {
             <span className="text-gray-500">Webhook URL</span>
             <div className="flex min-w-0 items-center gap-1.5">
               <code className="truncate font-mono text-[11px] text-gray-600">{webhook}</code>
-              <button onClick={() => onCopy(webhook, `url-${info.id}`)} className="text-gray-400 hover:text-charcoal">
+              <button onClick={() => onCopy(webhook, `url-${info.id}`)} className="text-gray-500 hover:text-charcoal">
                 {copied === `url-${info.id}` ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
               </button>
             </div>
@@ -294,16 +294,16 @@ function CourierCard({ info, connection, onChanged, onFlash, copied, onCopy }: {
               <span className="text-gray-500">Webhook secret</span>
               <div className="flex min-w-0 items-center gap-1.5">
                 <code className={cn('truncate font-mono text-[11px]', reveal ? 'text-gray-700' : 'select-none text-gray-300 blur-[3px]')}>{connection.webhook_secret}</code>
-                <button onClick={() => onCopy(connection.webhook_secret ?? '', `sec-${info.id}`)} className="shrink-0 text-gray-400 hover:text-charcoal">
+                <button onClick={() => onCopy(connection.webhook_secret ?? '', `sec-${info.id}`)} className="shrink-0 text-gray-500 hover:text-charcoal">
                   {copied === `sec-${info.id}` ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
                 </button>
-                <button onClick={() => setReveal(v => !v)} className="shrink-0 text-gray-400 hover:text-charcoal">{reveal ? 'Hide' : 'Show'}</button>
+                <button onClick={() => setReveal(v => !v)} className="shrink-0 text-gray-500 hover:text-charcoal">{reveal ? 'Hide' : 'Show'}</button>
               </div>
             </div>
           )}
 
           {connection.last_tested_at && (
-            <p className="text-gray-400">Last tested · {formatDateTime(connection.last_tested_at)}</p>
+            <p className="text-gray-500">Last tested · {formatDateTime(connection.last_tested_at)}</p>
           )}
         </div>
       )}

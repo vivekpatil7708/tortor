@@ -46,7 +46,7 @@ export default function LinkDetailPage() {
       <div className="mt-2 space-y-1.5 border-t border-gray-100 pt-2">
         {products && products.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-gray-400">Products</p>
+            <p className="text-xs font-semibold text-gray-500">Products</p>
             {products.map((p, i) => (
               <div key={i} className="flex items-center justify-between rounded bg-gray-100 px-3 py-1 text-xs">
                 <span>{p.name}{p.category ? ` (${p.category})` : ''}{p.quantity && p.quantity > 1 ? ` × ${p.quantity}` : ''}</span>
@@ -57,15 +57,15 @@ export default function LinkDetailPage() {
         )}
         {otherFields.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-gray-400">Custom Fields</p>
+            <p className="text-xs font-semibold text-gray-500">Custom Fields</p>
             {otherFields.map(([k, v]) => (
               <div key={k} className="rounded bg-gray-100 px-3 py-1 text-xs">
-                <span className="text-gray-400">{k}:</span> {String(v)}
+                <span className="text-gray-500">{k}:</span> {String(v)}
               </div>
             ))}
           </div>
         )}
-        {note && <div className="rounded bg-gray-100 px-3 py-1 text-xs"><span className="text-gray-400">Note:</span> {note}</div>}
+        {note && <div className="rounded bg-gray-100 px-3 py-1 text-xs"><span className="text-gray-500">Note:</span> {note}</div>}
       </div>
     )
   }
@@ -103,7 +103,7 @@ export default function LinkDetailPage() {
   if (!link) {
     return linkFailed
       ? <LoadError what="this payment link" onRetry={loadLink} />
-      : <div className="text-sm text-gray-400">Loading...</div>
+      : <div className="text-sm text-gray-500">Loading...</div>
   }
 
   const slug = link.slug as string
@@ -165,7 +165,7 @@ export default function LinkDetailPage() {
             <span className="text-right font-semibold">
               {paidCount}{link.max_uses ? ` of ${link.max_uses}` : ''}
               {paidCount > 0 && <span className="font-normal text-gray-500"> · {formatAmount(Number(link.paid_total ?? 0))} received</span>}
-              {Number(link.in_progress_count ?? 0) > 0 && <span className="font-normal text-gray-400"> · {Number(link.in_progress_count)} in progress</span>}
+              {Number(link.in_progress_count ?? 0) > 0 && <span className="font-normal text-gray-500"> · {Number(link.in_progress_count)} in progress</span>}
             </span>
           </div>
           {Boolean(link.expiry_at) && (
@@ -182,7 +182,7 @@ export default function LinkDetailPage() {
       <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
         <h2 className="mb-3 font-bold">Transactions ({total ?? txns.length})</h2>
         {txns.length === 0 ? (
-          <p className="py-4 text-center text-sm text-gray-400">
+          <p className="py-4 text-center text-sm text-gray-500">
             {txnsError ? (
               <>Couldn&apos;t load transactions. <button onClick={reload} className="font-semibold text-charcoal underline">Retry</button></>
             ) : txnsLoading ? 'Loading…' : 'No transactions yet.'}
@@ -201,7 +201,7 @@ export default function LinkDetailPage() {
                     <Link href={paymentHref(t)} className="text-sm font-semibold hover:underline">
                       {(t.customer_name as string) || 'Anonymous'} · {(t.customer_phone as string) || '—'}
                     </Link>
-                    <p className="break-words text-xs text-gray-400">{t.txn_id as string} · {formatDate(t.created_at as string)}</p>
+                    <p className="break-words text-xs text-gray-500">{t.txn_id as string} · {formatDate(t.created_at as string)}</p>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-sm font-bold">{formatAmount(Number(t.amount))}</p>
@@ -210,7 +210,7 @@ export default function LinkDetailPage() {
                 </div>
                 {hasDetails && (
                   <button onClick={() => toggleExpand(tid)}
-                    className="mt-1 text-xs font-semibold text-gray-400 hover:text-charcoal">
+                    className="mt-1 text-xs font-semibold text-gray-500 hover:text-charcoal">
                     {isExpanded ? '▲ Hide' : '▼ Details'}
                   </button>
                 )}

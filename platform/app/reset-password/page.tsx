@@ -82,14 +82,14 @@ function ResetPasswordForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-500">New password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8}
+              <label htmlFor="password" className="mb-1 block text-xs font-semibold text-gray-500">New password</label>
+              <input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8}
                 className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
               <p className="mt-1 text-xs text-gray-400">{PASSWORD_RULE_TEXT}</p>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-500">Confirm password</label>
-              <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required
+              <label htmlFor="confirm-password" className="mb-1 block text-xs font-semibold text-gray-500">Confirm password</label>
+              <input id="confirm-password" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required
                 className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
             </div>
 

@@ -24,7 +24,7 @@ export default function LinkPosterPage() {
   useEffect(() => { load() }, [id])
 
   if (failed) return <LoadError what="this payment link" onRetry={load} />
-  if (!link) return <div className="text-sm text-gray-400">Loading...</div>
+  if (!link) return <div className="text-sm text-gray-500">Loading...</div>
 
   const slug = link.slug as string
   const business = ((merchant?.business_name as string) || '').trim()

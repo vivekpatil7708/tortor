@@ -127,12 +127,12 @@ export default function DeliveryPage() {
             )}
           >
             {t.label}
-            <span className={cn('ml-1.5 text-xs', tab === t.key ? 'text-gray-300' : 'text-gray-400')}>{counts[t.key] ?? 0}</span>
+            <span className={cn('ml-1.5 text-xs', tab === t.key ? 'text-gray-300' : 'text-gray-500')}>{counts[t.key] ?? 0}</span>
           </button>
         ))}
         <div className="ml-auto flex items-center gap-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-500" />
             <input
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
@@ -163,7 +163,7 @@ export default function DeliveryPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50 text-left text-xs uppercase tracking-wide text-gray-400">
+                <tr className="border-b border-gray-100 bg-gray-50/50 text-left text-xs uppercase tracking-wide text-gray-500">
                   <th className="px-4 py-3 font-semibold">Package / AWB</th>
                   <th className="px-4 py-3 font-semibold">Order</th>
                   <th className="px-4 py-3 font-semibold">Courier</th>
@@ -182,13 +182,13 @@ export default function DeliveryPage() {
                       {row.trackingNumber ? (
                         <span className="block font-mono text-xs text-gray-500"># {row.trackingNumber}</span>
                       ) : (
-                        <span className="block text-xs text-gray-400">No tracking yet</span>
+                        <span className="block text-xs text-gray-500">No tracking yet</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       {row.orderNumber}
-                      {row.customerName && <span className="block text-xs text-gray-400">{row.customerName}</span>}
-                      {row.itemCount > 1 && <span className="block text-xs text-gray-400">{row.itemCount} items</span>}
+                      {row.customerName && <span className="block text-xs text-gray-500">{row.customerName}</span>}
+                      {row.itemCount > 1 && <span className="block text-xs text-gray-500">{row.itemCount} items</span>}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {(row.courierProvider ?? humanize(row.provider ?? '')) || '—'}
@@ -200,7 +200,7 @@ export default function DeliveryPage() {
                         <Badge>{humanize(row.packageStatus)}</Badge>
                       </div>
                       {row.estimatedDeliveryAt && (
-                        <span className="mt-0.5 block text-xs text-gray-400">ETA {formatShortDate(row.estimatedDeliveryAt)}</span>
+                        <span className="mt-0.5 block text-xs text-gray-500">ETA {formatShortDate(row.estimatedDeliveryAt)}</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-gray-500">{row.shippedAt ? formatShortDate(row.shippedAt) : '—'}</td>

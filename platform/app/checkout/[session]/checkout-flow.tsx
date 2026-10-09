@@ -78,7 +78,7 @@ export default function CheckoutFlow({ view }: Props) {
   const cardBg = isDark ? 'bg-black/30 border-white/10 shadow-2xl shadow-black/30' : 'bg-white/30 border-white/40 shadow-2xl shadow-black/10'
   const inputBg = isDark
     ? 'bg-white/10 border-white/10 text-white placeholder:text-white/40 focus:border-white/30'
-    : 'bg-white/50 border-white/60 text-charcoal placeholder:text-gray-400 focus:border-white/80'
+    : 'bg-white/50 border-white/60 text-charcoal placeholder:text-gray-500 focus:border-white/80'
 
   const lockedIn = payment.status === 'paid'
 
@@ -372,18 +372,18 @@ export default function CheckoutFlow({ view }: Props) {
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-semibold opacity-70">Your Name <span className="text-red-400">*</span></label>
-            <input value={name} onChange={e => setName(e.target.value)}
+            <label htmlFor="checkout-name" className="mb-1 block text-xs font-semibold opacity-70">Your Name <span className="text-red-400">*</span></label>
+            <input id="checkout-name" value={name} onChange={e => setName(e.target.value)}
               className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold opacity-70">Phone</label>
-            <input value={phone} onChange={e => setPhone(e.target.value)}
+            <label htmlFor="checkout-phone" className="mb-1 block text-xs font-semibold opacity-70">Phone</label>
+            <input id="checkout-phone" value={phone} onChange={e => setPhone(e.target.value)}
               className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold opacity-70">Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+            <label htmlFor="checkout-email" className="mb-1 block text-xs font-semibold opacity-70">Email</label>
+            <input id="checkout-email" type="email" value={email} onChange={e => setEmail(e.target.value)}
               className={`w-full rounded-xl border px-4 py-3 text-sm outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`} />
           </div>
         </div>
@@ -396,7 +396,7 @@ export default function CheckoutFlow({ view }: Props) {
           {busy ? 'Preparing payment…' : `Continue to Pay ${formatAmount(order.total_amount)}`}
         </button>
 
-        <p className="mt-4 text-center text-xs opacity-50">Powered by ToroPay</p>
+        <p className="mt-4 text-center text-[13px] opacity-70">Powered by ToroPay</p>
       </div>
     </div>
   )

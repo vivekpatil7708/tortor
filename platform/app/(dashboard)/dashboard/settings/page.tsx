@@ -144,7 +144,7 @@ export default function SettingsPage() {
       {tab === 'profile' && (
         <div role="tabpanel" id="panel-profile" aria-labelledby="tab-profile">
           {profileState === 'failed' && <LoadError what="your business profile" onRetry={loadProfile} className="mb-6" />}
-          {profileState === 'loading' && <p className="mb-6 text-sm text-gray-400">Loading…</p>}
+          {profileState === 'loading' && <p className="mb-6 text-sm text-gray-500">Loading…</p>}
           {profileState === 'ready' && (
             <form onSubmit={saveProfile} className={`${cardClass} space-y-4`}>
               <div>
@@ -176,7 +176,7 @@ export default function SettingsPage() {
       {tab === 'notifications' && (
         <div role="tabpanel" id="panel-notifications" aria-labelledby="tab-notifications">
           {settingsState === 'failed' && <LoadError what="your settings" onRetry={loadSettings} className="mb-6" />}
-          {settingsState === 'loading' && <p className="mb-6 text-sm text-gray-400">Loading settings…</p>}
+          {settingsState === 'loading' && <p className="mb-6 text-sm text-gray-500">Loading settings…</p>}
           {settingsState === 'ready' && (
             <form onSubmit={saveAlerts} className={`${cardClass} space-y-4`}>
               <div>

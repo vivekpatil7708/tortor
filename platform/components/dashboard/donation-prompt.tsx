@@ -58,7 +58,7 @@ export function DonationCard({ paidCount }: { paidCount: number }) {
 
   return (
     <section aria-labelledby="donation-title" className="relative mt-8 rounded-2xl border border-gray-100 bg-white p-5">
-      <button type="button" onClick={later} aria-label="Hide for now" className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+      <button type="button" onClick={later} aria-label="Hide for now" className="absolute right-3 top-3 text-gray-500 hover:text-gray-600">
         <X className="h-4 w-4" />
       </button>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pr-6">
@@ -85,7 +85,7 @@ export function DonationCard({ paidCount }: { paidCount: number }) {
       </div>
       <div className="mt-3 flex gap-4 text-xs">
         <button type="button" onClick={later} className="text-gray-500 hover:text-charcoal">Maybe later</button>
-        <button type="button" onClick={never} className="text-gray-400 underline hover:text-gray-600">Don&apos;t show again</button>
+        <button type="button" onClick={never} className="text-gray-500 underline hover:text-gray-600">Don&apos;t show again</button>
       </div>
     </section>
   )

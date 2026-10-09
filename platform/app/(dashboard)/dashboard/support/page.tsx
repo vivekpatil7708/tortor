@@ -76,7 +76,7 @@ export default function SupportPage() {
             <DonateWidget initialAmount={amountParam} />
           </div>
 
-          <p className="mt-4 text-xs text-gray-400">
+          <p className="mt-4 text-xs text-gray-500">
             Your support goes directly toward hosting and development that keeps
             ToroPay free for everyone. Every contribution truly makes a difference.
           </p>

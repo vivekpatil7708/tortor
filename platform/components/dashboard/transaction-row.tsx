@@ -47,7 +47,7 @@ export function TransactionRow({ txn, onAction, onSend, now, children }: {
             <StatusBadge txn={txn} now={now} />
           </div>
           <p className="mt-1 text-xs text-gray-500">{(txn.customer_phone as string) || 'No phone'}</p>
-          <p className="mt-0.5 break-words text-xs text-gray-400">{txnId} · {formatDate(txn.created_at as string)}</p>
+          <p className="mt-0.5 break-words text-xs text-gray-500">{txnId} · {formatDate(txn.created_at as string)}</p>
         </div>
         <p className="shrink-0 text-sm font-bold">{formatAmount(Number(txn.amount))}</p>
       </div>

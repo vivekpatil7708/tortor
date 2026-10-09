@@ -36,7 +36,7 @@ const emptyProduct = (): ProductItem => ({
 })
 
 const inputClass =
-  'w-full rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-base text-charcoal outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10'
+  'w-full rounded-xl border border-gray-300 bg-white px-4 py-3.5 text-base text-charcoal outline-none transition-all placeholder:text-gray-500 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10'
 
 export default function NewLinkPage() {
   const router = useRouter()
@@ -329,7 +329,7 @@ export default function NewLinkPage() {
             <label htmlFor="link-upi" className="mb-1.5 block text-sm font-semibold text-gray-700">UPI ID <span className="text-red-400">*</span></label>
             {upis.length > 0 && (
               <select id="link-upi" value={form.upi_id} onChange={e => { setForm({ ...form, upi_id: e.target.value }); setTouched({ ...touched, upi_id: true }) }}
-                className={`${inputClass} ${!form.upi_id ? 'text-gray-400' : ''}`}>
+                className={`${inputClass} ${!form.upi_id ? 'text-gray-500' : ''}`}>
                 <option value="">Select UPI ID</option>
                 {upis.map(u => <option key={u.id as string} value={u.vpa as string}>{u.vpa as string}</option>)}
               </select>
@@ -384,7 +384,7 @@ export default function NewLinkPage() {
                 ) : (
                   <div>
                     <div className="relative">
-                      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-gray-400">₹</span>
+                      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-gray-500">₹</span>
                       <input id="link-amount" aria-label="Amount in rupees" type="number" min="1" inputMode="decimal" value={form.amount}
                         onChange={e => { setForm({ ...form, amount: e.target.value }); setTouched({ ...touched, amount: true }) }}
                         placeholder="500"
@@ -409,7 +409,7 @@ export default function NewLinkPage() {
               <div>
                 <label htmlFor="link-unit-price" className="mb-1.5 block text-sm font-semibold text-gray-700">Unit Price (₹) <span className="text-red-400">*</span></label>
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-gray-400">₹</span>
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-gray-500">₹</span>
                   <input id="link-unit-price" type="number" min="1" inputMode="decimal" value={sell.unit_price}
                     onChange={e => { setSell({ ...sell, unit_price: e.target.value }); setTouched({ ...touched, unit_price: true }) }}
                     placeholder="250"
@@ -457,7 +457,7 @@ export default function NewLinkPage() {
           <button type="button" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen}
             className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm font-semibold text-gray-600 transition-colors hover:bg-white">
             <span>Advanced options</span>
-            <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {advancedOpen && (

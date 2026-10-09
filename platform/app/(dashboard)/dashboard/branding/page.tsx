@@ -82,7 +82,7 @@ export default function BrandingPage() {
         <h1 className="mb-6 text-2xl font-bold tracking-tight">Branding</h1>
         {loadState === 'failed'
           ? <LoadError what="your branding" onRetry={load} />
-          : <p className="text-sm text-gray-400">Loading…</p>}
+          : <p className="text-sm text-gray-500">Loading…</p>}
       </div>
     )
   }
@@ -102,8 +102,8 @@ export default function BrandingPage() {
             <h2 className="mb-4 font-bold">Brand Identity</h2>
             <div className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-gray-500">Business Name</label>
-                <input value={form.business_name} onChange={e => setForm({ ...form, business_name: e.target.value })}
+                <label htmlFor="business-name" className="mb-1 block text-xs font-semibold text-gray-500">Business Name</label>
+                <input id="business-name" value={form.business_name} onChange={e => setForm({ ...form, business_name: e.target.value })}
                   className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none" />
               </div>
 
@@ -113,7 +113,7 @@ export default function BrandingPage() {
                   onDragOver={e => { e.preventDefault() }}
                   onDrop={e => { e.preventDefault(); handleFileUpload(e.dataTransfer.files[0], 'business_logo_url') }}
                   onClick={() => logoInputRef.current?.click()}
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-white/50 px-4 py-4 text-sm text-gray-400 hover:border-primary-500 hover:text-primary-600 transition">
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-white/50 px-4 py-4 text-sm text-gray-500 hover:border-primary-500 hover:text-primary-600 transition">
                   <Upload className="h-5 w-5" />
                   <span>Drop logo here or click to browse</span>
                   <input ref={logoInputRef} type="file" accept="image/*" className="hidden"
@@ -123,7 +123,7 @@ export default function BrandingPage() {
                   <div className="mt-2 flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2">
                     <img src={form.business_logo_url} className="h-8 w-8 rounded-lg object-cover" alt="" />
                     <span className="flex-1 truncate text-xs text-gray-500">Logo uploaded</span>
-                    <button type="button" onClick={() => setForm({ ...form, business_logo_url: '' })} className="text-gray-400 hover:text-red-500">
+                    <button type="button" onClick={() => setForm({ ...form, business_logo_url: '' })} className="text-gray-500 hover:text-red-500">
                       <X className="h-4 w-4" />
                     </button>
                   </div>
@@ -141,7 +141,7 @@ export default function BrandingPage() {
                   onDragOver={e => { e.preventDefault() }}
                   onDrop={e => { e.preventDefault(); handleFileUpload(e.dataTransfer.files[0], 'bg_image_url') }}
                   onClick={() => bgInputRef.current?.click()}
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-white/50 px-4 py-4 text-sm text-gray-400 hover:border-primary-500 hover:text-primary-600 transition">
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-white/50 px-4 py-4 text-sm text-gray-500 hover:border-primary-500 hover:text-primary-600 transition">
                   <Upload className="h-5 w-5" />
                   <span>Drop background image here or click to browse</span>
                   <input ref={bgInputRef} type="file" accept="image/*" className="hidden"
@@ -151,7 +151,7 @@ export default function BrandingPage() {
                   <div className="mt-2 flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2">
                     <div className="h-8 w-8 rounded-lg bg-cover bg-center" style={{ backgroundImage: `url(${form.bg_image_url})` }} />
                     <span className="flex-1 truncate text-xs text-gray-500">Background uploaded</span>
-                    <button type="button" onClick={() => setForm({ ...form, bg_image_url: '' })} className="text-gray-400 hover:text-red-500">
+                    <button type="button" onClick={() => setForm({ ...form, bg_image_url: '' })} className="text-gray-500 hover:text-red-500">
                       <X className="h-4 w-4" />
                     </button>
                   </div>
@@ -160,13 +160,13 @@ export default function BrandingPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-500">Primary Color</label>
-                  <input type="color" value={form.brand_color_primary} onChange={e => setForm({ ...form, brand_color_primary: e.target.value })}
+                  <label htmlFor="primary-color" className="mb-1 block text-xs font-semibold text-gray-500">Primary Color</label>
+                  <input id="primary-color" type="color" value={form.brand_color_primary} onChange={e => setForm({ ...form, brand_color_primary: e.target.value })}
                     className="h-12 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-1" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-gray-500">Secondary (text)</label>
-                  <input type="color" value={form.brand_color_secondary} onChange={e => setForm({ ...form, brand_color_secondary: e.target.value })}
+                  <label htmlFor="secondary-color" className="mb-1 block text-xs font-semibold text-gray-500">Secondary (text)</label>
+                  <input id="secondary-color" type="color" value={form.brand_color_secondary} onChange={e => setForm({ ...form, brand_color_secondary: e.target.value })}
                     className="h-12 w-full cursor-pointer rounded-xl border border-gray-200 bg-white p-1" />
                 </div>
               </div>
@@ -193,7 +193,7 @@ export default function BrandingPage() {
 
         <div className="lg:col-span-2">
           <div className="sticky top-8 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Checkout Preview</p>
+            <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-500">Checkout Preview</p>
 
             <div className="mx-auto flex items-center justify-center">
               <div className="relative h-[520px] w-[260px] overflow-hidden rounded-[36px] border-4 border-gray-800 bg-gray-900 shadow-2xl"
@@ -221,7 +221,7 @@ export default function BrandingPage() {
               </div>
             </div>
 
-            <p className="mt-4 text-center text-xs text-gray-400">Changes reflect instantly in preview</p>
+            <p className="mt-4 text-center text-xs text-gray-500">Changes reflect instantly in preview</p>
           </div>
         </div>
       </div>

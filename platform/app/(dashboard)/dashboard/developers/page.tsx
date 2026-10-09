@@ -48,7 +48,7 @@ function WebhookSecret() {
         enter your own secret here and use the same value there.
       </p>
       {state === 'failed' && <LoadError what="your webhook secret" onRetry={load} />}
-      {state === 'loading' && <p className="text-sm text-gray-400">Loading…</p>}
+      {state === 'loading' && <p className="text-sm text-gray-500">Loading…</p>}
       {state === 'ready' && (
         <form onSubmit={save} className="space-y-3">
           <label htmlFor="webhook-secret" className="sr-only">Webhook signing secret</label>
@@ -211,9 +211,9 @@ export default function DevelopersPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-gray-400">Loading…</p>
+        <p className="text-sm text-gray-500">Loading…</p>
       ) : keys.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-200 p-10 text-center text-sm text-gray-400">
+        <div className="rounded-2xl border border-dashed border-gray-200 p-10 text-center text-sm text-gray-500">
           No keys yet. Create one to start calling the orders API.
         </div>
       ) : (
@@ -223,7 +223,7 @@ export default function DevelopersPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <KeyRound className="h-4 w-4 text-gray-400" />
+                    <KeyRound className="h-4 w-4 text-gray-500" />
                     <p className="font-bold">{key.name}</p>
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${key.mode === 'test' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>{key.mode}</span>
                     {key.revoked_at && (
@@ -231,7 +231,7 @@ export default function DevelopersPage() {
                     )}
                   </div>
                   <code className="mt-1 block font-mono text-xs text-gray-500">{key.key_prefix}…</code>
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-1 text-xs text-gray-500">
                     {key.scopes.join(', ')}
                     {key.last_used_at
                       ? ` · last used ${new Date(key.last_used_at).toLocaleString('en-IN')}`
@@ -240,15 +240,15 @@ export default function DevelopersPage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
-                  <button onClick={() => copy(key.key_prefix, key.id)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-charcoal" aria-label="Copy prefix">
+                  <button onClick={() => copy(key.key_prefix, key.id)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-charcoal" aria-label="Copy prefix">
                     {copied === key.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </button>
                   {!key.revoked_at && (
                     <>
-                      <button onClick={() => rotate(key)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-charcoal" aria-label="Rotate">
+                      <button onClick={() => rotate(key)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-charcoal" aria-label="Rotate">
                         <RotateCcw className="h-4 w-4" />
                       </button>
-                      <button onClick={() => revoke(key)} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500" aria-label="Revoke">
+                      <button onClick={() => revoke(key)} className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-500" aria-label="Revoke">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </>

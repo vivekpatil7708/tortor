@@ -13,7 +13,7 @@ export default async function FailedPage(
             ? <>Transaction <span className="font-mono font-semibold text-charcoal">{searchParams.txn}</span> could not be completed.</>
             : 'The transaction could not be completed.'}
         </p>
-        <p className="mt-1 text-sm text-gray-400">Please try again or use a different UPI app.</p>
+        <p className="mt-1 text-sm text-gray-500">Please try again or use a different UPI app.</p>
         <a href={`/pay/${params.slug}`} className="mt-6 inline-block rounded-xl bg-charcoal px-8 py-3 text-sm font-semibold text-white hover:opacity-90">
           Try again
         </a>

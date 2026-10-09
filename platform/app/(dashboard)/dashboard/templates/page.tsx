@@ -66,7 +66,7 @@ export default function TemplatesPage() {
           <div key={t.id as string} className="flex items-center justify-between rounded-2xl border border-white/80 bg-white/60 p-5 backdrop-blur-sm">
             <div>
               <p className="font-bold">{t.name as string}</p>
-              <p className="text-xs text-gray-400">{(t.config as Record<string, unknown>)?.title as string}</p>
+              <p className="text-xs text-gray-500">{(t.config as Record<string, unknown>)?.title as string}</p>
             </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={() => useTemplate(t)}>Use template</Button>
@@ -77,7 +77,7 @@ export default function TemplatesPage() {
         ))}
         {loadState === 'failed' && <LoadError what="your templates" onRetry={load} />}
         {loadState === 'ready' && templates.length === 0 && (
-          <p className="py-12 text-center text-sm text-gray-400">No templates yet.</p>
+          <p className="py-12 text-center text-sm text-gray-500">No templates yet.</p>
         )}
       </div>
     </div>

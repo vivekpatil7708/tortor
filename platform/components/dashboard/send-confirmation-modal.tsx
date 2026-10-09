@@ -115,7 +115,7 @@ export default function SendConfirmationModal({ txn, onClose, onSent }: Props) {
             <MessageSquare className="h-5 w-5 text-charcoal" />
             <h2 className="text-lg font-bold">Send Confirmation</h2>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="space-y-4 p-6">
@@ -189,14 +189,14 @@ export default function SendConfirmationModal({ txn, onClose, onSent }: Props) {
 
           {showPreview && (
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-              <p className="mb-2 text-xs font-semibold text-gray-400">PREVIEW</p>
+              <p className="mb-2 text-xs font-semibold text-gray-500">PREVIEW</p>
               {renderedSubject && <p className="mb-1 text-xs font-medium text-gray-600">Subject: {renderedSubject}</p>}
               <p className="whitespace-pre-wrap text-sm text-gray-700">{renderedBody}</p>
             </div>
           )}
 
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-            <p className="mb-2 text-xs font-semibold text-gray-400">Available Variables</p>
+            <p className="mb-2 text-xs font-semibold text-gray-500">Available Variables</p>
             <div className="flex flex-wrap gap-1">
               {SUPPORTED_VARIABLES.map(v => (
                 <code key={v} className="rounded-md bg-white px-1.5 py-0.5 text-xs text-gray-500">{`{{${v}}}`}</code>

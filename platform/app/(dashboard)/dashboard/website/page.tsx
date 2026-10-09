@@ -135,7 +135,7 @@ const { checkout_url } = await res.json()
                 Couldn&apos;t load your keys. <button type="button" onClick={loadKeys} className="font-semibold underline">Try again</button>
               </span>
             ) : (
-              <span className="text-xs text-gray-400">No {mode} key yet</span>
+              <span className="text-xs text-gray-500">No {mode} key yet</span>
             )}
           </span>
           <Button type="button" size="sm" onClick={createKey}>

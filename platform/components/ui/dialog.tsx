@@ -45,7 +45,7 @@ export function Dialog({
       >
         <div className="mb-4 flex items-center justify-between">
           {title && <h2 className="text-lg font-bold">{title}</h2>}
-          <button onClick={onClose} aria-label="Close" className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+          <button onClick={onClose} aria-label="Close" className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-600">
             <X className="h-5 w-5" />
           </button>
         </div>

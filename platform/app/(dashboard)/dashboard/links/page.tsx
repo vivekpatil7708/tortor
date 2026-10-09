@@ -51,7 +51,7 @@ export default function LinksPage() {
       {loadState === 'failed' ? (
         <LoadError what="your payment links" onRetry={load} />
       ) : loadState === 'loading' ? (
-        <p className="py-12 text-center text-sm text-gray-400">Loading…</p>
+        <p className="py-12 text-center text-sm text-gray-500">Loading…</p>
       ) : links.length === 0 ? (
         <div className="rounded-2xl border border-white/80 bg-white/60 p-12 text-center backdrop-blur-sm">
           <div className="mb-3 text-4xl">🔗</div>

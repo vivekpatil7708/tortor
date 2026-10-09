@@ -183,21 +183,21 @@ export function OnboardingTour() {
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-base font-extrabold tracking-tight text-charcoal">{s.title}</h3>
             <button onClick={finish} aria-label="Skip tour"
-              className="text-gray-400 transition-colors hover:text-gray-600">
+              className="text-gray-500 transition-colors hover:text-gray-600">
               <X className="h-4 w-4" />
             </button>
           </div>
           <p className="mt-1.5 text-sm leading-relaxed text-gray-500">{s.body}</p>
           <div className="mt-4 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <span className="mr-1 text-xs font-semibold text-gray-400">{step + 1} of {STEPS.length}</span>
+              <span className="mr-1 text-xs font-semibold text-gray-500">{step + 1} of {STEPS.length}</span>
               {STEPS.map((_, i) => (
                 <span key={i}
                   className={`h-1.5 rounded-full transition-all ${i === step ? 'w-4 bg-primary-500' : 'w-1.5 bg-gray-200'}`} />
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={finish} className="text-xs font-semibold text-gray-400 transition-colors hover:text-charcoal">
+              <button onClick={finish} className="text-xs font-semibold text-gray-500 transition-colors hover:text-charcoal">
                 Skip
               </button>
               <button onClick={() => go(step - 1)} disabled={step === 0}

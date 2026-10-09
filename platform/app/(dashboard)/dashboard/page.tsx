@@ -81,12 +81,12 @@ export default function DashboardPage() {
             <p className="text-xs font-semibold text-gray-500">Custom Fields</p>
             {otherFields.map(([k, v]) => (
               <div key={k} className="rounded bg-gray-100 px-3 py-1 text-xs">
-                <span className="text-gray-400">{k}:</span> {String(v)}
+                <span className="text-gray-500">{k}:</span> {String(v)}
               </div>
             ))}
           </div>
         )}
-        {note && <div className="rounded bg-gray-100 px-3 py-1 text-xs"><span className="text-gray-400">Note:</span> {note}</div>}
+        {note && <div className="rounded bg-gray-100 px-3 py-1 text-xs"><span className="text-gray-500">Note:</span> {note}</div>}
       </div>
     )
   }
@@ -195,13 +195,13 @@ export default function DashboardPage() {
           <Link href="/dashboard/transactions" className="text-sm font-semibold text-primary-600 hover:underline">View all</Link>
         </div>
         {recentState === 'failed' ? (
-          <p className="py-8 text-center text-sm text-gray-400">
+          <p className="py-8 text-center text-sm text-gray-500">
             Couldn&apos;t load recent transactions. <button onClick={loadRecent} className="font-semibold text-charcoal underline">Retry</button>
           </p>
         ) : recentState === 'loading' ? (
-          <p className="py-8 text-center text-sm text-gray-400">Loading…</p>
+          <p className="py-8 text-center text-sm text-gray-500">Loading…</p>
         ) : recentTxns.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-400">No transactions yet. Create a payment link to get started.</p>
+          <p className="py-8 text-center text-sm text-gray-500">No transactions yet. Create a payment link to get started.</p>
         ) : (
           <div className="space-y-3">
             {recentTxns.map((t) => {
@@ -216,7 +216,7 @@ export default function DashboardPage() {
                     <Link href={paymentHref(t)} className="text-sm font-semibold hover:underline">
                       {(t.customer_name as string) || 'Anonymous'} · {(t.customer_phone as string) || '—'}
                     </Link>
-                    <p className="break-words text-xs text-gray-400">{t.txn_id as string} · {formatDate(t.created_at as string)}</p>
+                    <p className="break-words text-xs text-gray-500">{t.txn_id as string} · {formatDate(t.created_at as string)}</p>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-sm font-bold">{formatAmount(Number(t.amount))}</p>
@@ -225,7 +225,7 @@ export default function DashboardPage() {
                 </div>
                 {hasDetails && (
                   <button onClick={() => toggleExpand(tid)}
-                    className="mt-1 text-xs font-semibold text-gray-400 hover:text-charcoal">
+                    className="mt-1 text-xs font-semibold text-gray-500 hover:text-charcoal">
                     {isExpanded ? '▲ Hide' : '▼ Details'}
                   </button>
                 )}
