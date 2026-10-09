@@ -40,6 +40,13 @@ function buildParams(range: Range, customFrom?: string, customTo?: string): stri
   return `?from=${from.toISOString()}&to=${now.toISOString()}`
 }
 
+/** "2026-10-01" → "1 Oct". */
+function dateTick(d: string): string {
+  const dt = new Date(`${d}T00:00:00Z`)
+  if (isNaN(dt.getTime())) return d
+  return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+}
+
 function exportCSV(data: Record<string, unknown>[], filename: string) {
   if (!data.length) return
   exportToCSV(filename, Object.keys(data[0]).map(key => ({ key, label: key })), data)
@@ -54,7 +61,7 @@ function KPICard({ label, value, subtitle, color }: { label: string; value: stri
     <div className="rounded-2xl border border-white/80 bg-white/60 p-5 backdrop-blur-sm">
       <p className="text-xs font-medium text-gray-500">{label}</p>
       <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
-      {subtitle && <p className="mt-0.5 text-xs text-gray-400">{subtitle}</p>}
+      {subtitle && <p className="mt-0.5 text-xs text-gray-500">{subtitle}</p>}
     </div>
   )
 }
@@ -103,6 +110,7 @@ export default function AnalyticsPage() {
   }
 
   const pieData = Object.entries(statusBreakdown).map(([name, value]) => ({ name, value }))
+  const knownApps = (topEntities?.top_payment_apps || []).filter(a => a.name && a.name !== 'Unknown')
 
   if (error) {
     return (
@@ -149,30 +157,30 @@ export default function AnalyticsPage() {
       ) : (
         <>
           <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <KPICard label="Total Orders" value={String(summary?.total_orders || 0)} color="text-charcoal" />
-            <KPICard label="Successful" value={String(summary?.successful_payments || 0)} color="text-green-600" subtitle={summary?.conversion_rate ? `${summary.conversion_rate}% conversion` : undefined} />
+            <KPICard label="Payments started" value={String(summary?.total_orders || 0)} color="text-charcoal" />
+            <KPICard label="Paid" value={String(summary?.successful_payments || 0)} color="text-green-600" subtitle={summary?.conversion_rate ? `${summary.conversion_rate}% conversion` : undefined} />
             <KPICard label="Failed" value={String(summary?.failed_payments || 0)} color="text-red-600" />
             <KPICard label="Waiting for you" value={String(summary?.waiting_payments || 0)} color="text-amber-600" subtitle="Customers say they've paid" />
-            <KPICard label="Gross Volume" value={formatAmount(Number(summary?.gross_payment_volume || 0))} color="text-purple-600" />
+            <KPICard label="Money received" value={formatAmount(Number(summary?.gross_payment_volume || 0))} color="text-purple-600" />
             <KPICard label="Abandoned" value={String(summary?.abandoned_checkouts || 0)} color="text-gray-500" subtitle="Started, not paid in 30 min" />
-            <KPICard label="Avg Order Value" value={formatAmount(Number(summary?.average_order_value || 0))} color="text-blue-600" />
-            <KPICard label="Conv. Rate" value={summary?.conversion_rate ? `${summary.conversion_rate}%` : '0%'} color="text-emerald-600" />
+            <KPICard label="Average payment" value={formatAmount(Number(summary?.average_order_value || 0))} color="text-blue-600" />
+            <KPICard label="Conversion rate" value={summary?.conversion_rate ? `${summary.conversion_rate}%` : '0%'} color="text-emerald-600" />
           </div>
 
           <div className="mb-6 grid gap-6 lg:grid-cols-2">
             <div className="rounded-2xl border border-white/80 bg-white/60 p-5 backdrop-blur-sm">
               <h2 className="mb-4 text-sm font-bold text-gray-700">Orders Over Time</h2>
               {ordersTS.length === 0 ? (
-                <p className="py-8 text-center text-sm text-gray-400">No order data for this period.</p>
+                <p className="py-8 text-center text-sm text-gray-500">No order data for this period.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={ordersTS}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={d => d.slice(5)} />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={dateTick} />
                     <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
                     <Tooltip />
                     <Line type="monotone" dataKey="total" stroke="#2c2c2c" strokeWidth={2} dot={false} name="Total" />
-                    <Line type="monotone" dataKey="success" stroke="#22c55e" strokeWidth={2} dot={false} name="Success" />
+                    <Line type="monotone" dataKey="success" stroke="#22c55e" strokeWidth={2} dot={false} name="Paid" />
                   </LineChart>
                 </ResponsiveContainer>
               )}
@@ -181,12 +189,12 @@ export default function AnalyticsPage() {
             <div className="rounded-2xl border border-white/80 bg-white/60 p-5 backdrop-blur-sm">
               <h2 className="mb-4 text-sm font-bold text-gray-700">Payment Volume Over Time</h2>
               {paymentsTS.length === 0 ? (
-                <p className="py-8 text-center text-sm text-gray-400">No payment data for this period.</p>
+                <p className="py-8 text-center text-sm text-gray-500">No payment data for this period.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={paymentsTS}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={d => d.slice(5)} />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={dateTick} />
                     <YAxis tick={{ fontSize: 10 }} tickFormatter={v => '₹' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v)} />
                     <Tooltip />
                     <Bar dataKey="amount" fill="#7bb86c" radius={[4, 4, 0, 0]} />
@@ -200,7 +208,7 @@ export default function AnalyticsPage() {
             <div className="rounded-2xl border border-white/80 bg-white/60 p-5 backdrop-blur-sm">
               <h2 className="mb-4 text-sm font-bold text-gray-700">Payment Status</h2>
               {pieData.length === 0 ? (
-                <p className="py-8 text-center text-sm text-gray-400">No data yet.</p>
+                <p className="py-8 text-center text-sm text-gray-500">No data yet.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
                   <PieChart>
@@ -216,11 +224,11 @@ export default function AnalyticsPage() {
 
             <div className="rounded-2xl border border-white/80 bg-white/60 p-5 backdrop-blur-sm lg:col-span-2">
               <h2 className="mb-4 text-sm font-bold text-gray-700">Top Payment Apps</h2>
-              {!topEntities?.top_payment_apps?.length ? (
-                <p className="py-8 text-center text-sm text-gray-400">No payment app data.</p>
+              {knownApps.length === 0 ? (
+                <p className="py-8 text-center text-sm text-gray-500">No payment app data.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={topEntities.top_payment_apps} layout="vertical">
+                  <BarChart data={knownApps} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis type="number" tick={{ fontSize: 10 }} />
                     <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />

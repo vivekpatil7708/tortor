@@ -3,12 +3,15 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { LoadError } from '@/components/ui/load-error'
 
 export default function UpiPage() {
   const [upis, setUpis] = useState<Record<string, unknown>[]>([])
   const [newVpa, setNewVpa] = useState('')
   const [adding, setAdding] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; vpa: string } | null>(null)
 
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'failed'>('loading')
 
@@ -18,8 +21,17 @@ export default function UpiPage() {
       .catch(() => setLoadState('failed'))
   }
 
-  function removeUpi(id: string) {
-    api.deleteUpi(id).then(load).catch((err: unknown) => alert(err instanceof Error ? err.message : 'Could not remove this UPI ID'))
+  function removeUpi(id: string, vpa: string) {
+    setRemoveTarget({ id, vpa })
+  }
+
+  function confirmRemove() {
+    if (!removeTarget) return
+    setRemoving(true)
+    api.deleteUpi(removeTarget.id)
+      .then(() => { setRemoveTarget(null); load() })
+      .catch((err: unknown) => alert(err instanceof Error ? err.message : 'Could not remove this UPI ID'))
+      .finally(() => setRemoving(false))
   }
 
   useEffect(() => { load() }, [])
@@ -70,17 +82,28 @@ export default function UpiPage() {
             <div className="flex gap-2">
               {!u.verified_at && <Button variant="ghost" size="sm" onClick={() => verifyUpi(u.id as string)}>Check format</Button>}
               {!Boolean(u.is_primary) && <Button variant="ghost" size="sm" onClick={() => api.setPrimaryUpi(u.id as string).then(load)}>Make primary</Button>}
-              <Button variant="ghost" size="sm" onClick={() => removeUpi(u.id as string)} className="text-red-500">Remove</Button>
+              <Button variant="ghost" size="sm" onClick={() => removeUpi(u.id as string, u.vpa as string)} className="text-red-500">Remove</Button>
             </div>
           </div>
         ))}
         {loadState === 'failed' && <LoadError what="your UPI IDs" onRetry={load} />}
         {loadState === 'ready' && upis.length === 0 && (
-          <div className="rounded-2xl border border-white/80 bg-white/60 p-12 text-center text-sm text-gray-400 backdrop-blur-sm">
+          <div className="rounded-2xl border border-white/80 bg-white/60 p-12 text-center text-sm text-gray-500 backdrop-blur-sm">
             No UPI IDs added yet.
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!removeTarget}
+        onClose={() => { if (!removing) setRemoveTarget(null) }}
+        onConfirm={confirmRemove}
+        title="Remove this UPI ID?"
+        message={removeTarget ? `Payments to ${removeTarget.vpa} will stop coming to ToroPay. Existing payment requests on it keep working until the buyer completes them.` : ''}
+        confirmLabel="Remove"
+        danger
+        busy={removing}
+      />
     </div>
   )
 }
