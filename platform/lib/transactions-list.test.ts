@@ -93,12 +93,12 @@ describe('transactions list (B5)', () => {
     expect(db.transaction.findMany).not.toHaveBeenCalled()
   })
 
-  it('still answers dashboard tabs opened before the update with the old list', async () => {
-    const res = await get('')
-    const body = await res.json()
+  it('a request without a limit gets the first page, not a bare array', async () => {
+    const body = await page('')
 
-    expect(Array.isArray(body)).toBe(true)
-    expect(body).toHaveLength(500)
+    expect(Array.isArray(body)).toBe(false)
+    expect(body.transactions).toHaveLength(50)
+    expect(body.next_cursor).toBe('t-049')
   })
 
   it('refuses a request without a login', async () => {

@@ -8,6 +8,7 @@ import { serializeTransaction } from '@/lib/serializers'
 
 const STATUSES = new Set(['initiated', 'pending', 'success', 'failed'])
 const MAX_LIMIT = 500
+const DEFAULT_LIMIT = 50
 const MAX_SEARCH = 64
 const ID = /^[A-Za-z0-9-]{1,64}$/
 
@@ -29,7 +30,8 @@ function searchWhere(q: string): Prisma.TransactionWhereInput {
 type Query = { limit: number; cursor?: string; filters: Prisma.TransactionWhereInput }
 
 function readQuery(params: URLSearchParams): Query | { error: string } {
-  const limit = Number(params.get('limit'))
+  const rawLimit = params.get('limit')
+  const limit = rawLimit === null ? DEFAULT_LIMIT : Number(rawLimit)
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) return { error: `limit must be 1 to ${MAX_LIMIT}` }
 
   const cursor = params.get('cursor') || undefined
@@ -67,17 +69,6 @@ export async function GET(req: NextRequest) {
   try {
     const session = await requireSession()
     const params = req.nextUrl.searchParams
-
-    // Dashboard tabs opened before paging existed ask without a limit and expect
-    // the old plain list. Remove once those tabs are gone.
-    if (!params.has('limit')) {
-      const txns = await prisma.transaction.findMany({
-        where: { merchantId: session.id },
-        orderBy: { createdAt: 'desc' },
-        take: 500,
-      })
-      return NextResponse.json(txns.map(serializeTransaction))
-    }
 
     const query = readQuery(params)
     if ('error' in query) return NextResponse.json({ error: query.error }, { status: 400 })

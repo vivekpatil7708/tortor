@@ -650,6 +650,8 @@ model CourierWebhookEvent {
   trackingNumber   String?                  @map("tracking_number")
   receivedAt       DateTime                 @default(now()) @map("received_at")
   processedAt      DateTime?                @map("processed_at")
+  retryCount       Int                      @default(0) @map("retry_count")
+  nextRetryAt      DateTime?                @map("next_retry_at")
 
   merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   package  Package?  @relation(fields: [packageId], references: [id], onDelete: SetNull)
@@ -657,7 +659,7 @@ model CourierWebhookEvent {
   @@unique([provider, providerEventId])
   @@index([merchantId, receivedAt])
   @@index([provider, awbNumber])
-  @@index([processingStatus])
+  @@index([processingStatus, nextRetryAt])
   @@map("courier_webhook_events")
 }
 
@@ -792,6 +794,8 @@ model Transaction {
   paymentLink PaymentLink? @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
   webhookLogs WebhookLog[]
 
+  @@index([merchantId, createdAt])
+  @@index([merchantId, status])
   @@map("transactions")
 }
 

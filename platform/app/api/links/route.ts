@@ -9,6 +9,7 @@ import { generateSlug } from '@/lib/utils'
 import { isValidRedirectUrl } from '@/lib/validate-url'
 import { isValidWebhookUrl } from '@/lib/safe-fetch'
 import { handleError, publicErrorMessage } from '@/lib/api-response'
+import { productsImageProblem } from '@/lib/image-input'
 
 export async function GET() {
   try {
@@ -68,6 +69,10 @@ export async function POST(req: NextRequest) {
     if (body.webhook_url && !isValidWebhookUrl(body.webhook_url)) {
       return NextResponse.json({ error: 'Invalid webhook URL' }, { status: 400 })
     }
+
+    // Product images arrive as data URLs; keep them within the same 1 MB limit as logos.
+    const imageProblem = productsImageProblem(body.custom_fields)
+    if (imageProblem) return NextResponse.json({ error: imageProblem }, { status: 400 })
 
     // Amounts are kept to whole paise: UPI apps can't charge fractions of a paisa.
     const amount = linkAmountInput(body.amount)

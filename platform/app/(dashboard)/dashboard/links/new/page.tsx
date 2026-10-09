@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { amountRangeHint } from '@/lib/checkout-form'
 import { istDayKey } from '@/lib/ist-day'
 import { expiryMoment, limitsProblem, rangeProblem } from '@/lib/link-limits'
+import { imageFileProblem } from '@/lib/image-input'
 import { LoadError } from '@/components/ui/load-error'
 import { Button } from '@/components/ui/button'
 import { Zap, ShoppingBag, ChevronDown, ArrowRight } from 'lucide-react'
@@ -589,11 +590,14 @@ export default function NewLinkPage() {
                           <label className="col-span-2 flex items-center gap-3 rounded-lg border border-dashed border-gray-200 px-3 py-2.5 text-sm text-gray-500">
                             <input type="file" accept="image/*" className="hidden" onChange={e => {
                               const file = e.target.files?.[0]
-                              if (file) {
-                                const reader = new FileReader()
-                                reader.onload = () => updateProduct(i, 'image', reader.result as string)
-                                reader.readAsDataURL(file)
-                              }
+                              e.target.value = ''
+                              if (!file) return
+                              const problem = imageFileProblem(file)
+                              if (problem) { setError(problem); return }
+                              setError('')
+                              const reader = new FileReader()
+                              reader.onload = () => updateProduct(i, 'image', reader.result as string)
+                              reader.readAsDataURL(file)
                             }} />
                             <span className="flex items-center gap-2"><span className="h-5 w-5 rounded-full border border-gray-300 flex items-center justify-center text-xs">+</span> Add product image</span>
                             {p.image && <img src={p.image} className="ml-auto h-10 w-10 rounded object-cover" alt="" />}

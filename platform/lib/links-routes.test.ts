@@ -4,14 +4,15 @@ import QRCode from 'qrcode'
 
 // The payment links list (U21) and the QR code that opens a payment page (U22).
 const db = vi.hoisted(() => ({
-  paymentLink: { findMany: vi.fn() },
+  paymentLink: { findMany: vi.fn(), create: vi.fn() },
   transaction: { groupBy: vi.fn() },
+  upiId: { findFirst: vi.fn() },
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 const auth = vi.hoisted(() => ({ requireSession: vi.fn() }))
 vi.mock('@/lib/auth', () => auth)
 
-import { GET as listLinks } from '@/app/api/links/route'
+import { GET as listLinks, POST as createLink } from '@/app/api/links/route'
 import { GET as linkQr } from '@/app/api/qr/link/route'
 
 const linkRow = (id: string) => ({
@@ -23,7 +24,9 @@ const linkRow = (id: string) => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
-  auth.requireSession.mockResolvedValue({ id: 'm1' })
+  auth.requireSession.mockResolvedValue({ id: 'm1', emailVerifiedAt: new Date() })
+  db.upiId.findFirst.mockResolvedValue({ id: 'u1', vpa: 'shop@okaxis' })
+  db.paymentLink.create.mockResolvedValue(linkRow('L9'))
 })
 
 afterEach(() => {
@@ -53,6 +56,29 @@ describe('payment links list', () => {
 
     auth.requireSession.mockRejectedValue(new Error('Unauthorized'))
     expect((await listLinks()).status).toBe(401)
+  })
+})
+
+describe('creating a payment link with product images', () => {
+  const post = (body: Record<string, unknown>) =>
+    createLink(new NextRequest('http://localhost/api/links', { method: 'POST', body: JSON.stringify(body) }))
+  const base = { title: 'Shop', upi_id: 'shop@okaxis' }
+
+  it('refuses a product image over 1 MB, before saving', async () => {
+    const huge = `data:image/png;base64,${'A'.repeat(1_400_000)}`
+    const res = await post({ ...base, custom_fields: [{ _type: 'products', items: [{ name: 'A', image: huge }] }] })
+
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/product image/i)
+    expect(db.paymentLink.create).not.toHaveBeenCalled()
+  })
+
+  it('accepts a small product image', async () => {
+    const small = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+    const res = await post({ ...base, custom_fields: [{ _type: 'products', items: [{ name: 'A', image: small }] }] })
+
+    expect(res.status).toBe(200)
+    expect(db.paymentLink.create).toHaveBeenCalled()
   })
 })
 
