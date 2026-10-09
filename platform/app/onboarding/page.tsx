@@ -61,7 +61,16 @@ export default function OnboardingPage() {
       <div className="w-full max-w-md rounded-2xl border border-white/80 bg-white/60 p-8 backdrop-blur-md">
         <div className="mb-6 text-center">
           <div className="text-2xl font-extrabold">Toro<span className="text-primary-500">Pay</span></div>
-          <p className="mt-1 text-sm text-gray-500">Set up your account — step {step} of 2</p>
+          <p className="mt-1 text-sm font-semibold text-gray-500">Step {step} of 2 · {step === 1 ? 'Your business name' : 'Add your UPI ID'}</p>
+          {step === 1 ? (
+            <p className="mx-auto mt-1 max-w-xs text-xs text-gray-500">
+              This is what your customers see when they pay you.
+            </p>
+          ) : (
+            <p className="mx-auto mt-1 max-w-xs text-xs text-gray-500">
+              Your payments arrive on this UPI ID. Next, you&apos;ll create your first link.
+            </p>
+          )}
         </div>
 
         {loadFailed ? (
@@ -69,8 +78,8 @@ export default function OnboardingPage() {
         ) : step === 1 ? (
           <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-500">Business Name</label>
-              <input value={businessName} onChange={e => setBusinessName(e.target.value)}
+              <label htmlFor="business-name" className="mb-1 block text-xs font-semibold text-gray-500">Business Name</label>
+              <input id="business-name" value={businessName} onChange={e => setBusinessName(e.target.value)}
                 className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none" />
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
@@ -81,10 +90,10 @@ export default function OnboardingPage() {
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-gray-500">Your UPI ID (VPA)</label>
-              <input value={vpa} onChange={e => setVpa(e.target.value)} placeholder="yourshop@paytm"
+              <label htmlFor="vpa" className="mb-1 block text-xs font-semibold text-gray-500">Your UPI ID (VPA)</label>
+              <input id="vpa" value={vpa} onChange={e => setVpa(e.target.value)} placeholder="yourshop@paytm"
                 className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none" />
-              <p className="mt-1 text-xs text-gray-400">Payments go directly to this UPI ID.</p>
+              <p className="mt-1 text-xs text-gray-500">Payments go directly to this UPI ID.</p>
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
             <Button onClick={addUpiAndFinish} disabled={loading} className="w-full">
