@@ -27,125 +27,7 @@ function pick(obj: Record<string, unknown> | undefined, ...keys: string[]): stri
     const v = obj[k]
     if (v != null && v !== '') return String(v)
   }
-return null
-}
-
-/**
- * Retries failed courier webhook events whose nextRetryAt has come.
- * Called by /api/cron/webhook-retries. Returns how many were attempted.
- */
-export async function retryDueCourierWebhooks({ deadline = Infinity, limit = 25 } = {}): Promise<number> {
-  const due = await prisma.courierWebhookEvent.findMany({
-    where: {
-      processingStatus: 'failed_processing',
-      nextRetryAt: { lte: new Date(), gte: retryWindowStart() },
-    },
-    orderBy: { nextRetryAt: 'asc' },
-    take: limit,
-  })
-
-  let attempted = 0
-  for (const event of due) {
-    if (Date.now() > deadline) break
-
-    const claimed = await prisma.courierWebhookEvent.updateMany({
-      where: { id: event.id, processingStatus: 'failed_processing', nextRetryAt: event.nextRetryAt },
-      data: { nextRetryAt: new Date(Date.now() + 10 * 60_000) },
-    })
-    if (claimed.count !== 1) continue
-
-    const payload = event.payload as Record<string, unknown>
-    const shipment = (payload.shipment as Record<string, unknown> | undefined) || payload
-    const awbNumber = pick(shipment, 'awb_number', 'awb', 'awb_code')
-    const shipmentId = pick(shipment, 'shipment_id', 'provider_shipment_id')
-    const trackingNumber = pick(shipment, 'tracking_number')
-    const orderNumber = pick(shipment, 'order_number') || pick(payload, 'order_number')
-
-    let packageId: string | null = event.packageId ?? null
-    let merchantId: string | null = event.merchantId ?? null
-    if ((!packageId || !merchantId) && (awbNumber || shipmentId || trackingNumber || orderNumber)) {
-      const found = await findPackageByRef(awbNumber, shipmentId, trackingNumber, orderNumber)
-      if (found) {
-        packageId = found.id
-        merchantId = found.merchantId
-      }
-    }
-
-    if (!packageId || !merchantId) {
-      await prisma.courierWebhookEvent.update({
-        where: { id: event.id },
-        data: { processingStatus: 'skipped', processingError: 'Cannot resolve package', nextRetryAt: null, processedAt: new Date(), retryCount: event.retryCount + 1 },
-      })
-      continue
-    }
-
-    const secret = await getCourierWebhookSecret(merchantId!, event.provider).catch(() => null)
-    if (!secret || !providerValidates(event.provider, JSON.stringify(payload), null, secret)) {
-      await prisma.courierWebhookEvent.update({
-        where: { id: event.id },
-        data: { processingStatus: 'failed_processing', processingError: 'Signature/secret validation failed', nextRetryAt: null, retryCount: event.retryCount + 1 },
-      })
-      continue
-    }
-
-    try {
-      const update = extractTrackingUpdate(payload)
-      const result = await applyCourierTrackingUpdate({
-        merchantId: merchantId!,
-        packageId: packageId!,
-        providerName: event.provider,
-        status: update.status,
-        events: update.events,
-        estimatedDeliveryAt: (update.estimatedDeliveryAt as Date | undefined) ?? null,
-        rtoInitiated: update.rtoInitiated,
-        rtoDelivered: update.rtoDelivered,
-        returnTrackingNumber: update.returnTrackingNumber,
-        trackingUrl: update.trackingUrl,
-        trigger: 'webhook',
-        courierWebhookEventId: event.id,
-      })
-
-      if (result.applied) {
-        await prisma.courierWebhookEvent.update({
-          where: { id: event.id },
-          data: { processingStatus: 'processed', processingError: null, nextRetryAt: null, processedAt: new Date(), retryCount: event.retryCount + 1 },
-        })
-      } else {
-        const reason = result.skippedReason || ''
-        const isNonRetryable = /no package/i.test(reason)
-        if (isNonRetryable) {
-          await prisma.courierWebhookEvent.update({
-            where: { id: event.id },
-            data: { processingStatus: 'skipped', processingError: reason, nextRetryAt: null, processedAt: new Date(), retryCount: event.retryCount + 1 },
-          })
-        } else {
-          const next = nextWebhookAttemptAt(event.retryCount + 1)
-          await prisma.courierWebhookEvent.update({
-            where: { id: event.id },
-            data: { processingStatus: 'failed_processing', processingError: reason || 'Not applied', retryCount: event.retryCount + 1, nextRetryAt: next },
-          })
-        }
-      }
-      attempted += 1
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Processing failed'
-      const isRetryable = /network|timeout|connection reset|econnreset|enotfound|fetch|request failed|upstream|503|502|504|429/i.test(message)
-      if (!isRetryable) {
-        await prisma.courierWebhookEvent.update({
-          where: { id: event.id },
-          data: { processingStatus: 'skipped', processingError: message, nextRetryAt: null, processedAt: new Date(), retryCount: event.retryCount + 1 },
-        })
-      } else {
-        const next = nextWebhookAttemptAt(event.retryCount + 1)
-        await prisma.courierWebhookEvent.update({
-          where: { id: event.id },
-          data: { processingStatus: 'failed_processing', processingError: message, retryCount: event.retryCount + 1, nextRetryAt: next },
-        })
-      }
-      attempted += 1
-    }
-  }
-  return attempted
+  return null
 }
 
 function pickNested(payload: Record<string, unknown>, path: string): unknown {
@@ -345,6 +227,124 @@ export async function processCourierWebhook(params: {
     }
     return { eventId: event.id, signatureValid: true, duplicate: false, applied: false, changed: false, outOfOrder: false, error: message, packageId, merchantId }
   }
+}
+
+/**
+ * Retries failed courier webhook events whose nextRetryAt has come.
+ * Called by /api/cron/webhook-retries. Returns how many were attempted.
+ */
+export async function retryDueCourierWebhooks({ deadline = Infinity, limit = 25 } = {}): Promise<number> {
+  const due = await prisma.courierWebhookEvent.findMany({
+    where: {
+      processingStatus: 'failed_processing',
+      nextRetryAt: { lte: new Date(), gte: retryWindowStart() },
+    },
+    orderBy: { nextRetryAt: 'asc' },
+    take: limit,
+  })
+
+  let attempted = 0
+  for (const event of due) {
+    if (Date.now() > deadline) break
+
+    const claimed = await prisma.courierWebhookEvent.updateMany({
+      where: { id: event.id, processingStatus: 'failed_processing', nextRetryAt: event.nextRetryAt },
+      data: { nextRetryAt: new Date(Date.now() + 10 * 60_000) },
+    })
+    if (claimed.count !== 1) continue
+
+    const payload = event.payload as Record<string, unknown>
+    const shipment = (payload.shipment as Record<string, unknown> | undefined) || payload
+    const awbNumber = pick(shipment, 'awb_number', 'awb', 'awb_code')
+    const shipmentId = pick(shipment, 'shipment_id', 'provider_shipment_id')
+    const trackingNumber = pick(shipment, 'tracking_number')
+    const orderNumber = pick(shipment, 'order_number') || pick(payload, 'order_number')
+
+    let packageId: string | null = event.packageId ?? null
+    let merchantId: string | null = event.merchantId ?? null
+    if ((!packageId || !merchantId) && (awbNumber || shipmentId || trackingNumber || orderNumber)) {
+      const found = await findPackageByRef(awbNumber, shipmentId, trackingNumber, orderNumber)
+      if (found) {
+        packageId = found.id
+        merchantId = found.merchantId
+      }
+    }
+
+    if (!packageId || !merchantId) {
+      await prisma.courierWebhookEvent.update({
+        where: { id: event.id },
+        data: { processingStatus: 'skipped', processingError: 'Cannot resolve package', nextRetryAt: null, processedAt: new Date(), retryCount: event.retryCount + 1 },
+      })
+      continue
+    }
+
+    const secret = await getCourierWebhookSecret(merchantId!, event.provider).catch(() => null)
+    if (!secret || !providerValidates(event.provider, JSON.stringify(payload), null, secret)) {
+      await prisma.courierWebhookEvent.update({
+        where: { id: event.id },
+        data: { processingStatus: 'failed_processing', processingError: 'Signature/secret validation failed', nextRetryAt: null, retryCount: event.retryCount + 1 },
+      })
+      continue
+    }
+
+    try {
+      const update = extractTrackingUpdate(payload)
+      const result = await applyCourierTrackingUpdate({
+        merchantId: merchantId!,
+        packageId: packageId!,
+        providerName: event.provider,
+        status: update.status,
+        events: update.events,
+        estimatedDeliveryAt: (update.estimatedDeliveryAt as Date | undefined) ?? null,
+        rtoInitiated: update.rtoInitiated,
+        rtoDelivered: update.rtoDelivered,
+        returnTrackingNumber: update.returnTrackingNumber,
+        trackingUrl: update.trackingUrl,
+        trigger: 'webhook',
+        courierWebhookEventId: event.id,
+      })
+
+      if (result.applied) {
+        await prisma.courierWebhookEvent.update({
+          where: { id: event.id },
+          data: { processingStatus: 'processed', processingError: null, nextRetryAt: null, processedAt: new Date(), retryCount: event.retryCount + 1 },
+        })
+      } else {
+        const reason = result.skippedReason || ''
+        const isNonRetryable = /no package/i.test(reason)
+        if (isNonRetryable) {
+          await prisma.courierWebhookEvent.update({
+            where: { id: event.id },
+            data: { processingStatus: 'skipped', processingError: reason, nextRetryAt: null, processedAt: new Date(), retryCount: event.retryCount + 1 },
+          })
+        } else {
+          const next = nextWebhookAttemptAt(event.retryCount + 1)
+          await prisma.courierWebhookEvent.update({
+            where: { id: event.id },
+            data: { processingStatus: 'failed_processing', processingError: reason || 'Not applied', retryCount: event.retryCount + 1, nextRetryAt: next },
+          })
+        }
+      }
+      attempted += 1
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Processing failed'
+      const isRetryable = /network|timeout|connection reset|econnreset|enotfound|fetch|request failed|upstream|503|502|504|429/i.test(message)
+      if (!isRetryable) {
+        await prisma.courierWebhookEvent.update({
+          where: { id: event.id },
+          data: { processingStatus: 'skipped', processingError: message, nextRetryAt: null, processedAt: new Date(), retryCount: event.retryCount + 1 },
+        })
+      } else {
+        const next = nextWebhookAttemptAt(event.retryCount + 1)
+        await prisma.courierWebhookEvent.update({
+          where: { id: event.id },
+          data: { processingStatus: 'failed_processing', processingError: message, retryCount: event.retryCount + 1, nextRetryAt: next },
+        })
+      }
+      attempted += 1
+    }
+  }
+  return attempted
 }
 
 function providerValidates(provider: string, rawBody: string, signature: string | null, secret: string): boolean {
