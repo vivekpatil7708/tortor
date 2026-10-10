@@ -12,8 +12,14 @@ const fromAddress = process.env.RESEND_FROM || 'ToroPay <onboarding@resend.dev>'
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@toropay.co.in'
 const replyToAddress = process.env.RESEND_REPLY_TO || SUPPORT_EMAIL
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.toropay.co.in'
+const TRACKING_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.toropay.co.in'
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+const TRANSPARENT_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64'
+)
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,7 +28,14 @@ export async function GET(req: NextRequest) {
     const logs = await prisma.messageLog.findMany({
       orderBy: { createdAt: 'desc' },
       take: limit,
-      include: { merchant: { select: { businessName: true, email: true } } },
+      include: {
+        merchant: { select: { businessName: true, email: true } },
+        openEvents: {
+          orderBy: { openedAt: 'desc' },
+          take: 1,
+        },
+        _count: { select: { openEvents: true } },
+      },
     })
     return NextResponse.json({
       logs: logs.map(l => ({
@@ -31,6 +44,8 @@ export async function GET(req: NextRequest) {
         status: l.status,
         subject: l.subject,
         created_at: l.createdAt.toISOString(),
+        open_count: l._count.openEvents,
+        last_opened_at: l.openEvents[0]?.openedAt.toISOString() ?? null,
       })),
     })
   } catch (err: unknown) {
@@ -87,11 +102,39 @@ export async function POST(req: NextRequest) {
 
       const renderedSubject = renderTemplate(subject, fillData)
       const renderedBody = renderTemplate(body, fillData)
-      const html = renderBroadcastEmail({ subject: renderedSubject, body: renderedBody, ctaUrl: fillData.feedback_form_link })
+
+      // Create message log first to get ID for tracking
+      const messageLog = await prisma.messageLog.create({
+        data: {
+          merchantId: merchant.id,
+          channel: 'email',
+          recipient: merchant.email,
+          subject,
+          renderedBody: '', // will be updated after render
+          status: 'pending',
+          provider: 'resend',
+          createdBy: 'admin',
+        },
+      })
+
+      // Build HTML with tracking pixel
+      const html = renderBroadcastEmail({ subject, body, ctaUrl: fillData.feedback_form_link })
+      const trackingPixel = `<img src="${TRACKING_BASE_URL}/api/admin/email/open/${messageLog.id}" width="1" height="1" alt="" style="display:block;border:0;outline:none;text-decoration:none;" />`
+      const htmlWithTracking = html.includes('</body>')
+        ? html.replace('</body>', `${html.includes('<img src="') ? '' : ''}${'<img src="' + TRACKING_BASE_URL + '/api/admin/email/open/' + messageLog.id + '" width="1" height="1" alt="" style="display:block;border:0;outline:none;text-decoration:none;" />'}</body>`)
+        : html + `<img src="${TRACKING_BASE_URL}/api/admin/email/open/${messageLog.id}" width="1" height="1" alt="" style="display:block;border:0;outline:none;text-decoration:none;" />`
+
+      const fillDataWithTracking: Record<string, string> = {
+        ...fillData,
+        // The tracking is already in the HTML, no need in template variables
+      }
 
       let status = 'sent'
       let providerMessageId: string | null = null
       let errorMessage: string | null = null
+
+      // Build final HTML with rendered subject/body
+      const htmlWithTrackingFinal = htmlWithTracking.replace('{{subject}}', renderedSubject).replace('{{body}}', renderedBody)
 
       try {
         const result = await resend.emails.send({
@@ -99,7 +142,7 @@ export async function POST(req: NextRequest) {
           to: merchant.email,
           replyTo: replyToAddress,
           subject: renderedSubject,
-          html,
+          html: htmlWithTrackingFinal,
           text: renderedBody,
         })
         providerMessageId = result.data?.id || null
@@ -109,18 +152,16 @@ export async function POST(req: NextRequest) {
         errorMessage = err instanceof Error ? err.message : 'Failed to send email'
       }
 
-      await prisma.messageLog.create({
+      await prisma.messageLog.update({
+        where: { id: messageLog.id },
         data: {
-          merchantId: merchant.id,
-          channel: 'email',
-          recipient: merchant.email,
           subject: renderedSubject,
           renderedBody,
           status,
           provider: 'resend',
           providerMessageId,
           errorMessage,
-          createdBy: 'admin',
+          sentAt: status === 'sent' ? new Date() : null,
         },
       })
 

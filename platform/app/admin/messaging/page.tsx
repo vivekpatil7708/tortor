@@ -22,7 +22,7 @@ export default function AdminMessaging() {
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<{ total: number; sent: number; failed: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [logs, setLogs] = useState<Array<{ merchant_name: string; email: string; status: string; subject: string; created_at: string }>>([])
+  const [logs, setLogs] = useState<Array<{ merchant_name: string; email: string; status: string; subject: string; created_at: string; open_count?: number; last_opened_at?: string | null }>>([])
 
   useEffect(() => {
     fetch('/api/admin/merchants').then(r => r.json()).then(d => {
@@ -241,6 +241,8 @@ export default function AdminMessaging() {
                   <tr>
                     <th className="px-4 py-2.5 font-semibold text-gray-500">Merchant</th>
                     <th className="px-4 py-2.5 font-semibold text-gray-500">Status</th>
+                    <th className="px-4 py-2.5 font-semibold text-gray-500">Opens</th>
+                    <th className="px-4 py-2.5 font-semibold text-gray-500">Last Opened</th>
                     <th className="px-4 py-2.5 font-semibold text-gray-500">Date</th>
                   </tr>
                 </thead>
@@ -256,11 +258,13 @@ export default function AdminMessaging() {
                           {l.status}
                         </span>
                       </td>
+                      <td className="px-4 py-2.5 text-gray-700 font-mono">{l.open_count ?? 0}</td>
+                      <td className="px-4 py-2.5 text-gray-500">{l.last_opened_at ? new Date(l.last_opened_at).toLocaleString() : '—'}</td>
                       <td className="px-4 py-2.5 text-gray-400">{new Date(l.created_at).toLocaleDateString('en-IN')}</td>
                     </tr>
                   ))}
                   {logs.length === 0 && (
-                    <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-400">No broadcast logs yet</td></tr>
+                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No broadcast logs yet</td></tr>
                   )}
                 </tbody>
               </table>

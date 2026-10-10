@@ -907,6 +907,7 @@ model MessageLog {
 
   merchant Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  openEvents MessageOpenEvent[]
 
   // At most one log row per (merchant, channel, idempotency key) — dedupe.
   // NULL keys are never deduped (Postgres treats NULLs as distinct).
@@ -915,6 +916,20 @@ model MessageLog {
   @@index([merchantId, customerId])
   @@index([merchantId, status])
   @@map("message_logs")
+}
+
+model MessageOpenEvent {
+  id        String    @id @default(uuid())
+  messageLogId String   @map("message_log_id")
+  openedAt  DateTime  @default(now()) @map("opened_at")
+  ipAddress String?   @map("ip_address")
+  userAgent String?   @map("user_agent")
+
+  messageLog MessageLog @relation(fields: [messageLogId], references: [id], onDelete: Cascade)
+
+  @@index([messageLogId])
+  @@index([openedAt])
+  @@map("message_open_events")
 }
 
 model ChannelConnection {
