@@ -1,9 +1,5 @@
-const path = require('path')
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // This folder is the app's root. Stops Next.js guessing from stray lockfiles elsewhere on a machine.
-  outputFileTracingRoot: path.join(__dirname),
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },
@@ -12,7 +8,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'pexels.com' },
     ],
   },
-  async headers() {
+  headers() {
     // Only local development needs eval (fast refresh); the live site's code never uses it.
     const devEval = process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
     const csp = [
