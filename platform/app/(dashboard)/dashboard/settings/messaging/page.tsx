@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { LoadError } from '@/components/ui/load-error'
 import { DEFAULT_TEMPLATES, SAMPLE_DATA, renderTemplate, SUPPORTED_VARIABLES, type SampleData } from '@/lib/messaging'
-import { Check, RotateCcw, Eye, EyeOff } from 'lucide-react'
+import { Check, RotateCcw, Eye, EyeOff, MailOpen, RefreshCw } from 'lucide-react'
 
 interface Template {
   id: string
@@ -14,6 +14,25 @@ interface Template {
   subject: string
   body: string
   is_default: boolean
+}
+
+interface EmailOpenEvent {
+  id: string
+  email_log_id: string
+  opened_at: string
+  ip_address: string | null
+  user_agent: string | null
+}
+
+interface EmailLog {
+  id: string
+  template_key: string
+  recipient: string
+  subject: string
+  status: string
+  created_at: string
+  open_count: number
+  last_opened_at: string | null
 }
 
 const CHANNELS = [
@@ -38,6 +57,10 @@ export default function MessagingTemplatesPage() {
   const [saved, setSaved] = useState(false)
   const [channelStatus, setChannelStatus] = useState<Record<string, any> | null>(null)
   const [templatesState, setTemplatesState] = useState<'loading' | 'ready' | 'failed'>('loading')
+  const [showEmailOpens, setShowEmailOpens] = useState(false)
+  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([])
+  const [emailOpens, setEmailOpens] = useState<Record<string, EmailOpenEvent[]>>({})
+  const [emailLogsLoading, setEmailLogsLoading] = useState(false)
 
   // Until the saved templates load, the editor stays hidden: saving the defaults
   // shown after a failed load would overwrite the merchant's own wording.
@@ -63,6 +86,29 @@ export default function MessagingTemplatesPage() {
       setBody(DEFAULT_TEMPLATES[activeChannel]?.body || '')
     }
   }, [activeChannel, templates])
+
+  const loadEmailLogs = async () => {
+    setEmailLogsLoading(true)
+    try {
+      const r = await api.getEmailLogs()
+      setEmailLogs(r.logs as unknown as EmailLog[])
+      // Fetch opens for each log
+      for (const log of r.logs as unknown as EmailLog[]) {
+        const opens = await api.getEmailOpens(log.id)
+        setEmailOpens(prev => ({ ...prev, [log.id]: opens as unknown as EmailOpenEvent[] }))
+      }
+    } catch {
+      // Silent fail - email opens are optional
+    } finally {
+      setEmailLogsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (showEmailOpens && !emailLogs.length && !emailLogsLoading) {
+      loadEmailLogs()
+    }
+  }, [showEmailOpens])
 
   const handleSave = async () => {
     setSaving(true)
@@ -120,11 +166,15 @@ export default function MessagingTemplatesPage() {
 
       <div className="mb-6 flex flex-wrap gap-2">
         {CHANNELS.map(ch => (
-          <button key={ch.key} onClick={() => setActiveChannel(ch.key)}
+          <button key={ch.key} onClick={() => { setActiveChannel(ch.key); setShowEmailOpens(false); }}
             className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${activeChannel === ch.key ? 'bg-charcoal text-white' : 'border border-gray-200 bg-white text-gray-500 hover:text-charcoal'}`}>
             {ch.icon} {ch.label} {statusBadge(channelStatus?.[ch.key]?.status)}
           </button>
         ))}
+        <button onClick={() => { setShowEmailOpens(true); setActiveChannel('email'); }}
+          className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${showEmailOpens ? 'bg-charcoal text-white' : 'border border-gray-200 bg-white text-gray-500 hover:text-charcoal'}`}>
+          <MailOpen className="h-3.5 w-3.5" /> Email Opens
+        </button>
       </div>
 
       {status && (
@@ -184,6 +234,63 @@ export default function MessagingTemplatesPage() {
               {renderedSubject && <p className="mb-2 text-xs font-medium text-gray-600">Subject: {renderedSubject}</p>}
               <p className="whitespace-pre-wrap text-sm text-gray-700">{renderedBody}</p>
             </div>
+          </div>
+        )}
+
+        {showEmailOpens && (
+          <div className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight">Email Opens</h2>
+                <p className="text-sm text-gray-500">Track who opened your transactional emails and when.</p>
+              </div>
+              <button onClick={loadEmailLogs} disabled={emailLogsLoading}
+                className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-500 hover:text-charcoal">
+                <RefreshCw className={`h-3.5 w-3.5 ${emailLogsLoading ? 'animate-spin' : ''}`} /> Refresh
+              </button>
+            </div>
+
+            {emailLogsLoading ? (
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-8 text-center text-sm text-gray-500">Loading email logs…</div>
+            ) : emailLogs.length === 0 ? (
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-8 text-center text-sm text-gray-500">
+                No email logs found. Send a transactional email to start tracking opens.
+              </div>
+            ) : (
+              <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Recipient</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Template</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Opens</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Last Opened</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600">Sent</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {emailLogs.map(log => {
+                      const opens = emailOpens[log.id] || []
+                      return (
+                        <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-4 py-3 text-gray-700">{log.recipient}</td>
+                          <td className="px-4 py-3 text-gray-500">{log.template_key.replace(/_/g, ' ')}</td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${log.status === 'sent' ? 'bg-green-100 text-green-700' : log.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                              {log.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-700 font-mono">{opens.length}</td>
+                          <td className="px-4 py-3 text-gray-500">{opens.length > 0 ? new Date(opens[0].opened_at).toLocaleString() : '—'}</td>
+                          <td className="px-4 py-3 text-gray-500">{new Date(log.created_at).toLocaleString()}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>

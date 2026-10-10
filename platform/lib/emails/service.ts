@@ -242,8 +242,10 @@ export async function sendAutomatedEmail(params: {
   }
   if (!fullContext.business_name) fullContext.business_name = merchant?.businessName || 'ToroPay business'
 
-  const subject = renderEmailTemplate(setting.subject, fullContext)
-  const body = renderEmailTemplate(setting.body, fullContext)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.toropay.co.in'
+
+  const subject = renderEmailTemplate(setting.subject, fullContext, { trackingId: logId, baseUrl })
+  const body = renderEmailTemplate(setting.body, fullContext, { trackingId: logId, baseUrl })
   const html = renderHtml(body, {
     businessName: merchant?.businessName || 'ToroPay business',
     logoUrl: merchant?.businessLogoUrl,
@@ -252,37 +254,47 @@ export async function sendAutomatedEmail(params: {
     brandFont: merchant?.brandFont || undefined,
   })
 
+  // Create email log first so we have the tracking ID for the pixel
+  await prisma.emailLog.create({
+    data: {
+      id: logId,
+      merchantId,
+      templateKey: key,
+      recipient: to,
+      subject,
+      renderedBody: html,
+      status: 'queued',
+      provider: 'mock',
+      providerMessageId: null,
+      errorMessage: null,
+    },
+  })
+
   const provider = getEmailProvider()
 
   try {
     const result = await provider.sendTransactionalEmail({ to, subject, html })
     const status = result.ok ? 'sent' : 'failed'
-    await logEmail({
-      logId,
-      merchantId,
-      key,
-      recipient: to,
-      subject,
-      body,
-      status,
-      provider: provider.name,
-      providerMessageId: result.providerMessageId,
-      errorMessage: result.ok ? null : 'Provider rejected the email',
+    await prisma.emailLog.update({
+      where: { id: logId },
+      data: {
+        status,
+        provider: 'resend',
+        providerMessageId: result.providerMessageId,
+        errorMessage: result.ok ? null : 'Provider rejected the email',
+      },
     })
     return { logId, status }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Email send failed'
-    await logEmail({
-      logId,
-      merchantId,
-      key,
-      recipient: to,
-      subject,
-      body,
-      status: 'failed',
-      provider: provider.name,
-      providerMessageId: null,
-      errorMessage: message,
+    await prisma.emailLog.update({
+      where: { id: logId },
+      data: {
+        status: 'failed',
+        provider: 'resend',
+        providerMessageId: null,
+        errorMessage: message,
+      },
     })
     return { logId, status: 'failed' }
   }
@@ -302,6 +314,7 @@ async function logEmail(params: {
 }) {
   await prisma.emailLog.create({
     data: {
+      id: params.logId,
       merchantId: params.merchantId,
       templateKey: params.key,
       recipient: params.recipient,
@@ -325,23 +338,41 @@ export async function sendTestEmail(merchantId: string, key: EmailAutomation, to
     support_email: context.support_email,
     support_phone: context.support_phone,
   }
-  const subject = renderEmailTemplate(setting.subject, fullContext)
-  const body = renderEmailTemplate(setting.body, fullContext)
+
+  const logId = `email_test_${Date.now()}`
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.toropay.co.in'
+
+  const subject = renderEmailTemplate(setting.subject, fullContext, { trackingId: logId, baseUrl })
+  const body = renderEmailTemplate(setting.body, fullContext, { trackingId: logId, baseUrl })
   const html = renderHtml(body, branding)
 
   const provider = getEmailProvider()
+
+  await prisma.emailLog.create({
+    data: {
+      id: logId,
+      merchantId,
+      templateKey: key,
+      recipient: to,
+      subject,
+      renderedBody: html,
+      status: 'queued',
+      provider: 'mock',
+      providerMessageId: null,
+      errorMessage: null,
+    },
+  })
+
   const result = await provider.sendTransactionalEmail({ to, subject, html })
-  await logEmail({
-    logId: `email_test_${Date.now()}`,
-    merchantId,
-    key,
-    recipient: to,
-    subject,
-    body,
-    status: result.ok ? 'sent' : 'failed',
-    provider: provider.name,
-    providerMessageId: result.providerMessageId,
-    errorMessage: result.ok ? null : 'Provider rejected the email',
+
+  await prisma.emailLog.update({
+    where: { id: logId },
+    data: {
+      status: result.ok ? 'sent' : 'failed',
+      provider: 'resend',
+      providerMessageId: result.providerMessageId,
+      errorMessage: result.ok ? null : 'Provider rejected the email',
+    },
   })
   return { subject, body, status: result.ok ? 'sent' : 'failed' }
 }

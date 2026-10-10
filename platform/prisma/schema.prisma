@@ -1373,7 +1373,22 @@ model EmailLog {
   createdAt         DateTime        @default(now()) @map("created_at")
 
   merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  openEvents EmailOpenEvent[]
 
   @@index([merchantId, createdAt])
   @@map("email_logs")
+}
+
+model EmailOpenEvent {
+  id        String   @id @default(uuid())
+  emailLogId String   @map("email_log_id")
+  openedAt  DateTime @default(now()) @map("opened_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+
+  emailLog EmailLog @relation(fields: [emailLogId], references: [id], onDelete: Cascade)
+
+  @@index([emailLogId])
+  @@index([openedAt])
+  @@map("email_open_events")
 }

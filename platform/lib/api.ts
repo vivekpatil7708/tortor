@@ -176,6 +176,12 @@ export const api = {
   getMessageLogs: (orderId?: string) =>
     request<{ logs: Record<string, unknown>[] }>(`/api/messaging/logs${orderId ? `?orderId=${orderId}` : ''}`),
 
+  getEmailLogs: () =>
+    request<{ logs: Record<string, unknown>[] }>('/api/email/logs'),
+
+  getEmailOpens: (logId: string) =>
+    request<{ opens: Record<string, unknown>[] }>(`/api/email/opens/${logId}`),
+
   getChannelStatus: () =>
     request<{ channels: Record<string, { status: string; provider: string; description: string }> }>('/api/integrations/channels/status'),
 

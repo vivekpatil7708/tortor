@@ -218,11 +218,27 @@ We\u2019ll process a refund (if applicable) once the return is received. For hel
   },
 }
 
-export function renderEmailTemplate(template: string, data: Record<string, string>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => {
+export function renderEmailTemplate(
+  template: string,
+  data: Record<string, string>,
+  options?: { trackingId?: string; baseUrl?: string }
+): string {
+  let html = template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => {
     if (key in data) return data[key]
     return `{{${key}}}`
   })
+
+  if (options?.trackingId && options?.baseUrl) {
+    const pixelUrl = `${options.baseUrl}/api/email/open/${options.trackingId}`
+    const pixel = `<img src="${pixelUrl}" width="1" height="1" alt="" style="display:block;border:0;outline:none;text-decoration:none;" />`
+    if (html.toLowerCase().includes('</body>')) {
+      html = html.replace('</body>', `${pixel}</body>`)
+    } else {
+      html += pixel
+    }
+  }
+
+  return html
 }
 
 export function buildProductList(products: Array<{ name: string; quantity: number; line_total: number }>): string {
