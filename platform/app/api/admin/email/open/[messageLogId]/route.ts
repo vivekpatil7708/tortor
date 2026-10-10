@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAdmin } from '@/lib/admin-auth'
 
 const TRANSPARENT_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -15,7 +14,6 @@ export async function GET(
   { params }: { params: Promise<{ messageLogId: string }> }
 ) {
   try {
-    await requireAdmin()
     const { messageLogId } = await params
 
     // Verify the message log exists
