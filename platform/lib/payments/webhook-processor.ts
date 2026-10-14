@@ -283,7 +283,7 @@ async function applyPaymentStatus(input: ApplyStatusInput) {
     }
 
     return { changed: true, flagged: false, orderAdvanced }
-  })
+  }, { timeout: 30000 })
 }
 
 /**

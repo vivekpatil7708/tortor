@@ -92,7 +92,8 @@ export async function createOrder(input: CreateOrderInput) {
   const total = round2(subtotal - discount + shipping + tax)
   if (total < 0) throw new Error('Total amount cannot be negative')
 
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(
+    async (tx) => {
     // Generate a unique order number
     let orderNumber = ''
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -228,7 +229,9 @@ export async function createOrder(input: CreateOrderInput) {
       where: { id: order.id },
       include: { orderItems: true, customer: true },
     })
-  })
+  },
+  { timeout: 30000 }
+  )
 }
 
 /**
