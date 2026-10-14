@@ -1,7 +1,6 @@
 # Project description
 
-Torp Pay is a payment/transaction platform (Toropay). Based on the codebase structure and dependencies, it's a Next.js application handling payments, orders, authentication, and related business logic.
-
+Toropay is a merchant payments platform where merchants create orders and customers pay by UPI QR code or a shareable payment link. It is built with Next.js 14 (App Router), Prisma 5.22 and Supabase. The code repo is named "tortor".
 ## Main folders
 
 - `app/` - Next.js App Router pages and API routes
