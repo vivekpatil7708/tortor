@@ -20,17 +20,20 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash)
 }
 
-export async function createSession(merchantId: string, email: string) {
+export async function createSession(merchantId: string, email: string, options?: { sameSite?: 'lax' | 'none' | 'strict' }) {
   const token = await new SignJWT({ sub: merchantId, email })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
     .sign(getSecret())
 
+  const isProduction = process.env.NODE_ENV === 'production'
+  const sameSite = options?.sameSite ?? (isProduction ? 'none' : 'lax')
+
   cookies().set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction || sameSite === 'none',
+    sameSite,
     path: '/',
     maxAge: 60 * 60 * 24 * 7,
   })
@@ -68,10 +71,13 @@ export async function createImpersonationSession(merchantId: string, adminEmail:
     .setExpirationTime('1h')
     .sign(getSecret())
 
+  const isProduction = process.env.NODE_ENV === 'production'
+  const sameSite = isProduction ? 'none' : 'lax'
+
   cookies().set(IMPERSONATE_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite,
     path: '/',
     maxAge: 60 * 60,
   })
