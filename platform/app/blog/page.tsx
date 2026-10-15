@@ -10,9 +10,15 @@ import AuthorCard from '@/components/blog/AuthorCard'
 import SearchBar from '@/components/blog/SearchBar'
 
 export const metadata: Metadata = {
-  title: 'Blog — ToroPay',
+  title: 'Blog',
   description: 'Guides, comparisons, and tips for Indian businesses on UPI payments, payment links, and digital payment strategies.',
   alternates: { canonical: 'https://www.toropay.co.in/blog' },
+  openGraph: {
+    title: 'ToroPay Blog — UPI payments, payment links & digital payments',
+    description: 'Guides, comparisons, and tips for Indian businesses on UPI payments, payment links, and digital payment strategies.',
+    url: 'https://www.toropay.co.in/blog',
+    type: 'website',
+  },
 }
 
 export default function BlogPage() {

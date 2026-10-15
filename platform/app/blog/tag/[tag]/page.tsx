@@ -17,9 +17,17 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params;
   const tag = decodeURIComponent(params.tag).replace(/-/g, ' ')
   return {
-    title: `"${tag}" — ToroPay Blog`,
+    title: `${tag} articles`,
     description: `Articles tagged with "${tag}" on the ToroPay blog.`,
     alternates: { canonical: `https://www.toropay.co.in/blog/tag/${params.tag}` },
+    // Tag archives are thin, duplicate listings — crawlable but kept out of search.
+    robots: { index: false, follow: true },
+    openGraph: {
+      title: `${tag} articles | ToroPay Blog`,
+      description: `Articles tagged with "${tag}" on the ToroPay blog.`,
+      url: `https://www.toropay.co.in/blog/tag/${params.tag}`,
+      type: 'website',
+    },
   }
 }
 

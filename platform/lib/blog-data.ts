@@ -60,7 +60,7 @@ export const BLOG_POSTS: BlogPost[] = [
 
 <h2>Step 1: Create Your Free Account</h2>
 <ol>
-  <li>Go to <a href="https://toropay.co.in/signup">toropay.co.in/signup</a></li>
+  <li>Go to <a href="/signup">toropay.co.in/signup</a></li>
   <li>Enter your email address and create a password</li>
   <li>Verify your email (check your inbox for the verification link)</li>
   <li>Log in to your dashboard</li>
@@ -242,7 +242,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'free-payment-links-india',
     title: 'How to Create Free Payment Links in India',
     excerpt: 'Accept payments instantly with zero transaction fees. A practical guide to creating and sharing UPI payment links.',
-    description: 'Learn how to create free UPI payment links in India without any transaction fees. Accept payments instantly with ToroPay payment links and QR codes.',
+    description: 'Learn how to create and share free UPI payment links in India with no transaction fees. Accept payments instantly with ToroPay payment links, QR codes, and reusable payment links.',
     author: AUTHORS['vivek-patil'],
     publishedAt: '2026-02-10',
     updatedAt: '2026-07-21',

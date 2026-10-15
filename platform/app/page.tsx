@@ -1,7 +1,19 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import DonateWidget from '@/components/donate-widget'
 import { VideoEmbed } from '@/components/landing/video-embed'
 import { Link2, QrCode } from 'lucide-react'
+
+export const metadata: Metadata = {
+  title: { absolute: 'Create a Payment Link Free in India | ToroPay' },
+  description: 'Create a payment link in seconds with ToroPay — a free UPI payment link generator for India. Share payment links on WhatsApp, SMS, or email and get paid directly to your own UPI ID. No website, no payment gateway, no transaction fees.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    url: 'https://www.toropay.co.in/',
+    title: 'Create a Payment Link Free in India | ToroPay',
+    description: 'Create and share free UPI payment links. Get paid directly to your own UPI ID — no website, no payment gateway, no transaction fees.',
+  },
+}
 
 const organizationSchema = {
   '@context': 'https://schema.org',
@@ -9,53 +21,57 @@ const organizationSchema = {
   name: 'ToroPay',
   url: 'https://www.toropay.co.in/',
   logo: 'https://www.toropay.co.in/favicon.svg',
-  description: 'Free UPI payment link generator and payment gateway without a website — pay by link in India with branded checkout pages and QR codes.',
+  description: 'Free UPI payment link generator for India — create a payment link, share it, and get paid directly to your own UPI ID with branded checkout pages and QR codes. No website and no payment gateway required.',
   foundingDate: '2024',
+  areaServed: 'IN',
   sameAs: [
     'https://instagram.com/toropay.co.in',
   ],
 }
 
+// Single source of truth for the FAQ: the same list renders on the page and
+// feeds the FAQPage structured data, so visible content and markup always match.
+const FAQS: { q: string; a: string }[] = [
+  { q: 'Is ToroPay really free?', a: 'Yes, ToroPay is 100% free. There are no paid plans, no transaction fees, no hidden charges. You get unlimited payment links, pages, and QR codes at no cost.' },
+  { q: 'Is creating a payment link free?', a: 'Yes. Creating payment links, payment pages, and QR codes with ToroPay is free, with no transaction fees and no hidden charges.' },
+  { q: 'How do I create a payment link with ToroPay?', a: 'Sign up free, add your UPI ID, then create a payment link with a fixed or custom amount, a title, and your branding. ToroPay instantly generates a shareable link and a hosted payment page. No coding needed.' },
+  { q: 'How do I share a payment link?', a: 'Copy your ToroPay payment link and share it on WhatsApp, Instagram, email, or SMS — or display a QR code customers can scan. When a customer opens the link, they see a branded page and pay by UPI.' },
+  { q: 'Can a payment link be reused?', a: 'Yes. By default a ToroPay payment link can be used as many times as you like — it is not limited to a single payment. You can deactivate it from your dashboard whenever you no longer need it.' },
+  { q: 'Do I need a payment gateway or a website to accept payments?', a: 'No. ToroPay does not process or hold payments itself, so no payment gateway setup is needed. It hosts a branded payment page for you and your customer pays directly to your own UPI ID — no website, no coding.' },
+  { q: 'How do I get paid?', a: 'Payments go directly to your own UPI ID. ToroPay does not handle, process, or store any payment funds. Your customers pay you directly via any UPI app — Google Pay, PhonePe, Paytm, BHIM, or any other.' },
+  { q: 'What can I create with ToroPay?', a: 'You can create branded hosted checkout pages with your logo and colors, shareable payment links with custom button text, dynamic QR codes with preset amounts, and multi-product order forms with custom fields.' },
+  { q: 'Who is ToroPay for?', a: 'ToroPay is built for Indian businesses, freelancers, creators, solopreneurs, coaches, and anyone who needs to accept UPI payments without building a website or writing any code.' },
+  { q: 'Do I need a website to use ToroPay?', a: 'No. ToroPay generates a hosted checkout page for you. Just share the link or QR code with your customers. No website, no coding required.' },
+  { q: 'Do I need a bank account to accept payments?', a: 'Yes. You need a bank account linked to a UPI ID in India. ToroPay works with any UPI ID from any bank.' },
+  { q: 'Can customers pay by link without an app?', a: 'Customers pay by link using any UPI app on their phone — Google Pay, PhonePe, Paytm, or BHIM. When they tap your payment link, it opens their UPI app with the amount pre-filled.' },
+  { q: 'Can I customize the checkout page?', a: 'Yes. You can upload a logo, set brand colors, add a background image, change button text, and choose a page theme. The checkout page reflects your brand identity.' },
+  { q: 'Which UPI apps are supported?', a: 'All of them. Google Pay, PhonePe, Paytm, BHIM, Amazon Pay, CRED, and any app that supports UPI payments. Your customers can pay using their preferred app.' },
+  { q: 'Does ToroPay support UPI payment links in India?', a: 'Yes. ToroPay is built for India and uses standard upi://pay links, so customers can pay from Google Pay, PhonePe, Paytm, BHIM, or any UPI app. Payments go directly to your own UPI ID.' },
+]
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'ToroPay',
+  url: 'https://www.toropay.co.in/',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: 'https://www.toropay.co.in/blog/search?q={search_term_string}',
+    },
+    'query-input': 'required name=search_term_string',
+  },
+}
+
 const faqSchema = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'Is ToroPay really free?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Yes, ToroPay is 100% free. There are no paid plans, no transaction fees, no hidden charges. Unlimited payment links and pages.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'How do I get paid?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Payments go directly to your own UPI ID. ToroPay does not handle or process any funds. Your customers pay you directly via any UPI app.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'What can I create with ToroPay?',
-      acceptedAnswer: { '@type': 'Answer', text: 'You can create branded hosted checkout pages, shareable payment links, and dynamic QR codes. Customize colors, logo, background image, and button text.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'How is ToroPay a payment gateway without a website?',
-      acceptedAnswer: { '@type': 'Answer', text: 'ToroPay hosts a branded checkout page for you. You just create a payment link, share it on WhatsApp, Instagram, or email, and your customer pays you directly via UPI. No website, no coding, no gateway setup.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'Who is ToroPay for?',
-      acceptedAnswer: { '@type': 'Answer', text: 'ToroPay is built for Indian businesses, freelancers, creators, and anyone who needs to accept UPI payments without a website or technical setup.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'Do I need a bank account to accept payments?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Yes. You need a bank account linked to a UPI ID in India. ToroPay works with any UPI ID from any bank.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'Can customers pay by link without an app?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Customers pay by link using any UPI app on their phone — Google Pay, PhonePe, Paytm, or BHIM. When they tap your payment link, it opens their UPI app with the amount pre-filled.' },
-    },
-  ],
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
 }
 
 const baseUrl = 'https://www.toropay.co.in'
@@ -76,6 +92,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream to-beige">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <header className="fixed inset-x-0 top-4 z-30 flex justify-center px-4">
         <div className="flex w-full max-w-3xl items-center justify-between rounded-full border border-white/60 bg-white/70 py-2 pl-6 pr-2 shadow-lg backdrop-blur-xl">
@@ -102,8 +119,8 @@ export default function LandingPage() {
           <span className="text-primary-500">your payment pages</span>
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500">
-          ToroPay is the easiest way to pay by link in India. Create branded UPI payment links, QR codes, and
-          hosted checkout pages using your own UPI ID — a full payment gateway without a website, no coding needed.
+          ToroPay is the easiest way to create a payment link in India. Build branded UPI payment links, QR codes,
+          and hosted payment pages with your own UPI ID — no website, no coding, and no payment gateway needed.
           100% free — unlimited links, zero transaction fees, no hidden charges.
         </p>
         <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
@@ -214,8 +231,8 @@ export default function LandingPage() {
         <div className="grid gap-6 sm:grid-cols-3">
           {[
             { n: '1', t: 'Add your UPI ID', d: 'Enter your VPA like yourname@bank. We validate it instantly.' },
-            { n: '2', t: 'Create a payment page', d: 'Set amount (fixed or custom), add your logo, pick colors, and brand it your way.' },
-            { n: '3', t: 'Share & get paid', d: 'Share the link or QR code. Customers pay via any UPI app. Money goes directly to you.' },
+            { n: '2', t: 'Create a payment link', d: 'Set a fixed or custom amount, add a title, your logo, and brand colors. ToroPay instantly generates a shareable payment link and page.' },
+            { n: '3', t: 'Share & get paid', d: 'Send your payment link on WhatsApp, Instagram, email, or SMS, or show a QR code. Customers pay by UPI and the money goes directly to you.' },
           ].map(({ n, t, d }) => (
             <div key={n} className="rounded-2xl border border-white/80 bg-white/50 p-8 backdrop-blur-sm">
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-charcoal text-sm font-bold text-white">{n}</div>
@@ -277,13 +294,13 @@ export default function LandingPage() {
           <div className="rounded-2xl border border-white/80 bg-white/50 p-6 backdrop-blur-sm">
             <h3 className="mb-2 text-lg font-bold">Data protection</h3>
             <p className="text-sm leading-relaxed text-gray-500">
-              Your data is encrypted in transit and at rest. We use <a href="https://vercel.com/security" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Vercel</a> for hosting and <a href="https://neon.tech/security" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Neon PostgreSQL</a> for database — both SOC 2 compliant. Sessions use HTTP-only, signed cookies.
+              Your data is encrypted in transit and at rest. We use <a href="https://vercel.com/security" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Vercel</a> for hosting and <a href="https://neon.tech/security" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Neon PostgreSQL</a> for database — both SOC 2 compliant. Sessions are secured with HTTP-only encrypted cookies.
             </p>
           </div>
           <div className="rounded-2xl border border-white/80 bg-white/50 p-6 backdrop-blur-sm">
-            <h3 className="mb-2 text-lg font-bold">Rate-limited & audited</h3>
+            <h3 className="mb-2 text-lg font-bold">Rate-limited & monitored</h3>
             <p className="text-sm leading-relaxed text-gray-500">
-              Login attempts are rate-limited (account locks after 5 failures). All authentication events are logged for audit, and an automatic health check regularly tests the database.
+              Login attempts are rate-limited (account locks after 5 failures). All authentication events are logged for audit. We actively monitor for unusual activity to keep the platform safe.
             </p>
           </div>
         </div>
@@ -293,7 +310,7 @@ export default function LandingPage() {
         <div className="rounded-3xl bg-charcoal px-8 py-16 text-center text-white">
           <h2 className="text-3xl font-bold tracking-tight">Start accepting UPI payments in minutes</h2>
           <p className="mt-3 text-gray-300">Create unlimited payment links, pages, and QR codes. Completely free. No credit card needed.</p>
-          <Link href="/signup" className="mt-6 inline-block rounded-xl bg-primary-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-primary-600">Create free account — it's free</Link>
+          <Link href="/signup" className="mt-6 inline-block rounded-xl bg-primary-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-primary-600">Create free account — it&apos;s free</Link>
         </div>
       </section>
 
@@ -301,17 +318,7 @@ export default function LandingPage() {
         <div className="rounded-3xl border border-white/60 bg-white/40 p-8 backdrop-blur-xl sm:p-12">
           <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">Frequently asked questions</h2>
           <div className="mt-8 space-y-4">
-            {[
-              { q: 'Is ToroPay really free?', a: 'Yes, ToroPay is 100% free. There are no paid plans, no transaction fees, no hidden charges. You get unlimited payment links, pages, and QR codes at no cost.' },
-              { q: 'How is ToroPay a payment gateway without a website?', a: 'ToroPay hosts a branded checkout page for you. You just create a payment link generator link, share it on WhatsApp, Instagram, or email, and your customer pays you directly via UPI. No website, no coding, no gateway setup.' },
-              { q: 'How do I get paid?', a: 'Payments go directly to your own UPI ID. ToroPay does not handle, process, or store any payment funds. Your customers pay you directly via any UPI app — Google Pay, PhonePe, Paytm, BHIM, or any other.' },
-              { q: 'What can I create with ToroPay?', a: 'You can create branded hosted checkout pages with your logo and colors, shareable payment links with custom button text, dynamic QR codes with preset amounts, and multi-product order forms with custom fields.' },
-              { q: 'Who is ToroPay for?', a: 'ToroPay is built for Indian businesses, freelancers, creators, solopreneurs, coaches, and anyone who needs to accept UPI payments without building a website or writing any code.' },
-              { q: 'Do I need a website to use ToroPay?', a: 'No. ToroPay generates a hosted checkout page for you. Just share the link or QR code with your customers. No website, no coding required.' },
-              { q: 'Can customers pay by link without an app?', a: 'Customers pay by link using any UPI app on their phone — Google Pay, PhonePe, Paytm, or BHIM. When they tap your payment link, it opens their UPI app with the amount pre-filled.' },
-              { q: 'Can I customize the checkout page?', a: 'Yes. You can upload your logo, set brand colors, add a background image, change button text, and choose a page theme. The checkout page reflects your brand identity.' },
-              { q: 'Which UPI apps are supported?', a: 'All of them. Google Pay, PhonePe, Paytm, BHIM, Amazon Pay, CRED, and any app that supports UPI payments. Your customers can pay using their preferred app.' },
-            ].map(({ q, a }) => (
+            {FAQS.map(({ q, a }) => (
               <details key={q} className="group rounded-xl border border-gray-200 bg-white/60 p-4 backdrop-blur-sm">
                 <summary className="cursor-pointer text-sm font-semibold text-charcoal">{q}</summary>
                 <p className="mt-2 text-sm leading-relaxed text-gray-500">{a}</p>
@@ -341,7 +348,6 @@ export default function LandingPage() {
           </p>
           <div className="mt-5 flex justify-center gap-3">
             <a href={`https://wa.me/?text=${encodeURIComponent('ToroPay — Free UPI payment pages for Indian businesses. No fees, no catch. Check it out: ' + baseUrl)}`} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">WhatsApp</a>
-            <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('ToroPay — Free UPI payment pages for Indian businesses. No fees, no catch. ' + baseUrl)}`} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-[#000] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">X</a>
             <a href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(baseUrl)}&title=ToroPay&summary=${encodeURIComponent('Free UPI payment pages for Indian businesses.')}`} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-[#0A66C2] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">LinkedIn</a>
           </div>
         </div>

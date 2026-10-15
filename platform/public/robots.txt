@@ -1,12 +1,16 @@
 User-agent: *
 Allow: /
+
+# Private app areas (also protected by auth middleware — robots.txt is not a
+# security mechanism, it only discourages crawling).
 Disallow: /api/
 Disallow: /admin/
 Disallow: /dashboard/
 Disallow: /onboarding
-Disallow: /login
-Disallow: /signup
 Disallow: /forgot-password
 Disallow: /reset-password
+
+# Note: /login and /signup are intentionally crawlable and carry a
+# "noindex" robots meta tag so search engines can drop them cleanly.
 
 Sitemap: https://www.toropay.co.in/sitemap.xml
