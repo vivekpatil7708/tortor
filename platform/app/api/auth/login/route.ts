@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     })
 
     await clearImpersonation()
-    await createSession(merchant.id, merchant.email)
+    await createSession(merchant.id, merchant.email, { sameSite: 'none' })
     return NextResponse.json({ success: true, merchant: merchantToJson(merchant) })
   } catch (err: unknown) {
     return NextResponse.json({ error: publicErrorMessage(err, 'Login failed') }, { status: 500 })

@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     // The account can't take payments until the owner proves the email is theirs.
     const verificationSent = await sendVerificationEmail(merchant)
 
-    await createSession(merchant.id, merchant.email)
+    await createSession(merchant.id, merchant.email, { sameSite: 'none' })
     return NextResponse.json({ success: true, merchant: merchantToJson(merchant), email_verification_sent: verificationSent })
   } catch (err: unknown) {
     return NextResponse.json({ error: publicErrorMessage(err, 'Signup failed') }, { status: 500 })

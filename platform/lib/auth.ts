@@ -22,7 +22,7 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash)
 }
 
-export async function createSession(merchantId: string, email: string) {
+export async function createSession(merchantId: string, email: string, options?: { sameSite?: 'lax' | 'none' | 'strict' }) {
   // The login carries the account's session version; raising the version
   // (password reset, "sign out other devices") ends every older login.
   const account = await prisma.merchant.findUnique({ where: { id: merchantId }, select: { sessionVersion: true } })
@@ -32,11 +32,14 @@ export async function createSession(merchantId: string, email: string) {
     .setExpirationTime('7d')
     .sign(getSecret())
 
+  const isProduction = process.env.NODE_ENV === 'production'
+  const sameSite = options?.sameSite ?? (isProduction ? 'none' : 'lax')
+
   const cookieStore = await cookies()
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction || sameSite === 'none',
+    sameSite,
     path: '/',
     maxAge: 60 * 60 * 24 * 7,
   })
@@ -81,11 +84,14 @@ export async function createImpersonationSession(merchantId: string, adminEmail:
     .setExpirationTime('1h')
     .sign(getSecret())
 
+  const isProduction = process.env.NODE_ENV === 'production'
+  const sameSite = isProduction ? 'none' : 'lax'
+
   const cookieStore = await cookies()
   cookieStore.set(IMPERSONATE_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite,
     path: '/',
     maxAge: 60 * 60,
   })
