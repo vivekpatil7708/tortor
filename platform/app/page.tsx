@@ -361,7 +361,7 @@ export default function LandingPage() {
             <Link href="/blog/best-razorpay-alternatives-for-indian-businesses" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
               <span className="text-xs font-medium text-primary-600">Comparisons</span>
               <h3 className="mt-1 text-sm font-bold text-charcoal">7 Best Razorpay Alternatives for Indian Businesses in 2026</h3>
-              <p className="mt-1 text-xs text-gray-400">Compare free payment gateways and UPI solutions.</p>
+              <p className="mt-1 text-xs text-gray-400">Compare payment gateways and free UPI alternatives.</p>
             </Link>
             <Link href="/blog/free-payment-links-india" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
               <span className="text-xs font-medium text-primary-600">Tutorials</span>

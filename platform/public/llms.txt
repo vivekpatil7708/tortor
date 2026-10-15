@@ -11,6 +11,7 @@
 
 ## Blog & guides (public)
 - https://www.toropay.co.in/blog
+- https://www.toropay.co.in/blog/toropay-features-guide
 - https://www.toropay.co.in/blog/how-to-use-toropay-complete-guide
 - https://www.toropay.co.in/blog/free-payment-links-india
 - https://www.toropay.co.in/blog/how-to-accept-payments-without-website
@@ -20,6 +21,7 @@
 - https://www.toropay.co.in/blog/best-upi-payment-apps-for-business
 - https://www.toropay.co.in/blog/upi-payment-page-best-practices
 - https://www.toropay.co.in/blog/payment-gateway-pricing-institutions-india
+- https://www.toropay.co.in/blog/cheapest-payment-gateway-shopify-india
 
 ## How it works (UPI)
 - Free UPI payment links — no coding, no website needed

@@ -41,6 +41,109 @@ export const AUTHORS: Record<string, BlogAuthor> = {
 
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'toropay-features-guide',
+    title: "What's New in ToroPay: Every Feature and How to Use It",
+    excerpt: 'A full tour of what ToroPay can do today — payment links, QR codes, analytics, templates, delivery, couriers, API keys and webhooks — with the exact steps to use each one.',
+    description: 'A complete guide to ToroPay features: create payment links and QR codes, set expiry and usage limits, sell items, track analytics, save templates, connect couriers, and automate with API keys and webhooks.',
+    author: AUTHORS['toropay-team'],
+    publishedAt: '2026-10-15',
+    updatedAt: '2026-10-15',
+    category: 'Tutorials',
+    tags: ['ToroPay features', 'what is new in ToroPay', 'ToroPay dashboard guide', 'UPI payment links', 'payment link features', 'how to use ToroPay'],
+    readTime: '12 min read',
+    featured: true,
+    imageUrl: 'https://images.pexels.com/photos/4386321/pexels-photo-4386321.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
+    content: `
+<p>ToroPay has grown well past a single "create a link" button. Today it is a full, free toolkit for getting paid over UPI in India: payment links and QR codes, a transaction desk where you confirm what actually reached your bank, analytics, reusable templates, delivery and courier tracking, and a small developer platform for automating the whole thing.</p>
+<p>This guide walks through every feature in the dashboard and the exact steps to use it. If you are brand new, start with the <a href="/blog/how-to-use-toropay-complete-guide">step-by-step setup guide</a>, then come back here for the complete tour.</p>
+
+<h2>Your dashboard at a glance</h2>
+<p>The left-hand menu is organised by the job you are doing:</p>
+<ul>
+<li><strong>Get paid</strong> — Overview, Payment Links, Transactions</li>
+<li><strong>Business</strong> — Analytics, Messaging, Templates, Delivery, Couriers</li>
+<li><strong>Setup</strong> — UPI IDs, Branding, Settings</li>
+<li><strong>Developers</strong> (folded away by default) — Website Integration, API keys &amp; webhooks</li>
+</ul>
+<p>On a phone, a <strong>New link</strong> button stays one tap away on every page, and the menu collapses into a drawer.</p>
+
+<h2>1. Payment links</h2>
+<p>A payment link is a shareable page your customer opens to pay you over UPI. You create one from <strong>Payment Links → New Link</strong>.</p>
+
+<h3>Quick Link or Sell Items</h3>
+<p>You can build a link two ways. <strong>Quick Link</strong> is for a single payment — a deposit, an invoice, a one-off charge. <strong>Sell Items</strong> turns the link into a small order form where the customer picks products or services, and each item can carry a description, price, image, and a fulfilment type (delivery, pickup, both, or digital).</p>
+
+<h3>Fixed amount or let the customer decide</h3>
+<p>Choose a <strong>fixed amount</strong>, or switch to <strong>Customer enters amount</strong> when you want the payer to fill in the figure (a tip, a donation, a pay-what-you-owe settle-up). With that option you can set a <strong>Min</strong> and <strong>Max</strong> so the amount stays within sensible bounds.</p>
+
+<h3>Limits and expiry</h3>
+<p>Under the advanced options you can cap how many times a link can be paid. Set <strong>"Stop after (paid payments)"</strong> to any number from 1 up to 100,000 — perfect for a limited drop or the first N sign-ups. You can also set an <strong>Expires on</strong> date; after that day the link shows a friendly closed page. Expiry is calculated in India time. If a checkout is started and then abandoned or rejected, that use frees up again, so only real payments count against the limit.</p>
+
+<h3>Custom fields</h3>
+<p>Add custom fields to collect what you need before payment — <strong>text</strong>, <strong>number</strong>, <strong>email</strong>, or a <strong>multiselect</strong> dropdown. Use them for sizes, delivery notes, GST numbers, session slots, or anything else you would otherwise chase over chat.</p>
+
+<h3>Button text, redirect and webhook</h3>
+<p>You can rename the pay button from the default <strong>"Continue to Pay"</strong>, send customers to a <strong>Redirect URL</strong> after they pay, and attach a per-link <strong>Webhook URL</strong> for automation (more on that in the developer section). When you are done, hit <strong>Create Payment Link</strong> — or <strong>Create &amp; Share Link</strong> to copy it straight to a channel.</p>
+
+<h2>2. QR codes and printable posters</h2>
+<p>Every payment link has a matching QR code. Because the QR opens the real hosted payment page, a scan is recorded as an actual checkout visit — so you can see how your offline codes perform, not just your links. Open a link's detail page and choose <strong>QR Code</strong> to download the PNG, or generate an A4 <strong>poster</strong> designed to be saved as a PDF and printed for your counter, packaging, or invoices.</p>
+
+<h2>3. Transactions</h2>
+<p><strong>Transactions</strong> is the single place every payment attempt lands. Filter with the built-in views — <strong>All</strong>, <strong>Customer says paid</strong>, <strong>Paid</strong>, <strong>Started</strong>, and <strong>Rejected</strong> — search across them, and open any row for the full detail. You can also <strong>Export CSV</strong> of what you see, which is handy for accounting or GST filing.</p>
+<p>The statuses are written in plain language: <strong>Started</strong> means a checkout was opened (it becomes <strong>Abandoned</strong> after 30 minutes of inactivity), <strong>Customer says paid</strong> means the payer tapped "I've paid", <strong>Paid</strong> means you confirmed it, and <strong>Rejected</strong> means it did not go through.</p>
+
+<h2>4. Confirming payments</h2>
+<p>Because ToroPay never touches your money — it goes straight to your UPI ID — you are the source of truth on whether a payment landed. The <strong>Overview</strong> page surfaces a <strong>needs your action</strong> queue of everyone who claimed a payment, and each row has <strong>Confirm</strong> and <strong>Reject</strong> buttons. Confirming marks the transaction <strong>Paid</strong> and fires your <code>payment.success</code> webhook; rejecting marks it <strong>Rejected</strong>.</p>
+<p>To avoid missing one, turn on <strong>payment alert emails</strong> in <strong>Settings → Notifications</strong>. When a customer says they have paid, ToroPay emails you the amount, the link name, and the transaction reference, with a button straight to Transactions. For safety the alert never includes anything the customer typed, and alerts are rate-limited so your inbox cannot be flooded.</p>
+
+<h2>5. Analytics</h2>
+<p><strong>Analytics</strong> turns your payments into charts. Switch between <strong>7 days</strong>, <strong>30 days</strong>, and <strong>This month</strong>, or set a custom from/to range. You get KPI cards plus an <strong>Orders Over Time</strong> line, a <strong>Payment Volume</strong> chart, a <strong>Payment Status</strong> breakdown, and your top performers. Everything is calculated in India time and can be exported to CSV.</p>
+
+<h2>6. Templates</h2>
+<p>If you create the same kind of link again and again, save it as a <strong>Template</strong>. From <strong>Templates → Save from latest link</strong>, ToroPay captures a link's title, description, amount, flexible amount settings, min/max, custom fields, and webhook URL. Next time, pick the template and the New Link form is prefilled — so you only change what is different.</p>
+
+<h2>7. UPI IDs</h2>
+<p><strong>UPI IDs</strong> is where you add the UPI addresses customers pay to. Enter a VPA (something like <code>yourname@bank</code>), add it, and mark one as <strong>Primary</strong> — the default for new links. You can keep several on file and remove old ones at any time, and there is an add-a-UPI control built into the New Link form so you never have to leave mid-setup.</p>
+<p>One honest note: the <strong>Verify</strong> step checks that the VPA is correctly formatted — it is not a live bank verification. To be certain an ID works end to end, send yourself a small test payment first.</p>
+
+<h2>8. Branding</h2>
+<p><strong>Branding</strong> controls what your customers see on the checkout page: your <strong>logo</strong>, primary and secondary <strong>brand colours</strong>, font, <strong>button style</strong>, <strong>page theme</strong>, and an optional background image. A consistent, branded page converts better than a generic one. Note that the <strong>business name</strong> shown to customers on payment pages and receipts is set in <strong>Settings → Business profile</strong>, so keep the two in sync.</p>
+
+<h2>9. Messaging templates</h2>
+<p><strong>Messaging</strong> lets you edit the confirmation message customers receive, per channel. <strong>Email</strong> is live today: set a <strong>Subject Line</strong> and <strong>Message Body</strong>, drop in <strong>Available Variables</strong> (like the customer's name or the amount), use the <strong>LIVE PREVIEW</strong>, and <strong>Save Template</strong> — or <strong>Reset to Default</strong> if you change your mind. WhatsApp and Instagram appear as channels and currently show a <strong>Coming soon</strong> badge. There is also an <strong>Email Opens</strong> tab that tracks whether your transactional emails were opened.</p>
+
+<h2>10. Delivery and couriers</h2>
+<p>When you sell physical items with a <strong>Sell Items</strong> link, ToroPay tracks fulfilment in <strong>Delivery</strong>. From there you can follow each package through its statuses, download shipping labels where the courier supports them, and handle returns and RTO (return-to-origin) cases. Under <strong>Couriers</strong>, connect a courier partner by entering its credentials, copy the webhook URL it needs, run a <strong>Test connection</strong>, and <strong>Sync</strong> to pull the latest tracking updates. Delivery and couriers only apply to items marked as delivery (or both); digital and pickup items skip this step entirely.</p>
+
+<h2>11. Settings</h2>
+<p><strong>Settings</strong> holds three tabs. <strong>Business profile</strong> sets the <strong>Business name</strong> your customers see (and that appears in their UPI apps), plus optional support email and phone. <strong>Notifications</strong> holds the <strong>Email alerts</strong> toggle and the address they go to. <strong>Security</strong> has <strong>Sign out other devices</strong>, which ends every other logged-in session while keeping the current one — useful the moment you suspect a shared password.</p>
+
+<h2>12. For developers: website integration, API keys and webhooks</h2>
+<p>The folded <strong>Developers</strong> group is where ToroPay plugs into your own systems.</p>
+<h3>Website integration</h3>
+<p>From <strong>Website Integration</strong> you create an API key — in <strong>Test</strong> or <strong>Live</strong> mode — and use it to open a checkout from your own website or backend. You send a request to <code>POST /api/v1/orders</code> with your key in an <code>Authorization: Bearer</code> header, a merchant order reference, the customer, and the items; the response hands back a <code>checkout_url</code> to send the buyer to. This is a server-to-server call, so keep secret keys on your server and never in browser code.</p>
+<h3>API keys and webhooks</h3>
+<p><strong>API keys &amp; webhooks</strong> lets you issue keys with a scope (<strong>secret</strong> for read and write, <strong>publishable</strong> for browser-safe use) and a mode, then <strong>Rotate</strong> or <strong>Revoke</strong> them later. Keys are shown once at creation, so copy and store them safely. The same page holds your <strong>webhook signing secret</strong>.</p>
+<p>When a payment changes state, ToroPay can POST it to your webhook URL — <code>payment.success</code>, <code>payment.failed</code>, or <code>payment.pending</code> — with fields like the transaction id, amount, status, customer details, payment app, and link title. Each request is signed with an <code>X-ToroPay-Signature</code> header (an HMAC-SHA256 of the body) so you can verify it is genuine, and includes an event id you can use to de-duplicate. Failed deliveries retry automatically with a widening backoff schedule for up to 48 hours before giving up.</p>
+
+<h2>What ToroPay is not (yet)</h2>
+<p>Being straight about the edges helps you plan. ToroPay is a UPI-first platform and is <strong>not a payment gateway</strong> — it does not process or hold funds, so it does not support cards, net banking, wallets, or international payments, and it does not charge a transaction fee. A few capabilities are deliberately limited today: you cannot issue refunds from the dashboard, merchant two-factor authentication is not available yet, WhatsApp and Instagram messaging are still "coming soon", and webhook delivery logs live on your own server rather than in ToroPay. If any of these matter to how you work, they are worth knowing before you build around them.</p>
+
+<h2>Frequently asked questions</h2>
+<h3>Is all of this really free?</h3>
+<p>Yes. Every feature here — links, QR codes, analytics, templates, delivery, API keys and webhooks — is free, with no transaction fees, no paid plan, and no hidden charges.</p>
+<h3>Do I need a website to use these features?</h3>
+<p>No. ToroPay hosts the payment page for you. Share a link or a QR code and your customer pays over UPI. The website integration is optional, purely for businesses that already have their own site.</p>
+<h3>Can I reuse a payment link?</h3>
+<p>Yes. Links are reusable by default. Use <strong>Stop after (paid payments)</strong> or an <strong>Expires on</strong> date when you want a link to be single-use or time-limited.</p>
+<h3>How do customers actually pay?</h3>
+<p>They open your link or scan your QR code, see your branded page, and pay from any UPI app — Google Pay, PhonePe, Paytm, BHIM, and others — with the amount pre-filled. The money goes straight to your own UPI ID.</p>
+<h3>Can I automate confirmation and fulfilment?</h3>
+<p>Yes. Create an API key, set a webhook URL (globally or per link), and ToroPay will POST signed events to your system whenever a payment succeeds, fails, or is claimed — so your orders and records stay in sync automatically.</p>
+
+<p><a href="/signup">Create your free ToroPay account →</a></p>`,
+  },
+  {
     slug: 'how-to-use-toropay-complete-guide',
     title: 'How to Use ToroPay: A Complete Step-by-Step Guide',
     excerpt: 'Set up your account, create payment links, build your storefront, and start accepting UPI payments in under 5 minutes.',
@@ -51,7 +154,6 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Tutorials',
     tags: ['ToroPay guide', 'how to use ToroPay', 'payment link setup', 'UPI payment tutorial', 'step by step', 'Indian business payments'],
     readTime: '7 min read',
-    featured: true,
     imageUrl: 'https://images.pexels.com/photos/6994291/pexels-photo-6994291.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
     content: `
 <h2>What is ToroPay?</h2>
@@ -151,8 +253,8 @@ export const BLOG_POSTS: BlogPost[] = [
   {
     slug: 'best-razorpay-alternatives-for-indian-businesses',
     title: '7 Best Razorpay Alternatives for Indian Businesses in 2026',
-    excerpt: 'Looking for Razorpay alternatives? Here are the top free payment gateways and UPI solutions worth switching to.',
-    description: 'Looking for Razorpay alternatives? Compare the top free payment gateways and UPI payment solutions for Indian businesses. No transaction fees, no hidden charges.',
+    excerpt: 'Looking for Razorpay alternatives? Here are the top low-cost payment gateways and free UPI payment solutions worth switching to.',
+    description: 'Looking for Razorpay alternatives? Compare leading payment gateways and free UPI payment solutions for Indian businesses, and see where a zero-fee UPI link platform fits. No transaction fees on UPI payment links, no hidden charges.',
     author: AUTHORS['toropay-team'],
     publishedAt: '2026-01-15',
     updatedAt: '2026-07-21',
@@ -175,6 +277,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <h2>1. ToroPay — Best Free UPI Payment Page Platform</h2>
 <p><strong>Pricing: 100% Free</strong></p>
 <p>ToroPay is a free platform that lets you create branded UPI payment pages and shareable payment links using your own UPI ID. There are no transaction fees, no monthly charges, and no hidden costs.</p>
+<p>It is worth being precise here: ToroPay is a <strong>UPI payment page platform, not a payment gateway</strong>. It does not process or hold your funds. Your customer pays directly to your own UPI ID, which is exactly why there is no transaction fee on your side.</p>
 
 <h3>Key Features:</h3>
 <ul>
