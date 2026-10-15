@@ -1,4 +1,11 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description: 'Terms for using ToroPay — a free UPI payment link, QR code, and hosted checkout service for Indian businesses.',
+  alternates: { canonical: '/terms' },
+}
 
 export default function TermsPage() {
   return (

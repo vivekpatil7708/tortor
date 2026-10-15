@@ -1,5 +1,12 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import DonateWidget from '@/components/donate-widget'
+
+export const metadata: Metadata = {
+  title: 'Support ToroPay',
+  description: 'ToroPay is free to use. Learn how optional donations help cover hosting, maintenance, and future improvements.',
+  alternates: { canonical: '/donate' },
+}
 
 export default function DonatePage() {
   return (

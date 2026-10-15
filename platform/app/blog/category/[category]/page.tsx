@@ -18,9 +18,15 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const category = getBlogCategories().find(c => c.toLowerCase() === params.category.toLowerCase())
   if (!category) return { title: 'Not Found' }
   return {
-    title: `${category} — ToroPay Blog`,
+    title: `${category} articles`,
     description: getCategoryDescription(category),
     alternates: { canonical: `https://www.toropay.co.in/blog/category/${params.category}` },
+    openGraph: {
+      title: `${category} articles | ToroPay Blog`,
+      description: getCategoryDescription(category),
+      url: `https://www.toropay.co.in/blog/category/${params.category}`,
+      type: 'website',
+    },
   }
 }
 

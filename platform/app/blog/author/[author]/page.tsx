@@ -17,9 +17,15 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const author = getAuthor(params.author)
   if (!author) return { title: 'Not Found' }
   return {
-    title: `${author.name} — ToroPay Blog`,
+    title: author.name,
     description: author.bio,
     alternates: { canonical: `https://www.toropay.co.in/blog/author/${params.author}` },
+    openGraph: {
+      title: `${author.name} | ToroPay Blog`,
+      description: author.bio,
+      url: `https://www.toropay.co.in/blog/author/${params.author}`,
+      type: 'profile',
+    },
   }
 }
 

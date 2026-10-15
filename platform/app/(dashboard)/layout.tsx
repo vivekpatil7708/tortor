@@ -5,6 +5,12 @@ import { VerifyEmailBanner } from '@/components/dashboard/verify-email-banner'
 import { ToastProvider } from '@/components/toast'
 import { getImpersonation, getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import type { Metadata } from 'next'
+
+// The dashboard is a private, authenticated area — keep it out of search.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession()

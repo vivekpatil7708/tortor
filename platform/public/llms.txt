@@ -1,0 +1,32 @@
+# ToroPay - LLMs.txt
+# Free UPI payment links for Indian businesses
+
+> ToroPay is a free UPI payment link generator that lets Indian businesses create branded payment links, QR codes, and hosted checkout pages. Payments go directly to your own UPI ID with zero transaction fees and no website required.
+
+## Core documentation
+- https://www.toropay.co.in/
+- https://www.toropay.co.in/terms
+- https://www.toropay.co.in/privacy
+- https://www.toropay.co.in/donate
+
+## Blog & guides (public)
+- https://www.toropay.co.in/blog
+- https://www.toropay.co.in/blog/how-to-use-toropay-complete-guide
+- https://www.toropay.co.in/blog/free-payment-links-india
+- https://www.toropay.co.in/blog/how-to-accept-payments-without-website
+- https://www.toropay.co.in/blog/cashless-payment-solutions-for-small-business
+- https://www.toropay.co.in/blog/best-razorpay-alternatives-for-indian-businesses
+- https://www.toropay.co.in/blog/toropay-vs-instapay-comparison
+- https://www.toropay.co.in/blog/best-upi-payment-apps-for-business
+- https://www.toropay.co.in/blog/upi-payment-page-best-practices
+- https://www.toropay.co.in/blog/payment-gateway-pricing-institutions-india
+
+## How it works (UPI)
+- Free UPI payment links — no coding, no website needed
+- Payments go directly to your own UPI ID (Google Pay, PhonePe, Paytm, BHIM, all UPI apps)
+- Branded hosted payment pages, dynamic QR codes, custom fields, reusable payment links, transaction tracking
+
+## Important notes
+- This file is provided for LLM consumption. Private routes (/dashboard, /admin, /api, /onboarding, /login, /signup, auth flows) are intentionally excluded.
+- ToroPay is India-focused (IN) and UPI-only.
+- All pricing is free — no transaction fees.
