@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      await createSession(merchant.id, merchant.email)
+      await createSession(merchant.id, merchant.email, { sameSite: 'none' })
     } catch (e: any) {
       return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
     }

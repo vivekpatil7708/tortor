@@ -55,6 +55,8 @@ export default function SignupPage() {
     setGoogleLoading(true)
     try {
       const result = await api.google({ credential: response.credential })
+      // Small delay to ensure session cookie is fully processed before navigation
+      await new Promise(r => setTimeout(r, 100))
       if (result.isNewUser) {
         router.push('/onboarding')
       } else {
