@@ -56,6 +56,13 @@ export default function LoginPage() {
     })
   }
 
+  // Where to go after signing in: ?next=... (set by the OAuth approval page) or
+  // the dashboard. Only same-origin paths are allowed, never another host.
+  function postLoginDestination() {
+    const next = new URLSearchParams(window.location.search).get('next')
+    return next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard'
+  }
+
   async function handleGoogleResponse(response: { credential: string }) {
     setError('')
     setGoogleLoading(true)
@@ -66,7 +73,7 @@ export default function LoginPage() {
       if (result.isNewUser) {
         router.push('/onboarding')
       } else {
-        router.push('/dashboard')
+        router.push(postLoginDestination())
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Google sign-in failed')
@@ -81,7 +88,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await api.login({ email, password })
-      router.push('/dashboard')
+      router.push(postLoginDestination())
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {

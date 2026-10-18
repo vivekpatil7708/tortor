@@ -300,6 +300,10 @@ model Merchant {
   refunds              Refund[]
   inventoryAdjustments InventoryAdjustment[]
 
+  // OAuth (public MCP connectors)
+  oauthAuthCodes    OAuthAuthCode[]
+  oauthAccessTokens OAuthAccessToken[]
+
   @@map("merchants")
 }
 
@@ -1406,4 +1410,64 @@ model EmailOpenEvent {
   @@index([emailLogId])
   @@index([openedAt])
   @@map("email_open_events")
+}
+
+// ============================================================
+// OAUTH 2.0 — public MCP connectors (Grok, Claude, …)
+// Grant flow lives in app/oauth/*; token checks in lib/oauth.ts.
+// Codes and tokens are stored as HMAC-SHA256 hashes (same
+// pepper as API keys) — raw values are only ever shown once.
+// ============================================================
+
+model OAuthClient {
+  id           String   @id @default(uuid())
+  name         String
+  clientId     String   @unique @map("client_id")
+  clientSecret String   @map("client_secret") // HMAC-SHA256 hash of the secret
+  redirectUris String   @default("[]") @map("redirect_uris") // JSON array of exact URIs
+  scopes       String   @default("[\"read\",\"write\"]") // JSON array of granted scopes
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  authCodes    OAuthAuthCode[]
+  accessTokens OAuthAccessToken[]
+
+  @@map("oauth_clients")
+}
+
+model OAuthAuthCode {
+  id            String   @id @default(uuid())
+  code          String   @unique // HMAC-SHA256 hash of the authorization code
+  clientId      String   @map("client_id")
+  merchantId    String   @map("merchant_id")
+  redirectUri   String   @map("redirect_uri") // bound at approval, re-checked at exchange
+  codeChallenge String?  @map("code_challenge") // PKCE S256 challenge when the client sent one
+  scopes        String   @default("[\"read\"]") // JSON array
+  expiresAt     DateTime @map("expires_at")
+  used          Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  client   OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  merchant Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([merchantId])
+  @@map("oauth_auth_codes")
+}
+
+model OAuthAccessToken {
+  id         String    @id @default(uuid())
+  token      String    @unique // HMAC-SHA256 hash of the access token (tpo_...)
+  clientId   String    @map("client_id")
+  merchantId String    @map("merchant_id")
+  scopes     String    @default("[\"read\"]") // JSON array
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  client   OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  merchant Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([merchantId])
+  @@map("oauth_access_tokens")
 }

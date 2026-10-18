@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { generateSlug } from '../lib/utils'
+import { ensureDefaultOAuthClient } from '../lib/oauth'
 
 const prisma = new PrismaClient()
 
@@ -57,6 +58,16 @@ async function main() {
       ]),
     },
   })
+
+  // The OAuth client behind Grok/Claude's "Add ToroPay" connector. The secret is
+  // only returned the first time (only its hash is stored) — paste it into the
+  // connector settings, and rotate by deleting the oauth_clients row and re-seeding.
+  const oauthClient = await ensureDefaultOAuthClient(prisma)
+  if (oauthClient.clientSecret) {
+    console.log(`OAuth client "ToroPay MCP" created — client_id: ${oauthClient.clientId}, client_secret: ${oauthClient.clientSecret}`)
+  } else {
+    console.log(`OAuth client "ToroPay MCP" already registered (client_id: ${oauthClient.clientId})`)
+  }
 
   console.log('Seed complete!')
   console.log(`Login: demo@toropay.in / ${demoPassword}`)
