@@ -40,6 +40,7 @@ function htmlPage(body: string, status = 200) {
   p { font-size: 14px; line-height: 1.5; color: #555; margin: 0 0 12px; }
   ul { margin: 0 0 20px; padding-left: 18px; font-size: 14px; line-height: 1.6; color: #444; }
   .merchant { font-size: 13px; color: #888; margin-bottom: 20px; }
+  .merchant a { color: #5f9a52; }
   .actions { display: flex; gap: 10px; }
   button { flex: 1; padding: 12px 16px; font-size: 15px; font-weight: 600; border-radius: 10px;
            border: 1px solid transparent; cursor: pointer; }
@@ -142,7 +143,7 @@ export async function GET(req: NextRequest) {
     <h1>${esc(client.name)} wants to access your account</h1>
     <p>Signed in as <strong>${esc(merchantLabel)}</strong>. This will allow ${esc(client.name)} to:</p>
     <ul>${scopeItems}</ul>
-    <p class="merchant">You can revoke this access at any time from Settings → Connected apps.</p>
+    <p class="merchant">You can revoke this access at any time from <a href="/dashboard/settings?tab=apps">Settings → Connected apps</a>.</p>
     <form method="post" action="/oauth/authorize">
       <input type="hidden" name="client_id" value="${esc(client.clientId)}">
       <input type="hidden" name="redirect_uri" value="${esc(validated.redirectUri)}">

@@ -7,20 +7,25 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-pepper'
 const db = vi.hoisted(() => ({
   oAuthClient: { findUnique: vi.fn(), create: vi.fn() },
   oAuthAuthCode: { findUnique: vi.fn(), create: vi.fn(), updateMany: vi.fn() },
-  oAuthAccessToken: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+  oAuthAccessToken: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
   apiKey: { findMany: vi.fn(), update: vi.fn() },
   apiRequestLog: { create: vi.fn() },
 }))
 const getSession = vi.hoisted(() => vi.fn())
+const requireMerchant = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 vi.mock('@/lib/auth', () => ({ getSession }))
+vi.mock('@/lib/tenant', () => ({ requireMerchant }))
 
 import { hashApiKey } from '@/lib/api-key'
 import { authorizeApiRequest } from '@/lib/api-request'
+import { listConnectedApps, revokeConnectedApp } from '@/lib/oauth'
 import { GET as authorizePage, POST as authorizeSubmit } from '@/app/oauth/authorize/route'
 import { POST as tokenExchange } from '@/app/oauth/token/route'
 import { POST as tokenRevoke } from '@/app/oauth/revoke/route'
+import { GET as listTokens } from '@/app/api/oauth/tokens/route'
+import { DELETE as revokeToken } from '@/app/api/oauth/tokens/[id]/route'
 
 const REDIRECT_URI = 'https://toropay-mcp.vercel.app/callback'
 const clientRow = {
@@ -58,6 +63,7 @@ function basicAuth(id: string, secret: string) {
 beforeEach(() => {
   vi.clearAllMocks()
   getSession.mockResolvedValue(merchantSession)
+  requireMerchant.mockResolvedValue(merchantSession)
   db.apiRequestLog.create.mockResolvedValue({})
   db.oAuthAuthCode.updateMany.mockResolvedValue({ count: 1 })
 })
@@ -446,5 +452,87 @@ describe('authorizeApiRequest with OAuth tokens', () => {
     expect(authorized.auth.merchantId).toBe('m1')
     expect(authorized.auth.apiKeyId).toBe('k1')
     expect(authorized.auth.source).toBe('api_key')
+  })
+})
+
+describe('Settings → Connected apps', () => {
+  const tokenRowForList = (overrides: Record<string, unknown> = {}) => ({
+    id: 't1',
+    clientId: 'c1',
+    merchantId: 'm1',
+    scopes: JSON.stringify(['read', 'write']),
+    expiresAt: new Date(Date.now() + 86_400_000),
+    revokedAt: null as Date | null,
+    createdAt: new Date('2026-01-05T10:00:00Z'),
+    client: { name: 'ToroPay MCP' },
+    ...overrides,
+  })
+
+  it('lists the merchant tokens with the app name and a derived status', async () => {
+    db.oAuthAccessToken.findMany.mockResolvedValue([
+      tokenRowForList(),
+      tokenRowForList({ id: 't2', expiresAt: new Date(Date.now() - 60_000) }),
+      tokenRowForList({ id: 't3', revokedAt: new Date() }),
+    ])
+
+    const apps = await listConnectedApps('m1')
+
+    expect(db.oAuthAccessToken.findMany).toHaveBeenCalledWith({
+      where: { merchantId: 'm1' },
+      include: { client: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+    })
+    expect(apps.map((app) => app.status)).toEqual(['active', 'expired', 'revoked'])
+    expect(apps[0]).toMatchObject({ clientName: 'ToroPay MCP', scopes: ['read', 'write'], revokedAt: null })
+    expect(apps[0].expiresAt).toBe(new Date(apps[0].expiresAt).toISOString())
+  })
+
+  it('serves the list to a signed-in merchant and 401s otherwise', async () => {
+    db.oAuthAccessToken.findMany.mockResolvedValue([tokenRowForList()])
+
+    const ok = await listTokens()
+    expect(ok.status).toBe(200)
+    expect(await ok.json()).toHaveLength(1)
+
+    requireMerchant.mockRejectedValueOnce(new Error('Unauthorized'))
+    expect((await listTokens()).status).toBe(401)
+  })
+
+  it('revokes an app, scoped to the merchant, and 404s someone else\'s token', async () => {
+    db.oAuthAccessToken.updateMany.mockResolvedValue({ count: 1 })
+
+    const res = await revokeToken(
+      new NextRequest('http://localhost/api/oauth/tokens/t1', { method: 'DELETE' }),
+      { params: Promise.resolve({ id: 't1' }) }
+    )
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ success: true })
+    expect(db.oAuthAccessToken.updateMany).toHaveBeenCalledWith({
+      where: { id: 't1', merchantId: 'm1', revokedAt: null },
+      data: { revokedAt: expect.any(Date) },
+    })
+
+    db.oAuthAccessToken.updateMany.mockResolvedValue({ count: 0 })
+    db.oAuthAccessToken.findFirst.mockResolvedValue(null)
+    const missing = await revokeToken(
+      new NextRequest('http://localhost/api/oauth/tokens/nope', { method: 'DELETE' }),
+      { params: Promise.resolve({ id: 'nope' }) }
+    )
+    expect(missing.status).toBe(404)
+  })
+
+  it('treats an already-revoked token as done (a second click is not an error)', async () => {
+    db.oAuthAccessToken.updateMany.mockResolvedValue({ count: 0 })
+    db.oAuthAccessToken.findFirst.mockResolvedValue({ id: 't1' })
+
+    expect(await revokeConnectedApp('t1', 'm1')).toBe(true)
+  })
+
+  it('points the approval page at the Connected apps screen', async () => {
+    db.oAuthClient.findUnique.mockResolvedValue(clientRow)
+
+    const res = await authorizePage(authorizeGet(`client_id=toropay-mcp&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code`))
+
+    expect(await res.text()).toContain('/dashboard/settings?tab=apps')
   })
 })

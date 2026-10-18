@@ -7,11 +7,13 @@ import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { LoadError } from '@/components/ui/load-error'
+import { ConnectedApps } from '@/components/dashboard/connected-apps'
 
 const TABS = [
   { id: 'profile', label: 'Business profile' },
   { id: 'notifications', label: 'Notifications' },
   { id: 'security', label: 'Security' },
+  { id: 'apps', label: 'Connected apps' },
 ] as const
 type Tab = (typeof TABS)[number]['id']
 
@@ -214,6 +216,8 @@ export default function SettingsPage() {
           </Button>
         </div>
       )}
+
+      {tab === 'apps' && <ConnectedApps />}
 
       <p className="mt-6 text-sm text-gray-500">
         Looking for API keys or the webhook signing secret? They&apos;re under{' '}

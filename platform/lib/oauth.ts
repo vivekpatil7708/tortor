@@ -180,6 +180,52 @@ export async function revokeAccessToken(rawToken: string, clientDbId: string) {
   return true
 }
 
+/**
+ * Access tokens a merchant has connected, for Settings → Connected apps.
+ * Newest first, with the app name and a derived status.
+ */
+export interface ConnectedApp {
+  id: string
+  clientName: string
+  scopes: string[]
+  createdAt: string
+  expiresAt: string
+  revokedAt: string | null
+  status: 'active' | 'revoked' | 'expired'
+}
+
+export async function listConnectedApps(merchantId: string): Promise<ConnectedApp[]> {
+  const tokens = await prisma.oAuthAccessToken.findMany({
+    where: { merchantId },
+    include: { client: { select: { name: true } } },
+    orderBy: { createdAt: 'desc' },
+  })
+  const now = Date.now()
+  return tokens.map((token) => ({
+    id: token.id,
+    clientName: token.client.name,
+    scopes: JSON.parse(token.scopes) as string[],
+    createdAt: token.createdAt.toISOString(),
+    expiresAt: token.expiresAt.toISOString(),
+    revokedAt: token.revokedAt?.toISOString() ?? null,
+    status: token.revokedAt ? 'revoked' : token.expiresAt.getTime() < now ? 'expired' : 'active',
+  }))
+}
+
+/**
+ * Revoke one of the merchant's own access tokens. True once the token is (or
+ * already was) revoked; false only when the token is not theirs.
+ */
+export async function revokeConnectedApp(tokenId: string, merchantId: string): Promise<boolean> {
+  const revoked = await prisma.oAuthAccessToken.updateMany({
+    where: { id: tokenId, merchantId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  })
+  if (revoked.count === 1) return true
+  const owned = await prisma.oAuthAccessToken.findFirst({ where: { id: tokenId, merchantId }, select: { id: true } })
+  return Boolean(owned)
+}
+
 /** Just enough of a Prisma client for ensureDefaultOAuthClient (also accepts the seed's own client). */
 type OAuthClientDb = Pick<PrismaClient, 'oAuthClient'>
 
