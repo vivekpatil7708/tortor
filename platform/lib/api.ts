@@ -150,6 +150,26 @@ export const api = {
 
   getApiKeys: () => request<Record<string, unknown>[]>('/api/api-keys'),
 
+  getWebhookEndpoints: () => request<Record<string, unknown>[]>('/api/webhook-endpoints'),
+
+  createWebhookEndpoint: (body: Record<string, unknown>) =>
+    request<{ id: string; secret: string }>('/api/webhook-endpoints', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateWebhookEndpoint: (id: string, body: Record<string, unknown>) =>
+    request<Record<string, unknown>>(`/api/webhook-endpoints/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteWebhookEndpoint: (id: string) =>
+    request<{ success: boolean }>(`/api/webhook-endpoints/${id}`, { method: 'DELETE' }),
+
+  getWebhookDeliveries: (id: string, limit?: number) =>
+    request<Record<string, unknown>[]>(`/api/webhook-endpoints/${id}/deliveries${limit ? `?limit=${limit}` : ''}`),
+
+  retryWebhookDelivery: (id: string, logId: string) =>
+    request<{ success: boolean; status: string }>(`/api/webhook-endpoints/${id}/deliveries`, { method: 'POST', body: JSON.stringify({ logId }) }),
+
+  sendTestWebhook: (id: string) =>
+    request<{ success: boolean; log_id: string | null; message: string }>(`/api/webhook-endpoints/${id}/test`, { method: 'POST' }),
+
   getTransaction: (txnId: string) => request<Record<string, unknown>>(`/api/transactions/${txnId}`),
 
   getAnalyticsSummary: (params?: string) => request<Record<string, unknown>>(`/api/analytics/summary${params || ''}`),
