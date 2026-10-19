@@ -109,7 +109,11 @@ function DeliveryRow({ endpointId, delivery, onRetried }: { endpointId: string; 
   )
 }
 
-function EndpointCard({ endpoint, onChange }: { endpoint: Endpoint; onChange: () => void }) {
+function EndpointCard({ endpoint, onChange, onSecretRotated }: {
+  endpoint: Endpoint
+  onChange: () => void
+  onSecretRotated: (secret: string) => void
+}) {
   const [expanded, setExpanded] = useState(false)
   const [deliveries, setDeliveries] = useState<Delivery[] | null>(null)
   const [loadingLogs, setLoadingLogs] = useState(false)
@@ -150,6 +154,25 @@ function EndpointCard({ endpoint, onChange }: { endpoint: Endpoint; onChange: ()
     try {
       await api.deleteWebhookEndpoint(endpoint.id)
       onChange()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function rotate() {
+    if (!window.confirm(
+      `Replace the signing secret for ${endpoint.url}?\n\n` +
+      'Requests will be signed with the new secret immediately. Until your server has it, ' +
+      'every delivery will fail signature verification. Use this if the old secret leaked.'
+    )) return
+    setBusy(true)
+    setMessage('')
+    try {
+      const res = await api.rotateWebhookSecret(endpoint.id)
+      onSecretRotated(res.secret)
+      onChange()
+    } catch (err: unknown) {
+      setMessage(err instanceof Error ? err.message : 'Could not rotate the signing secret')
     } finally {
       setBusy(false)
     }
@@ -217,6 +240,10 @@ function EndpointCard({ endpoint, onChange }: { endpoint: Endpoint; onChange: ()
         {expanded ? 'Hide delivery log' : 'Delivery log'}
       </button>
 
+      <button onClick={rotate} disabled={busy} className="ml-3 mt-3 text-xs font-semibold text-gray-500 hover:text-charcoal">
+        Rotate secret
+      </button>
+
       {expanded && (
         <div className="mt-2 rounded-xl border border-gray-100 bg-white/60 p-2">
           {loadingLogs ? (
@@ -241,7 +268,7 @@ export default function WebhooksPage() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [revealed, setRevealed] = useState<{ url: string; secret: string } | null>(null)
+  const [revealed, setRevealed] = useState<{ url: string; secret: string; rotated?: boolean } | null>(null)
   const [copied, setCopied] = useState(false)
 
   const [form, setForm] = useState({
@@ -314,11 +341,15 @@ export default function WebhooksPage() {
       {revealed && (
         <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-green-800">Endpoint created — copy the signing secret now</p>
+            <p className="text-sm font-bold text-green-800">
+              {revealed.rotated ? 'New signing secret — copy it now' : 'Endpoint created — copy the signing secret now'}
+            </p>
             <button onClick={() => setRevealed(null)} className="text-xs text-green-700 hover:underline">Dismiss</button>
           </div>
           <p className="mt-1 text-xs text-green-700">
-            For security this is the only time the full secret is shown. Store it on your server to verify signatures.
+            {revealed.rotated
+              ? 'The old secret no longer works. Update your server before it starts rejecting deliveries — for security this is the only time the new secret is shown.'
+              : 'For security this is the only time the full secret is shown. Store it on your server to verify signatures.'}
           </p>
           <div className="mt-2 flex items-center gap-2">
             <code className="flex-1 truncate rounded-lg bg-white px-3 py-2 font-mono text-xs text-gray-700">{revealed.secret}</code>
@@ -386,7 +417,12 @@ export default function WebhooksPage() {
       ) : (
         <div className="space-y-3">
           {endpoints.map(endpoint => (
-            <EndpointCard key={endpoint.id} endpoint={endpoint} onChange={load} />
+            <EndpointCard
+              key={endpoint.id}
+              endpoint={endpoint}
+              onChange={load}
+              onSecretRotated={secret => setRevealed({ url: endpoint.url, secret, rotated: true })}
+            />
           ))}
         </div>
       )}

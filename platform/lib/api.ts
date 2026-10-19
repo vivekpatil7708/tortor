@@ -170,6 +170,9 @@ export const api = {
   sendTestWebhook: (id: string) =>
     request<{ success: boolean; log_id: string | null; message: string }>(`/api/webhook-endpoints/${id}/test`, { method: 'POST' }),
 
+  rotateWebhookSecret: (id: string) =>
+    request<{ id: string; url: string; secret: string; message: string }>(`/api/webhook-endpoints/${id}/rotate`, { method: 'POST' }),
+
   getTransaction: (txnId: string) => request<Record<string, unknown>>(`/api/transactions/${txnId}`),
 
   getAnalyticsSummary: (params?: string) => request<Record<string, unknown>>(`/api/analytics/summary${params || ''}`),
