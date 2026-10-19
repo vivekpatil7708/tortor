@@ -21,6 +21,8 @@ interface Customer {
   notes: string | null
   total_orders: number
   total_spent: number
+  /** Money actually collected, as opposed to the ordered value above. */
+  total_paid: number
   last_order_at: string | null
   marketing_consent: boolean
   address_count: number
@@ -291,20 +293,30 @@ function CustomerDetail({ id, onClose, onEdit, onChanged }: {
           <p className="mt-6 text-sm text-gray-500">Loading…</p>
         ) : customer ? (
           <div className="mt-4 space-y-5">
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
               <div className="rounded-xl bg-white/70 p-3">
                 <p className="text-lg font-extrabold">{customer.total_orders}</p>
                 <p className="text-xs text-gray-500">Orders</p>
               </div>
               <div className="rounded-xl bg-white/70 p-3">
                 <p className="text-lg font-extrabold">{rupees(customer.total_spent)}</p>
-                <p className="text-xs text-gray-500">Spent</p>
+                <p className="text-xs text-gray-500">Ordered</p>
+              </div>
+              <div className="rounded-xl bg-white/70 p-3">
+                <p className="text-lg font-extrabold text-green-700">{rupees(customer.total_paid)}</p>
+                <p className="text-xs text-gray-500">Paid</p>
               </div>
               <div className="rounded-xl bg-white/70 p-3">
                 <p className="text-lg font-extrabold">{asDate(customer.last_order_at)}</p>
                 <p className="text-xs text-gray-500">Last order</p>
               </div>
             </div>
+
+            {customer.total_spent > customer.total_paid && (
+              <p className="text-xs text-gray-500">
+                {rupees(customer.total_spent - customer.total_paid)} of this is still unpaid.
+              </p>
+            )}
 
             <div className="space-y-1 text-sm">
               {customer.phone && <p className="flex items-center gap-2 text-gray-700"><Phone className="h-4 w-4 text-gray-400" />{customer.phone}</p>}
@@ -364,7 +376,7 @@ function CustomerDetail({ id, onClose, onEdit, onChanged }: {
                                 {[c.phone, c.email].filter(Boolean).join(' · ') || 'No contact details'}
                               </span>
                               <span className="block text-xs text-gray-400">
-                                {c.total_orders} order{c.total_orders === 1 ? '' : 's'} · {rupees(c.total_spent)} · {asDate(c.last_order_at)}
+                                {c.total_orders} order{c.total_orders === 1 ? '' : 's'} · {rupees(c.total_paid)} paid · {asDate(c.last_order_at)}
                               </span>
                             </span>
                           </label>
@@ -550,9 +562,11 @@ export default function CustomersPage() {
                   </p>
                 </button>
                 <div className="hidden shrink-0 text-right sm:block">
-                  <p className="text-sm font-semibold">{rupees(c.total_spent)}</p>
+                  <p className="text-sm font-semibold">{rupees(c.total_paid)} paid</p>
                   <p className="text-xs text-gray-500">
-                    {c.total_orders} order{c.total_orders === 1 ? '' : 's'} · {asDate(c.last_order_at)}
+                    {c.total_orders} order{c.total_orders === 1 ? '' : 's'}
+                    {c.total_spent !== c.total_paid && <> · {rupees(c.total_spent)} ordered</>}
+                    {' · '}{asDate(c.last_order_at)}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">

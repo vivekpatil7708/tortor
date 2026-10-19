@@ -42,6 +42,17 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     })
     if (!customer) return notFound('Customer not found')
 
+    // Money actually collected, matching how the list reports it.
+    const paidAgg = await prisma.order.aggregate({
+      where: {
+        merchantId: session.id,
+        customerId: customer.id,
+        orderStatus: { not: 'cancelled' },
+        paymentStatus: 'paid',
+      },
+      _sum: { totalAmount: true },
+    })
+
     return NextResponse.json({
       customer: {
         id: customer.id,
@@ -52,6 +63,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         notes: customer.notes,
         total_orders: customer.totalOrders,
         total_spent: customer.totalSpent,
+        total_paid: paidAgg._sum.totalAmount?.toNumber() ?? 0,
         last_order_at: customer.lastOrderAt?.toISOString() ?? null,
         marketing_consent: customer.marketingConsent,
         created_at: customer.createdAt.toISOString(),
