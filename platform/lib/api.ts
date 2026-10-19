@@ -52,6 +52,26 @@ function transactionParams(query: TransactionQuery): string {
   return params.toString()
 }
 
+/** Every customer matching the search, fetched 200 at a time (for exports). */
+export async function fetchAllCustomers(
+  q: string,
+  onProgress?: (loaded: number, total: number | null) => void
+): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = []
+  let total: number | null = null
+  let cursor: string | null = null
+  do {
+    const page: { customers: Record<string, unknown>[]; total: number; next_cursor: string | null } =
+      await api.getCustomers({ q: q || undefined, limit: 200, cursor })
+    if (total === null) total = page.total
+    rows.push(...page.customers)
+    onProgress?.(rows.length, total)
+    if (page.next_cursor === cursor) break
+    cursor = page.next_cursor
+  } while (cursor)
+  return rows
+}
+
 /** Every transaction matching the filters, fetched 500 at a time (for exports). */
 export async function fetchAllTransactions(
   filters: TransactionFilters,

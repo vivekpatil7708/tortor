@@ -47,9 +47,9 @@ function dateTick(d: string): string {
   return dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
 }
 
-function exportCSV(data: Record<string, unknown>[], filename: string) {
+function exportCSV(data: Record<string, unknown>[], filename: string, columns: { key: string; label: string }[]) {
   if (!data.length) return
-  exportToCSV(filename, Object.keys(data[0]).map(key => ({ key, label: key })), data)
+  exportToCSV(filename, columns, data)
 }
 
 function Skeleton({ className }: { className?: string }) {
@@ -106,7 +106,10 @@ export default function AnalyticsPage() {
 
   const handleExport = () => {
     const rows: Record<string, unknown>[] = paymentsTS.map(p => ({ date: p.date, revenue: p.amount }))
-    exportCSV(rows, `analytics-${range}.csv`)
+    exportCSV(rows, `analytics-${range}.csv`, [
+      { key: 'date', label: 'Date' },
+      { key: 'revenue', label: 'Revenue' },
+    ])
   }
 
   const pieData = Object.entries(statusBreakdown).map(([name, value]) => ({ name, value }))
