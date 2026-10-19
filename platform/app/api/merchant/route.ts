@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { publicErrorMessage } from '@/lib/api-response'
 import { imageValueProblem } from '@/lib/image-input'
 import { supportEmailInput, supportPhoneInput } from '@/lib/support-contact'
+import { gstinStateCode, isValidGstin, isValidStateCode, isTaxScheme } from '@/lib/tax'
 
 export async function GET() {
   const session = await getSession()
@@ -55,6 +56,43 @@ export async function PATCH(req: NextRequest) {
     if (body.page_theme !== undefined) data.pageTheme = body.page_theme
     if (body.custom_domain !== undefined) data.customDomain = body.custom_domain
     if (body.bg_image_url !== undefined) data.bgImageUrl = body.bg_image_url
+
+    // Tax details. A GSTIN is only accepted when it is structurally correct, and
+    // its embedded state code must agree with the state the merchant picked -
+    // the two disagreeing is a mistake that would surface on every future invoice.
+    if (body.tax_scheme !== undefined) {
+      const scheme = String(body.tax_scheme)
+      if (!isTaxScheme(scheme)) return NextResponse.json({ error: 'Choose a valid tax scheme' }, { status: 400 })
+      data.taxScheme = scheme
+    }
+    if (body.tax_legal_name !== undefined) {
+      data.taxLegalName = String(body.tax_legal_name ?? '').trim().slice(0, 200) || null
+    }
+    if (body.state_code !== undefined) {
+      const code = String(body.state_code ?? '').trim()
+      if (code && !isValidStateCode(code)) return NextResponse.json({ error: 'Choose a valid state' }, { status: 400 })
+      data.stateCode = code || null
+    }
+    if (body.gstin !== undefined) {
+      const gstin = String(body.gstin ?? '').trim().toUpperCase()
+      if (!gstin) {
+        data.gstin = null
+      } else if (!isValidGstin(gstin)) {
+        return NextResponse.json({ error: 'That GSTIN is not valid. Check the 15 characters and the check digit.' }, { status: 400 })
+      } else {
+        // The chosen state is compared against the state code inside the GSTIN.
+        // When the request does not carry a state, fall back to the saved one.
+        const declared = body.state_code !== undefined
+          ? String(body.state_code ?? '').trim()
+          : (await prisma.merchant.findUnique({ where: { id: session.id }, select: { stateCode: true } }))?.stateCode ?? ''
+        if (declared && declared !== gstinStateCode(gstin)) {
+          return NextResponse.json({
+            error: 'The state you chose does not match the state code inside the GSTIN.',
+          }, { status: 400 })
+        }
+        data.gstin = gstin
+      }
+    }
 
     const merchant = await prisma.merchant.update({
       where: { id: session.id },
