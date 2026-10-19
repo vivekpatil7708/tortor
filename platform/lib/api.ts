@@ -223,8 +223,15 @@ export const api = {
   archiveProduct: (id: string) =>
     request<{ success: boolean }>(`/api/products/${id}`, { method: 'DELETE' }),
 
-  getCustomers: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
-    request<{ customers: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/customers${params || ''}`),
+  // Customer list is paged by cursor, and search runs on the server over name, phone and email.
+  getCustomers: <T extends Record<string, unknown> = Record<string, unknown>>(opts?: { q?: string; limit?: number; cursor?: string | null }) => {
+    const qs = new URLSearchParams()
+    if (opts?.q) qs.set('q', opts.q)
+    if (opts?.limit) qs.set('limit', String(opts.limit))
+    if (opts?.cursor) qs.set('cursor', opts.cursor)
+    const suffix = qs.toString()
+    return request<{ customers: T[]; total: number; next_cursor: string | null }>(`/api/customers${suffix ? `?${suffix}` : ''}`)
+  },
 
   getCustomer: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
     request<{ customer: T; addresses: Record<string, unknown>[]; orders: Record<string, unknown>[] }>(`/api/customers/${id}`),
@@ -241,11 +248,8 @@ export const api = {
   addAddress: (customerId: string, body: Record<string, unknown>) =>
     request<{ address: Record<string, unknown> }>(`/api/customers/${customerId}/addresses`, { method: 'POST', body: JSON.stringify(body) }),
 
-  updateAddress: (customerId: string, addressId: string, body: Record<string, unknown>) =>
-    request<{ address: Record<string, unknown> }>(`/api/customers/${customerId}/addresses/${addressId}`, { method: 'PATCH', body: JSON.stringify(body) }),
-
   deleteAddress: (customerId: string, addressId: string) =>
-    request<{ success: boolean }>(`/api/customers/${customerId}/addresses/${addressId}`, { method: 'DELETE' }),
+    request<{ success: boolean }>(`/api/customers/${customerId}/addresses?addressId=${encodeURIComponent(addressId)}`, { method: 'DELETE' }),
 
   getOrders: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
     request<{ orders: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/orders${params || ''}`),
