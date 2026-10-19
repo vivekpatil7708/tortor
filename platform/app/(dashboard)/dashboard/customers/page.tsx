@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Search, Plus, Trash2, Pencil, X, MapPin, Phone, Mail, ShoppingBag, GitMerge } from 'lucide-react'
-import { api } from '@/lib/api'
+import { api, fetchAllCustomers } from '@/lib/api'
+import { exportToCSV } from '@/lib/export-csv'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { LoadError } from '@/components/ui/load-error'
@@ -464,6 +465,8 @@ export default function CustomersPage() {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Customer | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState('')
+  const [exportError, setExportError] = useState('')
 
   // Search once typing pauses, not on every key.
   useEffect(() => {
@@ -506,6 +509,43 @@ export default function CustomersPage() {
     }
   }
 
+  async function handleExport() {
+    if (exporting) return
+    setExportError('')
+    setExporting('Preparing…')
+    try {
+      // Everyone matching the current search, not only the rows on screen.
+      const all = await fetchAllCustomers(query, (loaded, count) =>
+        setExporting(`Preparing ${loaded}${count ? ` of ${count}` : ''}…`))
+
+      const rows = (all as unknown as Customer[]).map(c => ({
+        ...c,
+        // A list of tags reads better in a spreadsheet than raw JSON.
+        tags: c.tags.join(', '),
+        marketing_consent: c.marketing_consent ? 'Yes' : 'No',
+      }))
+
+      exportToCSV(`toropay-customers${query ? '-search' : ''}`, [
+        { key: 'full_name', label: 'Name' },
+        { key: 'phone', label: 'Phone' },
+        { key: 'email', label: 'Email' },
+        { key: 'tags', label: 'Tags' },
+        { key: 'total_orders', label: 'Orders' },
+        { key: 'total_spent', label: 'Ordered' },
+        { key: 'total_paid', label: 'Paid' },
+        { key: 'last_order_at', label: 'Last Order' },
+        { key: 'marketing_consent', label: 'Marketing Consent' },
+        { key: 'address_count', label: 'Saved Addresses' },
+        { key: 'notes', label: 'Notes' },
+        { key: 'created_at', label: 'Added' },
+      ], rows)
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Could not export')
+    } finally {
+      setExporting('')
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
@@ -515,10 +555,18 @@ export default function CustomersPage() {
             Everyone who has bought from you, with what they spent and where they live.
           </p>
         </div>
-        <Button type="button" size="sm" onClick={() => { setEditing(null); setShowForm(true) }}>
-          <Plus className="mr-1.5 h-4 w-4" /> Add customer
-        </Button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleExport} disabled={!rows.length || !!exporting}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-charcoal transition-colors hover:bg-gray-50 disabled:opacity-40">
+            {exporting || 'Export to Excel'}
+          </button>
+          <Button type="button" size="sm" onClick={() => { setEditing(null); setShowForm(true) }}>
+            <Plus className="mr-1.5 h-4 w-4" /> Add customer
+          </Button>
+        </div>
       </div>
+
+      {exportError && <p className="text-sm text-red-500">Export failed: {exportError}</p>}
 
       <label className="relative block">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
