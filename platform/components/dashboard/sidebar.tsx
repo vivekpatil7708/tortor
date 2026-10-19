@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, Globe, Code2, Truck, Package, LogOut, Menu, Plus, X, ChevronDown
+  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, Globe, Code2, Truck, Package, LogOut, Menu, Plus, X, ChevronDown, Webhook
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -45,6 +45,7 @@ export const navGroups: Array<{ title: string; folded?: boolean; items: NavItem[
     items: [
       { label: 'Website Integration', href: '/dashboard/website', icon: Globe },
       { label: 'API keys & webhooks', href: '/dashboard/developers', icon: Code2 },
+      { label: 'Webhooks', href: '/dashboard/webhooks', icon: Webhook },
     ],
   },
 ]
