@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Search, Plus, Trash2, Pencil, X, MapPin, Phone, Mail, ShoppingBag } from 'lucide-react'
+import { Search, Plus, Trash2, Pencil, X, MapPin, Phone, Mail, ShoppingBag, GitMerge } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -169,6 +169,12 @@ function CustomerDetail({ id, onClose, onEdit, onChanged }: {
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
   const [message, setMessage] = useState('')
+  // Merging pulls duplicates into this customer.
+  const [merging, setMerging] = useState(false)
+  const [candidates, setCandidates] = useState<Customer[]>([])
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [loadingCandidates, setLoadingCandidates] = useState(false)
+  const [mergeError, setMergeError] = useState('')
 
   const load = useCallback(() => {
     setLoading(true)
@@ -196,6 +202,69 @@ function CustomerDetail({ id, onClose, onEdit, onChanged }: {
       setMessage(err instanceof Error ? err.message : 'Could not remove the address')
     }
   }
+
+  /**
+   * Duplicates are likely to share a name, email or phone. We search on whichever
+   * of those this customer has, then drop the ones that cannot plausibly match.
+   */
+  async function openMerge() {
+    if (!customer) return
+    setMerging(true)
+    setPicked(new Set())
+    setMergeError('')
+    setLoadingCandidates(true)
+    try {
+      const keys = [customer.full_name, customer.email, customer.phone].filter(Boolean) as string[]
+      const found = new Map<string, Customer>()
+      for (const key of keys) {
+        const res = await api.getCustomers({ q: key, limit: 50 })
+        for (const c of res.customers as unknown as Customer[]) {
+          if (c.id !== customer.id) found.set(c.id, c)
+        }
+      }
+      setCandidates(Array.from(found.values()))
+    } catch {
+      setMergeError('Could not look up possible duplicates. Try again.')
+    } finally {
+      setLoadingCandidates(false)
+    }
+  }
+
+  function togglePick(candidateId: string) {
+    setPicked(prev => {
+      const next = new Set(prev)
+      if (next.has(candidateId)) next.delete(candidateId); else next.add(candidateId)
+      return next
+    })
+  }
+
+  async function confirmMerge() {
+    if (!customer || picked.size === 0) return
+    const names = candidates.filter(c => picked.has(c.id))
+      .map(c => `${c.full_name} (${c.total_orders} order${c.total_orders === 1 ? '' : 's'})`)
+      .join('\n')
+    if (!window.confirm(
+      `Move everything from these customers into ${customer.full_name}?\n\n${names}\n\n` +
+      'Their orders, addresses and messages move across, then those rows are removed. This cannot be undone.'
+    )) return
+
+    setLoadingCandidates(true)
+    setMergeError('')
+    try {
+      await api.mergeCustomers(customer.id, Array.from(picked))
+      setMerging(false)
+      setCandidates([])
+      setPicked(new Set())
+      load()
+      onChanged()
+    } catch (err: unknown) {
+      setMergeError(err instanceof Error ? err.message : 'Could not merge those customers')
+    } finally {
+      setLoadingCandidates(false)
+    }
+  }
+
+  const pickedCount = picked.size
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
@@ -258,6 +327,63 @@ function CustomerDetail({ id, onClose, onEdit, onChanged }: {
                 {customer.notes}
               </div>
             )}
+
+            <div className="rounded-xl border border-gray-100 bg-white/60 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-bold">Merge duplicates</p>
+                  <p className="text-xs text-gray-500">
+                    The same person can end up as several rows. Fold them into this one.
+                  </p>
+                </div>
+                <Button type="button" variant="secondary" size="sm" onClick={openMerge} disabled={!customer}>
+                  <GitMerge className="mr-1.5 h-3.5 w-3.5" /> Find
+                </Button>
+              </div>
+
+              {merging && (
+                <div className="mt-3 space-y-2">
+                  {loadingCandidates && candidates.length === 0 ? (
+                    <p className="text-xs text-gray-500">Looking for possible duplicates…</p>
+                  ) : candidates.length === 0 ? (
+                    <p className="text-xs text-gray-500">
+                      No other customers share this name, email or phone — nothing to merge.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-gray-500">
+                        Pick the rows to move into <span className="font-semibold">{customer.full_name}</span>:
+                      </p>
+                      <div className="max-h-64 space-y-1 overflow-y-auto">
+                        {candidates.map(c => (
+                          <label key={c.id} className="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-sm">
+                            <input type="checkbox" className="mt-0.5" checked={picked.has(c.id)} onChange={() => togglePick(c.id)} />
+                            <span className="min-w-0">
+                              <span className="block truncate font-semibold">{c.full_name}</span>
+                              <span className="block truncate text-xs text-gray-500">
+                                {[c.phone, c.email].filter(Boolean).join(' · ') || 'No contact details'}
+                              </span>
+                              <span className="block text-xs text-gray-400">
+                                {c.total_orders} order{c.total_orders === 1 ? '' : 's'} · {rupees(c.total_spent)} · {asDate(c.last_order_at)}
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="button" size="sm" onClick={confirmMerge} disabled={loadingCandidates || pickedCount === 0}>
+                          {loadingCandidates ? 'Merging…' : `Merge ${pickedCount || ''} into this customer`.trim()}
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => { setMerging(false); setPicked(new Set()) }}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                  {mergeError && <p role="alert" className="text-xs text-red-600">{mergeError}</p>}
+                </div>
+              )}
+            </div>
 
             <div>
               <p className="mb-2 text-sm font-bold">Addresses</p>
