@@ -54,6 +54,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Only email can actually be delivered today. WhatsApp and Instagram have no
+    // provider wired up, and nothing here would send anything - so refuse before
+    // writing a log row, rather than recording a message as 'sent' that never left.
+    if (channel !== 'email') {
+      const label = channel === 'whatsapp' ? 'WhatsApp' : channel === 'instagram' ? 'Instagram' : String(channel)
+      return NextResponse.json(
+        { error: `${label} sending is not available yet. This message was not sent. Copy it and send it yourself for now.` },
+        { status: 501 },
+      )
+    }
+
     // Values from the browser may customise the message but never blank out the defaults.
     const overrides = Object.fromEntries(
       Object.entries((data ?? {}) as Record<string, unknown>).filter(([, v]) => typeof v === 'string' && v.trim() !== '')
@@ -75,7 +86,7 @@ export async function POST(req: NextRequest) {
     let providerMessageId: string | null = null
     let errorMessage: string | null = null
 
-    if (channel === 'email' && resend) {
+    if (resend) {
       provider = 'resend'
       try {
         const html = renderOrderConfirmationEmail({
@@ -99,7 +110,7 @@ export async function POST(req: NextRequest) {
         status = 'failed'
         errorMessage = err instanceof Error ? err.message : 'Failed to send email'
       }
-    } else if (channel === 'email') {
+    } else {
       status = 'failed'
       provider = 'resend'
       errorMessage = 'Email sending is not set up'
