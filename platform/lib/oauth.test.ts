@@ -60,6 +60,23 @@ function basicAuth(id: string, secret: string) {
   return { authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString('base64')}` }
 }
 
+/**
+ * Pull the redirect target out of the same-origin hand-off page the approval form
+ * answers with (HTML-escaped in the meta refresh, like any attribute value).
+ */
+function handOffTarget(html: string) {
+  const match = html.match(/<meta http-equiv="refresh" content="0;url=([^"]+)">/)
+  if (!match) throw new Error('no hand-off target in page')
+  return new URL(
+    match[1]
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, '&'),
+  )
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   getSession.mockResolvedValue(merchantSession)
@@ -148,14 +165,18 @@ describe('POST /oauth/authorize', () => {
     decision: 'approve',
   }
 
-  it('issues a single-use code bound to the request and redirects back', async () => {
+  it('issues a single-use code bound to the request and hands the browser back', async () => {
     db.oAuthClient.findUnique.mockResolvedValue(clientRow)
     db.oAuthAuthCode.create.mockResolvedValue({})
 
     const res = await authorizeSubmit(authorizePost(approval))
 
-    expect(res.status).toBe(303)
-    const location = new URL(res.headers.get('location') || '')
+    // A 303 to the client's origin is blocked in Chrome/Safari: `form-action 'self'`
+    // (next.config.js) applies to redirects that follow a form submission, which made
+    // the Approve button look dead. The form answers with a same-origin hand-off page.
+    expect(res.status).toBe(200)
+    expect(res.headers.get('location')).toBeNull()
+    const location = handOffTarget(await res.text())
     expect(location.origin + location.pathname).toBe(REDIRECT_URI)
     expect(location.searchParams.get('state')).toBe('abc123')
     const rawCode = location.searchParams.get('code') || ''
@@ -171,13 +192,45 @@ describe('POST /oauth/authorize', () => {
     expect(created.expiresAt.getTime()).toBeGreaterThan(Date.now())
   })
 
-  it('redirects with access_denied when the merchant denies', async () => {
+  it('never answers the form with a cross-origin redirect', async () => {
+    db.oAuthClient.findUnique.mockResolvedValue(clientRow)
+    db.oAuthAuthCode.create.mockResolvedValue({})
+
+    const outcomes = [approval, { ...approval, decision: 'deny' }, { ...approval, scope: 'admin' }]
+    for (const body of outcomes) {
+      const res = await authorizeSubmit(authorizePost(body))
+
+      expect(res.status).toBe(200)
+      expect(res.headers.get('location')).toBeNull()
+      expect(res.headers.get('cache-control')).toBe('no-store')
+      const target = handOffTarget(await res.text())
+      expect(target.origin).not.toBe('http://localhost') // the form posts to localhost/oauth/authorize
+    }
+  })
+
+  it('escapes a registered redirect URI that already carries a query', async () => {
+    const withQuery = 'https://toropay-mcp.vercel.app/callback?tenant=acme&mode=test'
+    db.oAuthClient.findUnique.mockResolvedValue({ ...clientRow, redirectUris: JSON.stringify([withQuery]) })
+    db.oAuthAuthCode.create.mockResolvedValue({})
+
+    const res = await authorizeSubmit(authorizePost({ ...approval, redirect_uri: withQuery }))
+    const html = await res.text()
+
+    expect(html).toContain('tenant=acme&amp;mode=test') // attribute values are escaped
+    const target = handOffTarget(html)
+    expect(target.searchParams.get('tenant')).toBe('acme')
+    expect(target.searchParams.get('mode')).toBe('test')
+    expect(target.searchParams.get('state')).toBe('abc123')
+    expect(target.searchParams.get('code')?.startsWith('tpoc_')).toBe(true)
+  })
+
+  it('hands back access_denied when the merchant denies', async () => {
     db.oAuthClient.findUnique.mockResolvedValue(clientRow)
 
     const res = await authorizeSubmit(authorizePost({ ...approval, decision: 'deny' }))
 
-    expect(res.status).toBe(303)
-    expect(res.headers.get('location')).toContain('error=access_denied')
+    expect(res.status).toBe(200)
+    expect(handOffTarget(await res.text()).search).toContain('error=access_denied')
     expect(db.oAuthAuthCode.create).not.toHaveBeenCalled()
   })
 
@@ -197,8 +250,8 @@ describe('POST /oauth/authorize', () => {
 
     const res = await authorizeSubmit(authorizePost(approval))
 
-    expect(res.status).toBe(303)
-    expect(res.headers.get('location')).toContain('error=invalid_scope')
+    expect(res.status).toBe(200)
+    expect(handOffTarget(await res.text()).search).toContain('error=invalid_scope')
     expect(db.oAuthAuthCode.create).not.toHaveBeenCalled()
   })
 })

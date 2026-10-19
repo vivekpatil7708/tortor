@@ -22,13 +22,13 @@ function esc(value: string) {
   return value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
 }
 
-function htmlPage(body: string, status = 200) {
+function htmlPage(body: string, status = 200, head = '') {
   const html = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ToroPay — Authorize access</title>
+<title>ToroPay — Authorize access</title>${head}
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -53,7 +53,11 @@ function htmlPage(body: string, status = 200) {
 </head>
 <body><div class="card">${body}</div></body>
 </html>`
-  return new NextResponse(html, { status, headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+  return new NextResponse(html, {
+    status,
+    // No-store: these pages carry one-time authorization codes in their links.
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+  })
 }
 
 function errorPage(message: string, status = 400) {
@@ -61,12 +65,39 @@ function errorPage(message: string, status = 400) {
 }
 
 /** Redirect back to the client with an OAuth error (only once the URI is known-good). */
-function redirectWithError(redirectUri: string, error: string, description: string, state: string | null, status: number) {
+function redirectErrorUrl(redirectUri: string, error: string, description: string, state: string | null) {
   const url = new URL(redirectUri)
   url.searchParams.set('error', error)
   url.searchParams.set('error_description', description)
   if (state) url.searchParams.set('state', state)
-  return NextResponse.redirect(url, status)
+  return url
+}
+
+function redirectWithError(redirectUri: string, error: string, description: string, state: string | null, status: number) {
+  return NextResponse.redirect(redirectErrorUrl(redirectUri, error, description, state), status)
+}
+
+/**
+ * Finish, on a same-origin page that navigates to the client itself.
+ *
+ * The CSP in next.config.js sets `form-action 'self'`, and Chrome and Safari
+ * apply that directive to redirects *following a form submission* (Firefox does
+ * not). Answering this form with a 303 to the client's redirect URI — always a
+ * different origin — is therefore blocked by the browser without any visible
+ * error: the POST succeeds, a code is even issued, but the page never moves and
+ * the button looks dead. A document that navigates itself is not a form
+ * submission, so this hand-off works everywhere and the CSP stays strict.
+ */
+function handOff(destination: URL) {
+  const target = esc(destination.toString())
+  return htmlPage(
+    `<p class="logo">ToroPay</p>
+    <h1>Redirecting…</h1>
+    <p>Taking you back to the application.</p>
+    <p class="merchant">If nothing happens, <a href="${target}">continue to the application</a>.</p>`,
+    200,
+    `<meta http-equiv="refresh" content="0;url=${target}">`,
+  )
 }
 
 type AuthorizationRequest =
@@ -166,12 +197,14 @@ export async function POST(req: NextRequest) {
   const validated = await readAuthorizationRequest(params)
   if (validated.kind === 'page') return validated.response
   if (validated.kind === 'redirect') {
-    return redirectWithError(validated.redirectUri, validated.error, validated.description, validated.state, 303)
+    // Cross-origin: has to be the hand-off page, not a 303 (see handOff).
+    return handOff(redirectErrorUrl(validated.redirectUri, validated.error, validated.description, validated.state))
   }
 
   const session = await getSession()
   if (!session) {
     const next = `/oauth/authorize?${params.toString()}`
+    // Same-origin, so a plain redirect is fine here.
     return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(next)}`, req.url), 303)
   }
 
@@ -179,7 +212,7 @@ export async function POST(req: NextRequest) {
   if (validated.state) dest.searchParams.set('state', validated.state)
   if (params.get('decision') !== 'approve') {
     dest.searchParams.set('error', 'access_denied')
-    return NextResponse.redirect(dest, 303)
+    return handOff(dest)
   }
 
   const rawCode = await issueAuthorizationCode({
@@ -190,5 +223,5 @@ export async function POST(req: NextRequest) {
     codeChallenge: validated.codeChallenge,
   })
   dest.searchParams.set('code', rawCode)
-  return NextResponse.redirect(dest, 303)
+  return handOff(dest)
 }
