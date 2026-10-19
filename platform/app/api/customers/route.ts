@@ -25,7 +25,31 @@ type CustomerRow = {
   _count?: { addresses: number }
 }
 
-function serialize(c: CustomerRow) {
+/**
+ * Money actually collected, per customer, for the given ids.
+ * `totalSpent` counts every non-cancelled order (ordered value); this counts only
+ * orders whose payment_status is paid, which is what a merchant reads it as.
+ */
+async function paidByCustomer(merchantId: string, customerIds: string[]): Promise<Map<string, number>> {
+  if (!customerIds.length) return new Map()
+  const rows = await prisma.order.groupBy({
+    by: ['customerId'],
+    where: {
+      merchantId,
+      customerId: { in: customerIds },
+      orderStatus: { not: 'cancelled' },
+      paymentStatus: 'paid',
+    },
+    _sum: { totalAmount: true },
+  })
+  return new Map(
+    rows
+      .filter((r): r is typeof r & { customerId: string } => r.customerId !== null)
+      .map(r => [r.customerId, r._sum.totalAmount?.toNumber() ?? 0])
+  )
+}
+
+function serialize(c: CustomerRow, totalPaid: number) {
   return {
     id: c.id,
     full_name: c.fullName,
@@ -35,6 +59,7 @@ function serialize(c: CustomerRow) {
     notes: c.notes,
     total_orders: c.totalOrders,
     total_spent: c.totalSpent,
+    total_paid: totalPaid,
     last_order_at: c.lastOrderAt?.toISOString() ?? null,
     marketing_consent: c.marketingConsent,
     address_count: c._count?.addresses ?? 0,
@@ -82,9 +107,10 @@ export async function GET(req: NextRequest) {
     const hasMore = rows.length > limit
     const page = hasMore ? rows.slice(0, limit) : rows
     const total = await prisma.customer.count({ where })
+    const paid = await paidByCustomer(session.id, page.map(c => c.id))
 
     return NextResponse.json({
-      customers: page.map(serialize),
+      customers: page.map(c => serialize(c, paid.get(c.id) ?? 0)),
       total,
       next_cursor: hasMore ? page[page.length - 1].id : null,
     })
@@ -143,7 +169,7 @@ export async function POST(req: NextRequest) {
       include: { _count: { select: { addresses: true } } },
     })
 
-    return NextResponse.json({ customer: serialize(customer) }, { status: 201 })
+    return NextResponse.json({ customer: serialize(customer, 0) }, { status: 201 })
   } catch (err) {
     const msg = publicErrorMessage(err, 'Failed to create customer')
     return apiError(msg === 'Unauthorized' ? 401 : 500, msg)

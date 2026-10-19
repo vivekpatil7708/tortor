@@ -6,6 +6,7 @@ import { NextRequest } from 'next/server'
 const db = vi.hoisted(() => ({
   customer: { findMany: vi.fn(), count: vi.fn(), create: vi.fn(), findFirst: vi.fn(), update: vi.fn(), deleteMany: vi.fn() },
   customerAddress: { count: vi.fn(), create: vi.fn(), updateMany: vi.fn(), deleteMany: vi.fn() },
+  order: { groupBy: vi.fn(), aggregate: vi.fn() },
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 
@@ -34,6 +35,8 @@ beforeEach(() => {
   vi.clearAllMocks()
   auth.requireSession.mockResolvedValue({ id: 'm1', emailVerifiedAt: new Date() })
   db.customer.count.mockResolvedValue(1)
+  db.order.groupBy.mockResolvedValue([])
+  db.order.aggregate.mockResolvedValue({ _sum: { totalAmount: null } })
 })
 
 afterEach(() => vi.restoreAllMocks())
@@ -58,6 +61,47 @@ describe('listing customers', () => {
     expect(body.customers).toHaveLength(1)
     // The extra row is the page marker, not shown to the caller.
     expect(body.next_cursor).toBe('c1')
+  })
+
+  it('reports ordered and paid money separately', async () => {
+    db.customer.findMany.mockResolvedValue([customerRow({ id: 'c1', totalSpent: 29430 })])
+    db.order.groupBy.mockResolvedValue([
+      { customerId: 'c1', _sum: { totalAmount: { toNumber: () => 15231 } } },
+    ])
+
+    const body = await (await listCustomers(new NextRequest('http://localhost/api/customers'))).json()
+    expect(body.customers[0].total_spent).toBe(29430)
+    expect(body.customers[0].total_paid).toBe(15231)
+  })
+
+  it('counts only paid, non-cancelled orders as paid', async () => {
+    db.customer.findMany.mockResolvedValue([customerRow()])
+    await listCustomers(new NextRequest('http://localhost/api/customers'))
+
+    expect(db.order.groupBy).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        merchantId: 'm1',
+        orderStatus: { not: 'cancelled' },
+        paymentStatus: 'paid',
+      }),
+    }))
+  })
+
+  it('treats a customer with no paid orders as zero', async () => {
+    db.customer.findMany.mockResolvedValue([customerRow({ id: 'c1' })])
+    db.order.groupBy.mockResolvedValue([])
+
+    const body = await (await listCustomers(new NextRequest('http://localhost/api/customers'))).json()
+    expect(body.customers[0].total_paid).toBe(0)
+  })
+
+  it('does not query paid totals for an empty page', async () => {
+    db.customer.findMany.mockResolvedValue([])
+    db.customer.count.mockResolvedValue(0)
+
+    const body = await (await listCustomers(new NextRequest('http://localhost/api/customers'))).json()
+    expect(body.customers).toEqual([])
+    expect(db.order.groupBy).not.toHaveBeenCalled()
   })
 
   it('searches name, phone and email together', async () => {
@@ -131,6 +175,17 @@ describe('one customer', () => {
     expect(body.addresses[0]).toEqual(expect.objectContaining({ id: 'a1', is_default: true }))
     // The Decimal is turned into a plain number for the page.
     expect(body.orders[0]).toEqual(expect.objectContaining({ amount: 1000, status: 'paid' }))
+  })
+
+  it('reports paid money on the customer pane too', async () => {
+    db.customer.findFirst.mockResolvedValue({ ...customerRow(), addresses: [], orders: [] })
+    db.order.aggregate.mockResolvedValue({ _sum: { totalAmount: { toNumber: () => 15231 } } })
+
+    const body = await (await getCustomer(new NextRequest('http://localhost/x'), params('c1'))).json()
+    expect(body.customer.total_paid).toBe(15231)
+    expect(db.order.aggregate).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ customerId: 'c1', paymentStatus: 'paid', orderStatus: { not: 'cancelled' } }),
+    }))
   })
 
   it('will not show another merchant\'s customer', async () => {
