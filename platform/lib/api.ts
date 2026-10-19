@@ -109,6 +109,19 @@ export const api = {
   updateMerchant: (body: Record<string, unknown>) =>
     request<{ merchant: Record<string, unknown> }>('/api/merchant', { method: 'PATCH', body: JSON.stringify(body) }),
 
+  getTaxSummary: () => request<{
+    summary: {
+      orders: number
+      orders_total: number
+      tax_recorded: number
+      orders_with_tax: number
+      tax_missing: boolean
+    }
+    merchant: { tax_scheme: string; gstin: string | null; state_code: string | null; state_name: string | null }
+    by_payment_status: { status: string; orders: number; total: number; tax: number }[]
+    by_destination_state: { state: string; orders: number; total: number }[]
+  }>('/api/tax/summary'),
+
   completeOnboarding: () =>
     request<{ success: boolean }>('/api/merchant/onboarding', { method: 'POST' }),
 

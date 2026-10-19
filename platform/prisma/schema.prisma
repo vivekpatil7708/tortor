@@ -255,6 +255,15 @@ model Merchant {
   defaultCurrency String  @default("INR") @map("default_currency")
   timezone        String  @default("Asia/Kolkata") @map("timezone")
 
+  // Tax details, collected so invoices can be issued. Nothing here is used to
+  // calculate tax yet - see lib/tax.ts for what is still undecided.
+  gstin        String? @map("gstin")
+  // Two digit state code, which decides CGST/SGST vs IGST once invoices exist.
+  stateCode    String? @map("state_code")
+  // unregistered | regular | composition
+  taxScheme    String  @default("unregistered") @map("tax_scheme")
+  taxLegalName String? @map("tax_legal_name")
+
   upiIds             UpiId[]
   paymentLinks       PaymentLink[]
   transactions       Transaction[]
@@ -400,6 +409,10 @@ model Product {
   status            ProductStatus @default(active)
   stockQuantity     Int?          @map("stock_quantity")
   lowStockThreshold Int?          @map("low_stock_threshold")
+  // Tax details. Null rate means "not set", which is different from "exempt" (0).
+  hsnCode           String?       @map("hsn_code")
+  taxRate           Decimal?      @map("tax_rate") @db.Decimal(5, 2)
+  taxExempt         Boolean       @default(false) @map("tax_exempt")
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
 

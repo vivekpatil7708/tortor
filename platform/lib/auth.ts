@@ -153,6 +153,10 @@ export async function getSession() {
       bgImageUrl: true,
       supportEmail: true,
       supportPhone: true,
+      gstin: true,
+      stateCode: true,
+      taxScheme: true,
+      taxLegalName: true,
       status: true,
       onboardingComplete: true,
       emailVerifiedAt: true,
@@ -189,6 +193,10 @@ export function merchantToJson(m: {
   bgImageUrl: string | null
   supportEmail?: string | null
   supportPhone?: string | null
+  gstin?: string | null
+  stateCode?: string | null
+  taxScheme?: string | null
+  taxLegalName?: string | null
   status: string
   onboardingComplete: boolean
   emailVerifiedAt?: Date | null
@@ -210,6 +218,11 @@ export function merchantToJson(m: {
     // Public contact details customers see on receipts and closed links (Settings → Business profile).
     support_email: m.supportEmail ?? null,
     support_phone: m.supportPhone ?? null,
+    // Tax details for invoicing. Recorded only; no tax is calculated from them yet.
+    gstin: m.gstin ?? null,
+    state_code: m.stateCode ?? null,
+    tax_scheme: m.taxScheme ?? 'unregistered',
+    tax_legal_name: m.taxLegalName ?? null,
     status: m.status,
     onboarding_complete: m.onboardingComplete,
     email_verified: Boolean(m.emailVerifiedAt),
