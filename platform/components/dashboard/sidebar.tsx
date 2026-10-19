@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, Globe, Code2, Truck, Package, LogOut, Menu, Plus, X, ChevronDown, Webhook, Users
+  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, Globe, Code2, Truck, Package, LogOut, Menu, Plus, X, ChevronDown, Webhook, Users, ShoppingCart
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -19,6 +19,7 @@ export const navGroups: Array<{ title: string; folded?: boolean; items: NavItem[
       { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
       { label: 'Payment Links', href: '/dashboard/links', icon: Link2 },
       { label: 'Transactions', href: '/dashboard/transactions', icon: Banknote },
+      { label: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },
     ],
   },
   {

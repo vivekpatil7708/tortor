@@ -43,6 +43,19 @@ export type TransactionQuery = TransactionFilters & { limit?: number; cursor?: s
 /** One page of transactions, newest first. `total` is counted on the first page only. */
 export type TransactionPage = { transactions: Record<string, unknown>[]; next_cursor: string | null; total: number | null }
 
+/** Filters for the orders list. Every field is optional; omitting one means "any". */
+export type OrderQuery = {
+  limit?: number
+  cursor?: string
+  q?: string
+  payment_status?: string
+  order_status?: string
+  fulfillment_status?: string
+  source?: string
+  from?: string
+  to?: string
+}
+
 function transactionParams(query: TransactionQuery): string {
   const params = new URLSearchParams({ limit: String(query.limit ?? 50) })
   for (const key of ['cursor', 'status', 'from', 'to', 'link', 'q'] as const) {
@@ -269,6 +282,21 @@ export const api = {
     return request<{ customers: T[]; total: number; next_cursor: string | null }>(`/api/customers${suffix ? `?${suffix}` : ''}`)
   },
 
+  orders: <T extends Record<string, unknown> = Record<string, unknown>>(query: OrderQuery = {}) => {
+    const qs = new URLSearchParams()
+    if (query.limit) qs.set('limit', String(query.limit))
+    if (query.cursor) qs.set('cursor', query.cursor)
+    for (const key of ['q', 'payment_status', 'order_status', 'fulfillment_status', 'source', 'from', 'to'] as const) {
+      const value = query[key]
+      if (value) qs.set(key, value)
+    }
+    const suffix = qs.toString()
+    return request<{ orders: T[]; total: number | null; next_cursor: string | null }>(`/api/orders/list${suffix ? `?${suffix}` : ''}`)
+  },
+
+  getOrder: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
+    request<{ order: T; status_history: Record<string, unknown>[]; fulfillments: Record<string, unknown>[] }>(`/api/orders/${id}`),
+
   getCustomer: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
     request<{ customer: T; addresses: Record<string, unknown>[]; orders: Record<string, unknown>[] }>(`/api/customers/${id}`),
 
@@ -292,13 +320,6 @@ export const api = {
 
   deleteAddress: (customerId: string, addressId: string) =>
     request<{ success: boolean }>(`/api/customers/${customerId}/addresses?addressId=${encodeURIComponent(addressId)}`, { method: 'DELETE' }),
-
-  getOrders: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
-    request<{ orders: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/orders${params || ''}`),
-
-  getOrder: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
-    request<{ order: Record<string, unknown> }>(`/api/orders/${id}`)
-      .then(r => ({ order: camelizeDeep<Record<string, unknown>>(r.order) }) as { order: T }),
 
   createOrder: <T extends Record<string, unknown> = Record<string, unknown>>(body: Record<string, unknown>) =>
     request<{ order: T }>('/api/orders', { method: 'POST', body: JSON.stringify(body) }),
