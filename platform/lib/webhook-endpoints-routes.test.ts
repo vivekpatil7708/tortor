@@ -22,6 +22,7 @@ import { GET as listEndpoints, POST as createEndpoint } from '@/app/api/webhook-
 import { PATCH as updateEndpoint, DELETE as deleteEndpoint } from '@/app/api/webhook-endpoints/[id]/route'
 import { GET as listDeliveries, POST as retryDelivery } from '@/app/api/webhook-endpoints/[id]/deliveries/route'
 import { POST as sendTest } from '@/app/api/webhook-endpoints/[id]/test/route'
+import { POST as rotateSecret } from '@/app/api/webhook-endpoints/[id]/rotate/route'
 
 const params = (id: string) => ({ params: Promise.resolve({ id }) })
 
@@ -171,6 +172,41 @@ describe('delivery log and retry', () => {
     )
     expect(res.status).toBe(404)
     expect(delivery.retryWebhookDelivery).not.toHaveBeenCalled()
+  })
+})
+
+describe('rotating the signing secret', () => {
+  it('stores a new secret and returns it once', async () => {
+    db.webhookEndpoint.findFirst.mockResolvedValue(endpointRow())
+    db.webhookEndpoint.update.mockResolvedValue(endpointRow())
+
+    const res = await rotateSecret(new NextRequest('http://localhost/x', { method: 'POST' }), params('we1'))
+    expect(res.status).toBe(200)
+
+    const body = await res.json()
+    expect(body.secret).toMatch(/^whsec_/)
+    // The stored value must be exactly what was handed back, or signatures won't verify.
+    expect(db.webhookEndpoint.update).toHaveBeenCalledWith({
+      where: { id: 'we1' },
+      data: { secretEncrypted: body.secret },
+    })
+  })
+
+  it('gives a different secret each time', async () => {
+    db.webhookEndpoint.findFirst.mockResolvedValue(endpointRow())
+    db.webhookEndpoint.update.mockResolvedValue(endpointRow())
+
+    const first = await (await rotateSecret(new NextRequest('http://localhost/x', { method: 'POST' }), params('we1'))).json()
+    const second = await (await rotateSecret(new NextRequest('http://localhost/x', { method: 'POST' }), params('we1'))).json()
+    expect(first.secret).not.toBe(second.secret)
+  })
+
+  it('will not rotate an endpoint that belongs to another merchant', async () => {
+    db.webhookEndpoint.findFirst.mockResolvedValue(null)
+
+    const res = await rotateSecret(new NextRequest('http://localhost/x', { method: 'POST' }), params('someone-elses'))
+    expect(res.status).toBe(404)
+    expect(db.webhookEndpoint.update).not.toHaveBeenCalled()
   })
 })
 
