@@ -245,6 +245,12 @@ export const api = {
   deleteCustomer: (id: string) =>
     request<{ success: boolean }>(`/api/customers/${id}`, { method: 'DELETE' }),
 
+  mergeCustomers: (targetId: string, sourceIds: string[]) =>
+    request<{ success: boolean; merged: number; kept: string }>('/api/customers/merge', {
+      method: 'POST',
+      body: JSON.stringify({ targetId, sourceIds }),
+    }),
+
   addAddress: (customerId: string, body: Record<string, unknown>) =>
     request<{ address: Record<string, unknown> }>(`/api/customers/${customerId}/addresses`, { method: 'POST', body: JSON.stringify(body) }),
 

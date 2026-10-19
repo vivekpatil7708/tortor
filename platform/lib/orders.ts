@@ -118,15 +118,34 @@ export async function createOrder(input: CreateOrderInput) {
       if (!owned) throw new Error('Customer not found')
       resolvedCustomerId = owned.id
     } else if (customer) {
-      const created = await tx.customer.create({
-        data: {
-          merchantId,
-          fullName: customer.fullName,
-          phone: customer.phone ?? null,
-          email: customer.email ?? null,
-        },
-      })
-      resolvedCustomerId = created.id
+      // Reuse a saved customer when the full name, email and phone all match,
+      // so the same person does not become a new row on every manual order.
+      // Matching needs the contact details to be present at all.
+      const existing = customer.email && customer.phone
+        ? await tx.customer.findFirst({
+            where: {
+              merchantId,
+              email: customer.email,
+              phone: customer.phone,
+              fullName: customer.fullName,
+            },
+            select: { id: true },
+          })
+        : null
+
+      if (existing) {
+        resolvedCustomerId = existing.id
+      } else {
+        const created = await tx.customer.create({
+          data: {
+            merchantId,
+            fullName: customer.fullName,
+            phone: customer.phone ?? null,
+            email: customer.email ?? null,
+          },
+        })
+        resolvedCustomerId = created.id
+      }
     }
 
     const trackingToken = generateTrackingToken()
