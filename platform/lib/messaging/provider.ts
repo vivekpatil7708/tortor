@@ -1,6 +1,7 @@
 import type { MessagingChannel } from './events'
 import { EmailMessagingProvider } from './email'
 import { WhatsAppBusinessProvider } from './whatsapp'
+import { OpenWaProvider, openWaConfig } from './openwa'
 import { InstagramMessagingProvider } from './instagram'
 import { MockMessagingProvider } from './mock'
 
@@ -59,6 +60,11 @@ export function getMessagingProvider(
     case 'email':
       return EmailMessagingProvider.instance
     case 'whatsapp': {
+      // A self-hosted OpenWA gateway takes precedence over Meta's Cloud API:
+      // if the operator has configured one, that is the number they expect
+      // messages to leave from.
+      const openwa = openWaConfig()
+      if (openwa) return new OpenWaProvider(openwa)
       if (credentials?.accessToken && credentials?.phoneNumberId) {
         return new WhatsAppBusinessProvider(credentials as ChannelCredentials)
       }
