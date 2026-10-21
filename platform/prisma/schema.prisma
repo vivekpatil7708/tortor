@@ -275,6 +275,7 @@ model Merchant {
   messageTemplates   MessageTemplate[]
   messageLogs        MessageLog[]
   channelConnections ChannelConnection[]
+  feedbackResponses  FeedbackResponse[]
 
   // Phase 1 merchant operations relations
   merchantUsers      MerchantUser[]
@@ -897,6 +898,8 @@ model MessageTemplate {
 model MessageLog {
   id                String    @id @default(uuid())
   merchantId        String    @map("merchant_id")
+  // Set when the message was sent as part of an admin broadcast campaign.
+  campaignId        String?   @map("campaign_id")
   orderId           String?   @map("order_id")
   customerId        String?   @map("customer_id")
   fulfillmentId     String?   @map("fulfillment_id")
@@ -924,6 +927,7 @@ model MessageLog {
 
   merchant Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  campaign BroadcastCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   openEvents MessageOpenEvent[]
 
   // At most one log row per (merchant, channel, idempotency key) — dedupe.
@@ -932,7 +936,49 @@ model MessageLog {
   @@index([merchantId, channel, eventType])
   @@index([merchantId, customerId])
   @@index([merchantId, status])
+  @@index([campaignId])
   @@map("message_logs")
+}
+
+// An admin broadcast to merchants. One campaign is one message, sent to the
+// recipients its audience resolves to.
+model BroadcastCampaign {
+  id          String    @id @default(uuid())
+  name        String
+  subject     String    @default("")
+  body        String
+  ctaLabel    String?   @map("cta_label")
+  channel     String    @default("email")
+  status      String    @default("draft") // draft / sending / sent / failed
+  // JSON filter spec describing who the campaign goes to.
+  audience    String    @default("{}")
+  createdBy   String    @map("created_by")
+  scheduledAt DateTime? @map("scheduled_at")
+  sentAt      DateTime? @map("sent_at")
+  totalCount  Int       @default(0) @map("total_count")
+  sentCount   Int       @default(0) @map("sent_count")
+  failedCount Int       @default(0) @map("failed_count")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  logs     MessageLog[]
+  feedback FeedbackResponse[]
+
+  @@index([status, scheduledAt])
+  @@map("broadcast_campaigns")
+}
+
+// Addresses that must not be emailed again, after a hard bounce or a spam
+// complaint. Mirrors Resend's own suppression list.
+model EmailSuppression {
+  id        String   @id @default(uuid())
+  email     String
+  reason    String // bounced / complained / unsubscribed
+  source    String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([email])
+  @@map("email_suppressions")
 }
 
 model MessageOpenEvent {
@@ -1137,8 +1183,11 @@ model InventoryAdjustment {
 }
 
 model FeedbackResponse {
-  id             String   @id @default(uuid())
-  merchantName   String   @map("merchant_name")
+  id             String    @id @default(uuid())
+  // Set when the response can be traced to a merchant and the campaign that asked for it.
+  merchantId     String?   @map("merchant_id")
+  campaignId     String?   @map("campaign_id")
+  merchantName   String    @map("merchant_name")
   satisfaction   Int // 1-5
   easeOfUse      Int      @map("ease_of_use") // 1-5
   usefulParts    String   @default("[]") @map("useful_parts") // JSON array
@@ -1149,8 +1198,20 @@ model FeedbackResponse {
   npsScore       Int      @map("nps_score") // 0-10
   followUp       Boolean  @map("follow_up")
   contact        String?  @map("contact")
+  // The address the merchant gave, so a response can be traced to a merchant.
+  merchantEmail  String?  @map("merchant_email")
+  // new / reviewed / actioned
+  status         String   @default("new")
+  adminNote      String?  @map("admin_note")
+  reviewedAt     DateTime? @map("reviewed_at")
   createdAt      DateTime @default(now()) @map("created_at")
 
+  merchant Merchant?         @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+  campaign BroadcastCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([merchantId])
+  @@index([campaignId])
   @@map("feedback_responses")
 }
 

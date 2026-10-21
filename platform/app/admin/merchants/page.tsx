@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { LoadMore } from '@/components/admin/load-more'
 import { exportToCSV } from '@/lib/export-csv'
 
 interface Merchant {
@@ -17,21 +18,49 @@ interface Merchant {
   emails_sent: number
 }
 
+const PAGE_SIZE = 50
+
 export default function AdminMerchants() {
   const router = useRouter()
   const [merchants, setMerchants] = useState<Merchant[]>([])
+  const [cursor, setCursor] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [appliedSearch, setAppliedSearch] = useState('')
   const [accessing, setAccessing] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/admin/merchants').then(r => r.json()).then(d => setMerchants(d.merchants || [])).catch(() => {})
-  }, [])
-
-  const filtered = merchants.filter(m =>
-    m.email.toLowerCase().includes(search.toLowerCase()) ||
-    m.business_name.toLowerCase().includes(search.toLowerCase()) ||
-    m.phone.includes(search)
+  // The search runs on the server, so merchants past the first page can be
+  // found too.
+  const load = useCallback(
+    async (nextCursor?: string | null) => {
+      setLoading(true)
+      try {
+        const params = new URLSearchParams({ limit: String(PAGE_SIZE) })
+        if (nextCursor) params.set('cursor', nextCursor)
+        if (appliedSearch) params.set('q', appliedSearch)
+        const res = await fetch(`/api/admin/merchants?${params}`)
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Could not load merchants')
+        setMerchants(prev => (nextCursor ? [...prev, ...(data.merchants ?? [])] : (data.merchants ?? [])))
+        setCursor(data.next_cursor ?? null)
+      } catch {
+        setMerchants([])
+      } finally {
+        setLoading(false)
+      }
+    },
+    [appliedSearch]
   )
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  useEffect(() => {
+    if (search === appliedSearch) return
+    const timer = setTimeout(() => setAppliedSearch(search), 500)
+    return () => clearTimeout(timer)
+  }, [search, appliedSearch])
 
   function handleExport() {
     exportToCSV('toropay-merchants', [
@@ -44,7 +73,7 @@ export default function AdminMerchants() {
       { key: 'emails_sent', label: 'Emails Sent' },
       { key: 'revenue', label: 'Revenue' },
       { key: 'created_at', label: 'Joined Date' },
-    ], filtered)
+    ], merchants)
   }
 
   async function handleAccess(id: string) {
@@ -68,7 +97,7 @@ export default function AdminMerchants() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Merchants ({merchants.length})</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Merchants</h1>
         <div className="flex items-center gap-3">
           <input type="text" placeholder="Search merchants..." value={search} onChange={e => setSearch(e.target.value)}
             className="w-64 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400" />
@@ -76,7 +105,7 @@ export default function AdminMerchants() {
             className="rounded-xl bg-[#7bb86c] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90">
             Send Email to Merchants
           </button>
-          <button onClick={handleExport} disabled={filtered.length === 0}
+          <button onClick={handleExport} disabled={merchants.length === 0}
             className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-charcoal transition-colors hover:bg-gray-50 disabled:opacity-40">
             Export to Excel
           </button>
@@ -99,7 +128,7 @@ export default function AdminMerchants() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(m => (
+            {merchants.map(m => (
               <tr key={m.id} className="border-b border-gray-50 hover:bg-gray-50">
                 <td className="px-5 py-3 font-medium">{m.email}</td>
                 <td className="px-5 py-3 text-gray-500">{m.business_name}</td>
@@ -121,12 +150,14 @@ export default function AdminMerchants() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {merchants.length === 0 && !loading && (
               <tr><td colSpan={9} className="px-5 py-8 text-center text-gray-400">No merchants found</td></tr>
             )}
           </tbody>
         </table>
       </div>
+
+      <LoadMore cursor={cursor} onLoad={() => load(cursor)} loading={loading} className="mt-4" />
     </div>
   )
 }

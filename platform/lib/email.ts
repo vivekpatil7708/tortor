@@ -42,15 +42,24 @@ export function renderOrderConfirmationEmail({
 </html>`
 }
 
+/**
+ * The email an admin broadcast sends. `subject` and `body` are the final
+ * text: the caller fills the template variables in first, so the same string
+ * is used for the subject, the HTML and the plain-text part of the email.
+ */
 export function renderBroadcastEmail({
   subject,
   body,
   ctaUrl,
+  ctaLabel = 'Share Your Feedback',
+  trackingPixelUrl,
   accentColor = '#7bb86c',
 }: {
   subject: string
   body: string
   ctaUrl?: string
+  ctaLabel?: string
+  trackingPixelUrl?: string
   accentColor?: string
 }): string {
   const linkify = (text: string) =>
@@ -58,6 +67,9 @@ export function renderBroadcastEmail({
   subject = escapeHtml(subject)
   const formattedBody = body.split('\n').filter(Boolean).map(escapeHtml)
   const cta = ctaUrl || 'https://www.toropay.co.in/feedback'
+  const pixel = trackingPixelUrl
+    ? `<tr><td style="padding:0;line-height:0;font-size:0;"><img src="${escapeHtml(trackingPixelUrl)}" width="1" height="1" alt="" style="display:block;border:0;outline:none;text-decoration:none;" /></td></tr>`
+    : ''
 
   return `<!DOCTYPE html>
 <html>
@@ -75,8 +87,9 @@ export function renderBroadcastEmail({
       </td></tr>
       ${formattedBody.map((p: string) => `<tr><td style="padding-bottom:12px;color:#4b5563;font-size:14px;line-height:1.7;">${linkify(p)}</td></tr>`).join('')}
       <tr><td style="padding:20px 0 24px;text-align:center;">
-        <a href="${cta}" style="display:inline-block;padding:14px 36px;background:${accentColor};color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;">Share Your Feedback</a>
+        <a href="${escapeHtml(cta)}" style="display:inline-block;padding:14px 36px;background:${accentColor};color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:12px;">${escapeHtml(ctaLabel)}</a>
       </td></tr>
+      ${pixel}
       <tr><td style="border-top:1px solid #e5e7eb;padding-top:16px;color:#9ca3af;font-size:12px;text-align:center;">
         ToroPay — Built for Indian businesses
       </td></tr>

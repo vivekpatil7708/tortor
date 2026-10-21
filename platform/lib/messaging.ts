@@ -18,6 +18,23 @@ export const SUPPORTED_VARIABLES = [
 
 export type TemplateVariable = typeof SUPPORTED_VARIABLES[number]
 
+/**
+ * The variables a broadcast to merchants can actually fill in. The customer,
+ * order and product variables above only ever exist in a merchant's own
+ * messages, so offering them here would send a literal `{{customer_name}}` to
+ * every recipient.
+ */
+export const BROADCAST_VARIABLES = [
+  'merchant_name',
+  'payment_link',
+  'feedback_form_link',
+  'support_email',
+  'support_phone',
+  'currency',
+] as const
+
+export type BroadcastVariable = typeof BROADCAST_VARIABLES[number]
+
 export interface SampleData {
   customer_name: string
   order_id: string
@@ -117,9 +134,27 @@ export function getUsedVariables(template: string): string[] {
   return vars
 }
 
-export function validateTemplate(template: string): { valid: boolean; missingVars: string[]; usedVars: string[] } {
+/**
+ * The variables a template uses that the given set cannot fill in. A template
+ * with any of them would send the placeholder itself to the recipient.
+ */
+export function unsupportedVariables(
+  template: string,
+  allowed: readonly string[] = SUPPORTED_VARIABLES
+): string[] {
+  return getUsedVariables(template).filter(v => !allowed.includes(v))
+}
+
+/**
+ * Checks a template against the variables that can be filled in. `missingVars`
+ * are the ones that would be sent literally.
+ */
+export function validateTemplate(
+  template: string,
+  allowed: readonly string[] = SUPPORTED_VARIABLES
+): { valid: boolean; missingVars: string[]; usedVars: string[] } {
   const usedVars = getUsedVariables(template)
-  const unsupported = usedVars.filter(v => !(SUPPORTED_VARIABLES as readonly string[]).includes(v))
+  const unsupported = unsupportedVariables(template, allowed)
   return {
     valid: unsupported.length === 0,
     missingVars: unsupported,

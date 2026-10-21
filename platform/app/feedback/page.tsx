@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const USEFUL_PARTS = [
   'Creating payment links',
@@ -20,6 +20,7 @@ export default function FeedbackPage() {
   const [submitted, setSubmitted] = useState(false)
 
   const [merchantName, setMerchantName] = useState('')
+  const [merchantEmail, setMerchantEmail] = useState('')
   const [satisfaction, setSatisfaction] = useState<number | null>(null)
   const [easeOfUse, setEaseOfUse] = useState<number | null>(null)
   const [usefulParts, setUsefulParts] = useState<string[]>([])
@@ -30,6 +31,13 @@ export default function FeedbackPage() {
   const [npsScore, setNpsScore] = useState<number | null>(null)
   const [followUp, setFollowUp] = useState<boolean | null>(null)
   const [contact, setContact] = useState('')
+  // The campaign this form was reached from, so the answer can be traced back.
+  const [campaignId, setCampaignId] = useState('')
+
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('campaign')
+    if (fromUrl) setCampaignId(fromUrl)
+  }, [])
 
   function togglePart(part: string) {
     setUsefulParts(prev => (prev.includes(part) ? prev.filter(p => p !== part) : [...prev, part]))
@@ -60,6 +68,8 @@ export default function FeedbackPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           merchantName,
+          email: merchantEmail,
+          campaignId,
           satisfaction,
           easeOfUse,
           usefulParts,
@@ -123,6 +133,22 @@ export default function FeedbackPage() {
                 placeholder="e.g. My Store"
                 className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#7bb86c]"
               />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-600">
+                Email you sign in with <span className="text-gray-400">(optional)</span>
+              </label>
+              <input
+                type="email"
+                value={merchantEmail}
+                onChange={e => setMerchantEmail(e.target.value)}
+                placeholder="you@business.com"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#7bb86c]"
+              />
+              <p className="mt-1 text-[11px] text-gray-400">
+                This lets us link your answer to your account. Leave it out if you would rather not.
+              </p>
             </div>
 
             <div>
