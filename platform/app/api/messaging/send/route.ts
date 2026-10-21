@@ -5,12 +5,31 @@ import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
 import { prisma } from '@/lib/prisma'
 import { renderTemplate } from '@/lib/messaging'
 import { renderOrderConfirmationEmail } from '@/lib/email'
+import { getMessagingProvider, type MessagingProvider } from '@/lib/messaging/provider'
+import { isOpenWaConfigured } from '@/lib/messaging/openwa'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const fromAddress = process.env.RESEND_FROM || 'ToroPay <onboarding@resend.dev>'
 const MAX_EMAILS_PER_DAY = 100
 
 const digits = (value: string) => value.replace(/\D/g, '')
+
+/**
+ * The WhatsApp provider to send through, or null when none is configured.
+ *
+ * Deliberately does not fall back to the mock provider: recording a mock
+ * "sent" against a merchant's real order would claim a delivery that never
+ * happened, which is the bug this path exists to avoid.
+ *
+ * This route sends through the self-hosted OpenWA gateway (OPENWA_* env). A
+ * merchant's own Meta credentials live encrypted on ChannelConnection and are
+ * not read here; when OpenWA is unset the send is refused rather than silently
+ * routed somewhere the operator did not configure.
+ */
+function whatsAppProvider(): MessagingProvider | null {
+  if (!isOpenWaConfigured()) return null
+  return getMessagingProvider('whatsapp')
+}
 
 export async function POST(req: NextRequest) {
   let session
@@ -54,11 +73,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Only email can actually be delivered today. WhatsApp and Instagram have no
-    // provider wired up, and nothing here would send anything - so refuse before
-    // writing a log row, rather than recording a message as 'sent' that never left.
-    if (channel !== 'email') {
-      const label = channel === 'whatsapp' ? 'WhatsApp' : channel === 'instagram' ? 'Instagram' : String(channel)
+    // Instagram has no provider wired up, and nothing here would send anything -
+    // so refuse before writing a log row, rather than recording a message as
+    // 'sent' that never left. WhatsApp has a real provider (OpenWA or Meta) and
+    // is handled below; it must still fail loudly when that provider is absent.
+    if (channel !== 'email' && channel !== 'whatsapp') {
+      const label = channel === 'instagram' ? 'Instagram' : String(channel)
       return NextResponse.json(
         { error: `${label} sending is not available yet. This message was not sent. Copy it and send it yourself for now.` },
         { status: 501 },
@@ -86,7 +106,30 @@ export async function POST(req: NextRequest) {
     let providerMessageId: string | null = null
     let errorMessage: string | null = null
 
-    if (resend) {
+    if (channel === 'whatsapp') {
+      const wa = whatsAppProvider()
+      if (!wa) {
+        return NextResponse.json(
+          { error: 'WhatsApp sending is not set up. This message was not sent.' },
+          { status: 503 },
+        )
+      }
+      // WhatsApp goes through the provider abstraction. Its sendMessage returns
+      // ok: false on any failure, so we never log a message as sent that never
+      // left.
+      const result = await wa.sendMessage({
+        to,
+        body: renderedBody,
+        metadata: { orderId: String(orderId), merchantId: session.id },
+      })
+      provider = wa.name
+      if (result.ok) {
+        providerMessageId = result.providerMessageId
+      } else {
+        status = 'failed'
+        errorMessage = result.error || 'WhatsApp send failed'
+      }
+    } else if (resend) {
       provider = 'resend'
       try {
         const html = renderOrderConfirmationEmail({
@@ -133,7 +176,11 @@ export async function POST(req: NextRequest) {
     })
 
     if (status === 'failed') {
-      return NextResponse.json({ error: 'The email could not be sent. Please try again later.', log }, { status: 502 })
+      const label = channel === 'whatsapp' ? 'WhatsApp' : 'email'
+      return NextResponse.json(
+        { error: `The ${label} message could not be sent. Please try again later.`, log },
+        { status: 502 },
+      )
     }
     return NextResponse.json({ success: true, log })
   } catch (err) {

@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
-// Sending a confirmation message. Only email can actually be delivered, so the
-// other channels must refuse rather than record a message as sent that never left.
+// Sending a confirmation message. Email and WhatsApp can be delivered; the
+// remaining channels must refuse rather than record a message as sent that
+// never left, and a WhatsApp message must never be logged as sent when the
+// provider is missing or fails.
 const db = vi.hoisted(() => ({
   transaction: { findFirst: vi.fn() },
   messageLog: { count: vi.fn(), create: vi.fn() },
@@ -11,6 +13,27 @@ vi.mock('@/lib/prisma', () => ({ prisma: db }))
 
 const auth = vi.hoisted(() => ({ requireSession: vi.fn() }))
 vi.mock('@/lib/auth', () => auth)
+
+const openwa = vi.hoisted(() => ({
+  isOpenWaConfigured: vi.fn(),
+  sendMessage: vi.fn(),
+}))
+vi.mock('@/lib/messaging/openwa', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/messaging/openwa')>()
+  return { ...actual, isOpenWaConfigured: openwa.isOpenWaConfigured }
+})
+
+vi.mock('@/lib/messaging/provider', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/messaging/provider')>()
+  return {
+    ...actual,
+    getMessagingProvider: () => ({
+      channel: 'whatsapp',
+      name: 'openwa',
+      sendMessage: openwa.sendMessage,
+    }),
+  }
+})
 
 import { POST as sendMessage } from '@/app/api/messaging/send/route'
 
@@ -24,6 +47,8 @@ const order = (over: Partial<Record<string, unknown>> = {}) => ({
   ...over,
 })
 
+const logged = () => db.messageLog.create.mock.calls[0][0].data as Record<string, unknown>
+
 beforeEach(() => {
   vi.clearAllMocks()
   auth.requireSession.mockResolvedValue({ id: 'm1', email: 'me@example.com', emailVerifiedAt: new Date() })
@@ -31,40 +56,101 @@ beforeEach(() => {
   db.messageLog.count.mockResolvedValue(0)
   db.messageLog.create.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
     Promise.resolve({ id: 'log1', ...data }))
+  // OpenWA unconfigured by default, so tests opt in explicitly.
+  openwa.isOpenWaConfigured.mockReturnValue(false)
+  openwa.sendMessage.mockResolvedValue({ providerMessageId: 'wa1', ok: true, status: 'sent' })
 })
 
 afterEach(() => vi.restoreAllMocks())
 
-describe('a channel that cannot send yet', () => {
-  it('refuses a WhatsApp message and says so', async () => {
+describe('WhatsApp sending', () => {
+  it('sends through the provider and records the message as sent', async () => {
+    openwa.isOpenWaConfigured.mockReturnValue(true)
+
     const res = await sendMessage(request({
       channel: 'whatsapp', recipient: '9876543210', template: 'Hi {{customer_name}}', orderId: 'TXN-1',
     }))
 
-    expect(res.status).toBe(501)
-    const body = await res.json()
-    expect(body.error).toContain('WhatsApp sending is not available yet')
-    expect(body.error).toContain('was not sent')
+    expect(res.status).toBe(200)
+    expect((await res.json()).success).toBe(true)
+    expect(openwa.sendMessage).toHaveBeenCalledWith(expect.objectContaining({ to: '9876543210' }))
+    expect(logged().status).toBe('sent')
+    expect(logged().channel).toBe('whatsapp')
+    expect(logged().provider).toBe('openwa')
+    expect(logged().providerMessageId).toBe('wa1')
   })
 
-  it('does not write a log row claiming the message was sent', async () => {
-    // This is the bug being fixed: WhatsApp used to fall through every branch,
-    // keep its initial status of 'sent', and quietly record a delivery that
-    // never happened.
+  it('sends the rendered body, with placeholders filled in', async () => {
+    openwa.isOpenWaConfigured.mockReturnValue(true)
+
+    await sendMessage(request({
+      channel: 'whatsapp', recipient: '9876543210', template: 'Hi {{customer_name}}', orderId: 'TXN-1',
+    }))
+
+    expect(openwa.sendMessage).toHaveBeenCalledWith(expect.objectContaining({ body: expect.any(String) }))
+  })
+
+  it('records a failure, not a success, when the provider reports one', async () => {
+    openwa.isOpenWaConfigured.mockReturnValue(true)
+    openwa.sendMessage.mockResolvedValue({
+      providerMessageId: null, ok: false, status: 'failed', error: 'Session is not active',
+    })
+
+    const res = await sendMessage(request({
+      channel: 'whatsapp', recipient: '9876543210', template: 'Hi', orderId: 'TXN-1',
+    }))
+
+    expect(res.status).toBe(502)
+    expect((await res.json()).error).toContain('WhatsApp')
+    expect(logged().status).toBe('failed')
+    expect(logged().errorMessage).toBe('Session is not active')
+    expect(logged().providerMessageId).toBeNull()
+  })
+
+  it('refuses without writing a log row when no provider is configured', async () => {
+    // isOpenWaConfigured is false and no Meta credentials exist, so there is
+    // nothing that could deliver this message.
+    openwa.isOpenWaConfigured.mockReturnValue(false)
+
+    const res = await sendMessage(request({
+      channel: 'whatsapp', recipient: '9876543210', template: 'Hi', orderId: 'TXN-1',
+    }))
+
+    expect(res.status).toBe(503)
+    expect((await res.json()).error).toContain('not set up')
+    expect(db.messageLog.create).not.toHaveBeenCalled()
+    expect(openwa.sendMessage).not.toHaveBeenCalled()
+  })
+
+  it('does not fall back to the mock provider and claim a delivery', async () => {
+    // The regression this guards: WhatsApp used to keep its initial 'sent'
+    // status and record a delivery that never happened.
+    openwa.isOpenWaConfigured.mockReturnValue(false)
+
     await sendMessage(request({
       channel: 'whatsapp', recipient: '9876543210', template: 'Hi', orderId: 'TXN-1',
     }))
 
     expect(db.messageLog.create).not.toHaveBeenCalled()
   })
+})
 
-  it('refuses Instagram in the same way', async () => {
+describe('a channel that cannot send yet', () => {
+  it('refuses Instagram', async () => {
     const res = await sendMessage(request({
       channel: 'instagram', recipient: '9876543210', template: 'Hi', orderId: 'TXN-1',
     }))
 
     expect(res.status).toBe(501)
     expect((await res.json()).error).toContain('Instagram sending is not available yet')
+  })
+
+  it('does not write a log row claiming the message was sent', async () => {
+    await sendMessage(request({
+      channel: 'instagram', recipient: '9876543210', template: 'Hi', orderId: 'TXN-1',
+    }))
+
+    expect(db.messageLog.create).not.toHaveBeenCalled()
   })
 
   it('names an unknown channel rather than sending it', async () => {
