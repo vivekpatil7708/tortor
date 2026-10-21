@@ -1,118 +1,154 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { DEFAULT_BROADCAST_TEMPLATE, SAMPLE_DATA, renderTemplate, SUPPORTED_VARIABLES } from '@/lib/messaging'
+import { AudienceBuilder } from '@/components/admin/audience-builder'
+import { useDebounced } from '@/components/admin/load-more'
+import { BROADCAST_VARIABLES, DEFAULT_BROADCAST_TEMPLATE, unsupportedVariables } from '@/lib/messaging'
+import type { Audience } from '@/lib/broadcast-audience'
 
-interface Merchant {
-  id: string
+interface PreviewSample {
   email: string
   business_name: string
-  status: string
+  subject: string
+  body: string
 }
 
-export default function AdminMessaging() {
+interface Preview {
+  total: number
+  matched: number
+  suppressed: number
+  too_many: boolean
+  unsupported_variables: string[]
+  sample: PreviewSample[]
+}
+
+export default function AdminMessagingCompose() {
+  const [name, setName] = useState('')
   const [subject, setSubject] = useState(DEFAULT_BROADCAST_TEMPLATE.subject)
   const [body, setBody] = useState(DEFAULT_BROADCAST_TEMPLATE.body)
-  const [merchants, setMerchants] = useState<Merchant[]>([])
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [search, setSearch] = useState('')
-  const [mode, setMode] = useState<'all' | 'selected'>('all')
-  const [showPreview, setShowPreview] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [result, setResult] = useState<{ total: number; sent: number; failed: number } | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [logs, setLogs] = useState<Array<{ merchant_name: string; email: string; status: string; subject: string; created_at: string; open_count?: number; last_opened_at?: string | null }>>([])
+  const [ctaLabel, setCtaLabel] = useState('')
+  const [audience, setAudience] = useState<Audience>({ status: 'active' })
 
+  const [preview, setPreview] = useState<Preview | null>(null)
+  const [previewing, setPreviewing] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+
+  const [saving, setSaving] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<{ campaign_id: string; total: number; sent: number; failed: number; remaining: number } | null>(null)
+
+  // A template can be picked from the template library.
   useEffect(() => {
-    fetch('/api/admin/merchants').then(r => r.json()).then(d => {
-      const active = (d.merchants || []).filter((m: Merchant) => m.status === 'active')
-      setMerchants(active)
-      setSelected(new Set(active.map((m: Merchant) => m.id)))
-    }).catch(() => {})
-    fetch('/api/admin/broadcast?limit=20').then(r => r.json()).then(d => {
-      if (d.logs) setLogs(d.logs)
-    }).catch(() => {})
+    const templateId = new URLSearchParams(window.location.search).get('template')
+    if (!templateId) return
+    fetch(`/api/admin/templates/${templateId}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (!data?.template) return
+        setSubject(data.template.subject || '')
+        setBody(data.template.body)
+        setName(data.template.name)
+      })
+      .catch(() => {})
   }, [])
 
-  const filtered = useMemo(
-    () => merchants.filter(m =>
-      m.email.toLowerCase().includes(search.toLowerCase()) ||
-      m.business_name.toLowerCase().includes(search.toLowerCase())
-    ),
-    [merchants, search]
+  // The variables a broadcast cannot fill in. Sending with any of them would
+  // send the placeholder itself to every recipient.
+  const unsupported = useMemo(
+    () => unsupportedVariables(`${subject}\n${body}`, BROADCAST_VARIABLES),
+    [subject, body]
   )
 
-  const recipientCount = mode === 'all' ? merchants.length : selected.size
+  const previewRequest = useDebounced({ subject, body, ctaLabel: ctaLabel || undefined, audience }, 700)
 
-  const sampleData: Record<string, string> = { ...(SAMPLE_DATA as unknown as Record<string, string>) }
-  const renderedSubject = renderTemplate(subject || DEFAULT_BROADCAST_TEMPLATE.subject, sampleData)
-  const renderedBody = renderTemplate(body || DEFAULT_BROADCAST_TEMPLATE.body, sampleData)
-
-  function toggleMerchant(id: string) {
-    setSelected(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+  useEffect(() => {
+    let cancelled = false
+    setPreviewing(true)
+    fetch('/api/admin/campaigns/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(previewRequest),
     })
+      .then(async r => {
+        const data = await r.json()
+        if (!r.ok) throw new Error(data.error || 'Could not build the preview')
+        return data
+      })
+      .then(data => {
+        if (cancelled) return
+        setPreview(data)
+        setPreviewError(null)
+      })
+      .catch(e => {
+        if (cancelled) return
+        setPreviewError(e instanceof Error ? e.message : 'Could not build the preview')
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewing(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [previewRequest])
+
+  const canSend = Boolean(subject.trim() && body.trim()) && unsupported.length === 0 && !sending && !saving
+
+  async function saveCampaign(): Promise<string> {
+    const res = await fetch('/api/admin/campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim() || subject.trim(),
+        subject,
+        body,
+        ctaLabel: ctaLabel.trim() || undefined,
+        audience,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Could not save the campaign')
+    return data.campaign.id as string
   }
 
-  function toggleAllVisible() {
-    setSelected(prev => {
-      const next = new Set(prev)
-      const allVisibleSelected = filtered.every(m => next.has(m.id))
-      filtered.forEach(m => { if (allVisibleSelected) next.delete(m.id); else next.add(m.id) })
-      return next
-    })
-  }
-
-  function resetTemplate() {
-    setSubject(DEFAULT_BROADCAST_TEMPLATE.subject)
-    setBody(DEFAULT_BROADCAST_TEMPLATE.body)
-    setResult(null)
+  async function handleSaveDraft() {
+    setSaving(true)
     setError(null)
+    try {
+      const id = await saveCampaign()
+      window.location.href = `/admin/messaging/campaigns/${id}`
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save the campaign')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function handleSend() {
-    if (!subject.trim() || !body.trim()) {
-      setError('Subject and body are required.')
-      return
-    }
-    if (mode === 'selected' && selected.size === 0) {
-      setError('Select at least one merchant.')
-      return
-    }
     setSending(true)
     setError(null)
     try {
-      const payload: { subject: string; body: string; merchantIds?: string[] } = { subject, body }
-      if (mode === 'selected') payload.merchantIds = Array.from(selected)
-      const res = await fetch('/api/admin/broadcast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const id = await saveCampaign()
+      const res = await fetch(`/api/admin/campaigns/${id}/send`, { method: 'POST' })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to send')
+      if (!res.ok) throw new Error(data.error || 'Could not send the campaign')
       setResult(data)
-      setShowConfirm(false)
-      const logRes = await fetch('/api/admin/broadcast?limit=20')
-      const logData = await logRes.json()
-      if (logData.logs) setLogs(logData.logs)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to send')
+      setError(e instanceof Error ? e.message : 'Could not send the campaign')
     } finally {
       setSending(false)
     }
   }
 
+  const recipients = preview ? preview.total : 0
+
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Email Merchants</h1>
+        <h1 className="text-2xl font-bold tracking-tight">New broadcast</h1>
         <p className="text-sm text-gray-500">
-          Send an email to {recipientCount > 0 ? <strong>{recipientCount}</strong> : 'all'} {mode === 'all' ? 'active' : 'selected'} merchant{recipientCount === 1 ? '' : 's'}.
+          Write one message and send it to the merchants you choose.
         </p>
       </div>
 
@@ -120,8 +156,16 @@ export default function AdminMessaging() {
         <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-5">
           <p className="font-semibold text-green-800">Campaign sent</p>
           <p className="mt-1 text-sm text-green-700">
-            {result.sent} of {result.total} merchants emailed{result.failed > 0 ? `, ${result.failed} failed` : ''}.
+            {result.sent} of {result.total} merchants emailed
+            {result.failed > 0 ? `, ${result.failed} failed` : ''}
+            {result.remaining > 0 ? `, ${result.remaining} still waiting to go out` : ''}.
           </p>
+          <Link
+            href={`/admin/messaging/campaigns/${result.campaign_id}`}
+            className="mt-2 inline-block text-xs font-semibold text-green-800 underline hover:no-underline"
+          >
+            Open the campaign
+          </Link>
         </div>
       )}
 
@@ -129,146 +173,142 @@ export default function AdminMessaging() {
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
       )}
 
-      <div className="mb-6 flex gap-2">
-        <button onClick={() => setMode('all')}
-          className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${mode === 'all' ? 'bg-charcoal text-white' : 'border border-gray-200 bg-white text-gray-500 hover:text-charcoal'}`}>
-          All active merchants
-        </button>
-        <button onClick={() => setMode('selected')}
-          className={`rounded-xl px-4 py-2 text-xs font-semibold transition-colors ${mode === 'selected' ? 'bg-charcoal text-white' : 'border border-gray-200 bg-white text-gray-500 hover:text-charcoal'}`}>
-          Choose individual merchants{mode === 'selected' ? ` (${selected.size})` : ''}
-        </button>
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">
-          {mode === 'selected' && (
-            <div className="rounded-2xl border border-gray-200 bg-white p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search merchants..."
-                  className="w-56 rounded-xl border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-gray-400" />
-                <button onClick={toggleAllVisible}
-                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50">
-                  Select / clear shown
-                </button>
-              </div>
-              <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-100">
-                {filtered.map(m => (
-                  <label key={m.id} className="flex cursor-pointer items-center gap-3 border-b border-gray-50 px-3 py-2.5 hover:bg-gray-50">
-                    <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggleMerchant(m.id)}
-                      className="h-4 w-4 accent-[#7bb86c]" />
-                    <span className="flex-1">
-                      <span className="block text-sm font-medium">{m.business_name}</span>
-                      <span className="block text-xs text-gray-400">{m.email}</span>
-                    </span>
-                  </label>
-                ))}
-                {filtered.length === 0 && <p className="px-3 py-6 text-center text-sm text-gray-400">No merchants match your search</p>}
-              </div>
-            </div>
-          )}
-
           <div>
-            <p className="mb-1 text-xs font-semibold text-gray-500">Subject Line</p>
-            <input value={subject} onChange={e => setSubject(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-charcoal" />
+            <label className="mb-1 block text-xs font-semibold text-gray-500" htmlFor="campaign-name">
+              Campaign name
+            </label>
+            <input
+              id="campaign-name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. October product update"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-charcoal"
+            />
+            <p className="mt-1 text-[11px] text-gray-400">Only you see this. Recipients see the subject line.</p>
           </div>
 
           <div>
-            <p className="mb-1 text-xs font-semibold text-gray-500">Message Body</p>
-            <textarea value={body} onChange={e => setBody(e.target.value)} rows={14}
-              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-mono outline-none focus:border-charcoal" />
+            <label className="mb-1 block text-xs font-semibold text-gray-500" htmlFor="campaign-subject">
+              Subject line
+            </label>
+            <input
+              id="campaign-subject"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-charcoal"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-gray-500" htmlFor="campaign-body">
+              Message body
+            </label>
+            <textarea
+              id="campaign-body"
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              rows={12}
+              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-mono outline-none focus:border-charcoal"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-gray-500" htmlFor="campaign-cta">
+              Button label
+            </label>
+            <input
+              id="campaign-cta"
+              value={ctaLabel}
+              onChange={e => setCtaLabel(e.target.value)}
+              placeholder="Share Your Feedback"
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-charcoal"
+            />
           </div>
 
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-            <p className="mb-2 text-xs font-semibold text-gray-400">Available Variables</p>
+            <p className="mb-2 text-xs font-semibold text-gray-400">Variables you can use</p>
             <div className="flex flex-wrap gap-1">
-              {SUPPORTED_VARIABLES.map(v => (
+              {BROADCAST_VARIABLES.map(v => (
                 <code key={v} className="rounded-md bg-white px-1.5 py-0.5 text-xs text-gray-500">{`{{${v}}}`}</code>
               ))}
+            </div>
+            {unsupported.length > 0 && (
+              <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[11px] font-medium text-red-600">
+                These are not available in a broadcast, so they would be sent as they are:{' '}
+                {unsupported.map(v => `{{${v}}}`).join(', ')}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold text-gray-500">Who receives it</p>
+            <div className="rounded-2xl border border-gray-200 bg-white p-4">
+              <AudienceBuilder value={audience} onChange={setAudience} />
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => setShowConfirm(true)} disabled={sending || recipientCount === 0}
-              className="flex items-center gap-1.5 rounded-xl bg-[#7bb86c] px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">
-              {sending ? 'Sending...' : `Send to ${recipientCount} merchant${recipientCount === 1 ? '' : 's'}`}
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!canSend}
+              className="flex items-center gap-1.5 rounded-xl bg-[#7bb86c] px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {sending ? 'Sending...' : `Send to ${recipients} merchant${recipients === 1 ? '' : 's'}`}
             </button>
-            <button onClick={resetTemplate}
-              className="rounded-xl border border-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-500 hover:text-charcoal">
-              Reset to Draft
-            </button>
-            <button onClick={() => setShowPreview(!showPreview)}
-              className="rounded-xl border border-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-500 hover:text-charcoal">
-              {showPreview ? 'Hide Preview' : 'Preview'}
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              disabled={saving || sending || unsupported.length > 0}
+              className="rounded-xl border border-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save as draft'}
             </button>
           </div>
-
-          {showConfirm && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-              <p className="font-semibold text-amber-800">Send to {recipientCount} merchant{recipientCount === 1 ? '' : 's'}?</p>
-              <p className="mt-1 text-sm text-amber-700">This sends the email immediately. This cannot be undone.</p>
-              <div className="mt-3 flex gap-2">
-                <button onClick={handleSend} disabled={sending}
-                  className="rounded-xl bg-charcoal px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">
-                  {sending ? 'Sending...' : 'Yes, send it'}
-                </button>
-                <button onClick={() => setShowConfirm(false)} disabled={sending}
-                  className="rounded-xl border border-gray-300 px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-white">
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="space-y-6">
-          {showPreview && (
-            <div className="rounded-2xl border border-gray-100 bg-white/60 p-5 backdrop-blur-sm">
-              <p className="mb-3 text-xs font-semibold text-gray-400">LIVE PREVIEW</p>
-              <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                <p className="mb-2 text-xs font-medium text-gray-600">Subject: {renderedSubject}</p>
-                <p className="whitespace-pre-wrap text-sm text-gray-700">{renderedBody}</p>
-              </div>
+          <div className="rounded-2xl border border-gray-100 bg-white/60 p-5 backdrop-blur-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-semibold text-gray-400">PREVIEW</p>
+              {previewing && <p className="text-[11px] text-gray-400">Updating...</p>}
             </div>
-          )}
 
-          <div>
-            <p className="mb-3 text-xs font-semibold text-gray-500">Recent Broadcast Logs</p>
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-gray-100 bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2.5 font-semibold text-gray-500">Merchant</th>
-                    <th className="px-4 py-2.5 font-semibold text-gray-500">Status</th>
-                    <th className="px-4 py-2.5 font-semibold text-gray-500">Opens</th>
-                    <th className="px-4 py-2.5 font-semibold text-gray-500">Last Opened</th>
-                    <th className="px-4 py-2.5 font-semibold text-gray-500">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map(l => (
-                    <tr key={l.created_at + l.email} className="border-b border-gray-50">
-                      <td className="px-4 py-2.5">
-                        <p className="font-medium">{l.merchant_name}</p>
-                        <p className="text-xs text-gray-400">{l.email}</p>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${l.status === 'sent' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                          {l.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-gray-700 font-mono">{l.open_count ?? 0}</td>
-                      <td className="px-4 py-2.5 text-gray-500">{l.last_opened_at ? new Date(l.last_opened_at).toLocaleString() : '—'}</td>
-                      <td className="px-4 py-2.5 text-gray-400">{new Date(l.created_at).toLocaleDateString('en-IN')}</td>
-                    </tr>
-                  ))}
-                  {logs.length === 0 && (
-                    <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No broadcast logs yet</td></tr>
+            {previewError && (
+              <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{previewError}</p>
+            )}
+
+            {preview && !previewError && (
+              <>
+                <p className="mb-3 rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                  Goes to <strong>{preview.total}</strong> merchant{preview.total === 1 ? '' : 's'}.
+                  {preview.suppressed > 0 && (
+                    <> {preview.suppressed} address{preview.suppressed === 1 ? ' is' : 'es are'} on the suppression list and will not be emailed.</>
                   )}
-                </tbody>
-              </table>
-            </div>
+                  {preview.too_many && (
+                    <> This audience is too large to send to in one go. Narrow it down first.</>
+                  )}
+                </p>
+
+                {preview.sample.length === 0 ? (
+                  <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    No merchant matches this audience yet.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {preview.sample.map(sample => (
+                      <div key={sample.email} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                        <p className="mb-1 text-[11px] font-medium text-gray-400">To {sample.business_name} ({sample.email})</p>
+                        <p className="mb-2 text-xs font-semibold text-gray-700">{sample.subject}</p>
+                        <p className="whitespace-pre-wrap text-sm text-gray-600">{sample.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
