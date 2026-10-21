@@ -1,179 +1,143 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
+import { z } from 'zod'
 import { requireAdmin } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
-import { renderTemplate } from '@/lib/messaging'
-import { renderBroadcastEmail } from '@/lib/email'
-import { publicErrorMessage } from '@/lib/api-response'
+import { apiError } from '@/lib/api-response'
+import { adminErrorResponse } from '@/lib/admin-api'
+import { adminPage, readAdminListQuery } from '@/lib/admin-query'
+import { firstInputProblem, templateProblem } from '@/lib/campaign-schema'
+import { audienceSchema } from '@/lib/broadcast-audience'
+import { dispatchCampaign } from '@/lib/broadcast-campaign'
+import { emailProviderProblem } from '@/lib/broadcast-sender'
+import { isRateLimited } from '@/lib/rate-limit'
+import { recordAdminAction } from '@/lib/admin-audit'
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-const fromAddress = process.env.RESEND_FROM || 'ToroPay <onboarding@resend.dev>'
-// A public support address: never the admin login email, which would make the admin account a target.
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@toropay.co.in'
-const replyToAddress = process.env.RESEND_REPLY_TO || SUPPORT_EMAIL
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.toropay.co.in'
-const TRACKING_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.toropay.co.in'
+/** The states a message can be in. */
+const LOG_STATUSES = ['pending', 'sent', 'delivered', 'read', 'failed'] as const
 
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
-
-const TRANSPARENT_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-  'base64'
-)
+const quickSendSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  subject: z.string().trim().min(1).max(200),
+  body: z.string().trim().min(1).max(5000),
+  ctaLabel: z.string().trim().max(80).optional(),
+  audience: audienceSchema.optional(),
+  /** Merchants picked by hand. They are added to whoever the filters match. */
+  merchantIds: z.array(z.string().trim().min(1)).max(5000).optional(),
+})
 
 export async function GET(req: NextRequest) {
   try {
     await requireAdmin()
-    const limit = Math.min(Number(req.nextUrl.searchParams.get('limit')) || 20, 100)
-    const logs = await prisma.messageLog.findMany({
+
+    const params = req.nextUrl.searchParams
+    const query = readAdminListQuery(params, {
+      statuses: LOG_STATUSES,
+      dateField: 'createdAt',
+      search: (term) => ({
+        OR: [
+          { recipient: { contains: term, mode: 'insensitive' } },
+          { subject: { contains: term, mode: 'insensitive' } },
+        ],
+      }),
+    })
+    if ('error' in query) return apiError(400, query.error)
+
+    // Only the admin's own messages. A merchant's payment receipt is not a
+    // broadcast and must never show up in this list.
+    const filters: Record<string, unknown> = {
+      ...query.filters,
+      OR: [{ campaignId: { not: null } }, { createdBy: 'admin' }],
+    }
+
+    const rows = await prisma.messageLog.findMany({
+      where: filters,
       orderBy: { createdAt: 'desc' },
-      take: limit,
+      take: query.limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       include: {
         merchant: { select: { businessName: true, email: true } },
-        openEvents: {
-          orderBy: { openedAt: 'desc' },
-          take: 1,
-        },
+        campaign: { select: { id: true, name: true } },
         _count: { select: { openEvents: true } },
       },
     })
+
+    const { page, nextCursor } = adminPage(rows, query.limit)
+
     return NextResponse.json({
-      logs: logs.map(l => ({
-        merchant_name: l.merchant?.businessName || l.merchant?.email || 'Unknown',
-        email: l.recipient,
-        status: l.status,
-        subject: l.subject,
-        created_at: l.createdAt.toISOString(),
-        open_count: l._count.openEvents,
-        last_opened_at: l.openEvents[0]?.openedAt.toISOString() ?? null,
+      logs: page.map(log => ({
+        id: log.id,
+        merchant_name: log.merchant?.businessName || log.merchant?.email || 'Unknown',
+        email: log.recipient,
+        status: log.status,
+        subject: log.subject,
+        campaign_id: log.campaignId,
+        campaign_name: log.campaign?.name ?? null,
+        created_at: log.createdAt.toISOString(),
+        sent_at: log.sentAt?.toISOString() ?? null,
+        delivered_at: log.deliveredAt?.toISOString() ?? null,
+        read_at: log.readAt?.toISOString() ?? null,
+        open_count: log._count.openEvents,
       })),
+      next_cursor: nextCursor,
     })
   } catch (err: unknown) {
-    const msg = publicErrorMessage(err, 'Error')
-    return NextResponse.json({ error: msg }, { status: msg === 'Forbidden' ? 403 : msg === 'Unauthorized' ? 401 : 500 })
+    return adminErrorResponse(err)
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAdmin()
-    const { subject, body, merchantIds } = await req.json()
+    const session = await requireAdmin()
 
-    if (!subject || !body) {
-      return NextResponse.json({ error: 'Subject and body are required' }, { status: 400 })
+    const raw = await req.json().catch(() => null)
+    const parsed = quickSendSchema.safeParse(raw)
+    if (!parsed.success) return apiError(400, firstInputProblem(parsed.error))
+
+    const problem = templateProblem(parsed.data.subject, parsed.data.body)
+    if (problem) return apiError(400, problem)
+
+    const providerProblem = emailProviderProblem()
+    if (providerProblem) return apiError(503, providerProblem)
+
+    if (await isRateLimited(req, 'admin_campaign_sent', 20, 60)) {
+      return apiError(429, 'Too many broadcasts have been sent in the last hour. Try again later.')
     }
-    if (!resend) {
-      return NextResponse.json({ error: 'Resend is not configured' }, { status: 503 })
+
+    const audience = {
+      ...(parsed.data.audience ?? {}),
+      ...(parsed.data.merchantIds?.length ? { merchantIds: parsed.data.merchantIds } : {}),
     }
 
-    const targetIds = Array.isArray(merchantIds) && merchantIds.length > 0
-      ? merchantIds.filter((id: unknown): id is string => typeof id === 'string')
-      : null
-
-    const merchants = await prisma.merchant.findMany({
-      where: {
-        status: 'active',
-        ...(targetIds ? { id: { in: targetIds } } : {}),
+    const campaign = await prisma.broadcastCampaign.create({
+      data: {
+        name: parsed.data.name || parsed.data.subject,
+        subject: parsed.data.subject,
+        body: parsed.data.body,
+        ctaLabel: parsed.data.ctaLabel || null,
+        audience: JSON.stringify(audience),
+        createdBy: session.email,
+        status: 'draft',
       },
-      select: { id: true, email: true, businessName: true, phone: true },
     })
 
-    const paymentLinks = await prisma.paymentLink.findMany({
-      where: { merchantId: { in: merchants.map(m => m.id) }, status: 'active' },
-      select: { merchantId: true, slug: true },
+    const result = await dispatchCampaign(campaign.id)
+
+    await recordAdminAction(session, 'admin_campaign_sent', 'broadcast_campaign', campaign.id, {
+      total: result.total,
+      sent: result.sent,
+      failed: result.failed,
+      remaining: result.remaining,
     })
-    const paymentLinkMap = new Map<string, string>()
-    paymentLinks.forEach(pl => {
-      if (!paymentLinkMap.has(pl.merchantId)) paymentLinkMap.set(pl.merchantId, `${APP_URL}/pay/${pl.slug}`)
+
+    return NextResponse.json({
+      success: true,
+      campaign_id: campaign.id,
+      total: result.total,
+      sent: result.sent,
+      failed: result.failed,
+      remaining: result.remaining,
     })
-
-    let sent = 0
-    let failed = 0
-
-    for (const merchant of merchants) {
-      const fillData: Record<string, string> = {
-        merchant_name: merchant.businessName || merchant.email || 'Merchant',
-        payment_link: paymentLinkMap.get(merchant.id) || `${APP_URL}`,
-        feedback_form_link: `${APP_URL}/feedback`,
-        support_email: SUPPORT_EMAIL,
-        support_phone: merchant.phone || '',
-        currency: 'INR',
-      }
-
-      const renderedSubject = renderTemplate(subject, fillData)
-      const renderedBody = renderTemplate(body, fillData)
-
-      // Create message log first to get ID for tracking
-      const messageLog = await prisma.messageLog.create({
-        data: {
-          merchantId: merchant.id,
-          channel: 'email',
-          recipient: merchant.email,
-          subject,
-          renderedBody: '', // will be updated after render
-          status: 'pending',
-          provider: 'resend',
-          createdBy: 'admin',
-        },
-      })
-
-      // Build HTML with tracking pixel
-      const html = renderBroadcastEmail({ subject, body, ctaUrl: fillData.feedback_form_link })
-      const trackingPixel = `<img src="${TRACKING_BASE_URL}/api/admin/email/open/${messageLog.id}" width="1" height="1" alt="" style="display:block;border:0;outline:none;text-decoration:none;" />`
-      const htmlWithTracking = html.includes('</body>')
-        ? html.replace('</body>', `${html.includes('<img src="') ? '' : ''}${'<img src="' + TRACKING_BASE_URL + '/api/admin/email/open/' + messageLog.id + '" width="1" height="1" alt="" style="display:block;border:0;outline:none;text-decoration:none;" />'}</body>`)
-        : html + `<img src="${TRACKING_BASE_URL}/api/admin/email/open/${messageLog.id}" width="1" height="1" alt="" style="display:block;border:0;outline:none;text-decoration:none;" />`
-
-      const fillDataWithTracking: Record<string, string> = {
-        ...fillData,
-        // The tracking is already in the HTML, no need in template variables
-      }
-
-      let status = 'sent'
-      let providerMessageId: string | null = null
-      let errorMessage: string | null = null
-
-      // Build final HTML with rendered subject/body
-      const htmlWithTrackingFinal = htmlWithTracking.replace('{{subject}}', renderedSubject).replace('{{body}}', renderedBody)
-
-      try {
-        const result = await resend.emails.send({
-          from: fromAddress,
-          to: merchant.email,
-          replyTo: replyToAddress,
-          subject: renderedSubject,
-          html: htmlWithTrackingFinal,
-          text: renderedBody,
-        })
-        providerMessageId = result.data?.id || null
-        status = 'sent'
-      } catch (err) {
-        status = 'failed'
-        errorMessage = err instanceof Error ? err.message : 'Failed to send email'
-      }
-
-      await prisma.messageLog.update({
-        where: { id: messageLog.id },
-        data: {
-          subject: renderedSubject,
-          renderedBody,
-          status,
-          provider: 'resend',
-          providerMessageId,
-          errorMessage,
-          sentAt: status === 'sent' ? new Date() : null,
-        },
-      })
-
-      if (status === 'sent') sent += 1
-      else failed += 1
-
-      await sleep(1100)
-    }
-
-    return NextResponse.json({ success: true, total: merchants.length, sent, failed })
   } catch (err: unknown) {
-    const msg = publicErrorMessage(err, 'Error')
-    return NextResponse.json({ error: msg }, { status: msg === 'Forbidden' ? 403 : msg === 'Unauthorized' ? 401 : 500 })
+    return adminErrorResponse(err)
   }
 }

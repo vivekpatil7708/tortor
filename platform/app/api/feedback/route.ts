@@ -8,6 +8,8 @@ const MAX_ANSWER_LENGTH = 2000
 const MAX_CONTACT_LENGTH = 200
 const MAX_SUBMISSIONS_PER_IP = 5
 const IP_WINDOW_MIN = 60
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const CAMPAIGN_ID = /^[A-Za-z0-9-]{1,64}$/
 
 const USEFUL_PARTS = [
   'Creating payment links',
@@ -18,6 +20,31 @@ const USEFUL_PARTS = [
   'Customer support',
   'Other',
 ]
+
+/**
+ * The merchant a response belongs to, when the merchant gave the address they
+ * sign in with. A missing table must not stop the form from working.
+ */
+async function findMerchantId(email: string | null): Promise<string | null> {
+  if (!email) return null
+  try {
+    const merchant = await prisma.merchant.findUnique({ where: { email }, select: { id: true } })
+    return merchant?.id ?? null
+  } catch {
+    return null
+  }
+}
+
+/** The campaign a response belongs to, when the form was reached from an email. */
+async function findCampaignId(campaignId: string | null): Promise<string | null> {
+  if (!campaignId) return null
+  try {
+    const campaign = await prisma.broadcastCampaign.findUnique({ where: { id: campaignId }, select: { id: true } })
+    return campaign?.id ?? null
+  } catch {
+    return null
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,9 +64,17 @@ export async function POST(req: NextRequest) {
     const npsScore = Number(body.npsScore)
     const followUp = body.followUp === true || body.followUp === 'true'
     const contact = String(body.contact || '').trim() || null
+    const merchantEmail = String(body.email || '').trim().toLowerCase() || null
+    const campaignId = String(body.campaignId || '').trim() || null
 
     if (!merchantName) {
       return NextResponse.json({ error: 'Business name is required' }, { status: 400 })
+    }
+    if (merchantEmail && !EMAIL.test(merchantEmail)) {
+      return NextResponse.json({ error: 'That email address does not look right' }, { status: 400 })
+    }
+    if (campaignId && !CAMPAIGN_ID.test(campaignId)) {
+      return NextResponse.json({ error: 'That campaign reference is not valid' }, { status: 400 })
     }
     if (!Number.isInteger(satisfaction) || satisfaction < 1 || satisfaction > 5) {
       return NextResponse.json({ error: 'Satisfaction must be between 1 and 5' }, { status: 400 })
@@ -72,9 +107,17 @@ export async function POST(req: NextRequest) {
 
     await ensureFeedbackTable()
 
+    const [merchantId, linkedCampaignId] = await Promise.all([
+      findMerchantId(merchantEmail),
+      findCampaignId(campaignId),
+    ])
+
     const response = await prisma.feedbackResponse.create({
       data: {
         merchantName,
+        merchantId,
+        campaignId: linkedCampaignId,
+        merchantEmail,
         satisfaction,
         easeOfUse,
         usefulParts: JSON.stringify(usefulParts),
