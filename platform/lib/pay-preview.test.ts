@@ -75,12 +75,26 @@ describe('pay page preview metadata', () => {
     expect(meta.openGraph?.url).toBe(`${BASE}/pay/a%22%20onload%3D%22alert(1)`)
   })
 
-  it('falls back to the site card image, which is public and needs no login', () => {
-    // No og:image is set here on purpose: the root layout's file-based
-    // opengraph-image is inherited, is served without auth, and is the same for
-    // every customer. Asserting its absence documents that intent.
+  it('points at the public site card, with no login and no JavaScript needed', () => {
+    // A route setting its own openGraph replaces the inherited one, which drops
+    // the image the root layout's file-based opengraph-image would supply. The
+    // card is therefore named explicitly - and it is the same for every
+    // customer, so it never carries anything about an order.
     for (const meta of [payCheckoutMetadata('s'), payStatusMetadata('s')]) {
-      expect(meta.openGraph?.images).toBeUndefined()
+      const ogImage = meta.openGraph?.images as { url: string; width?: number; height?: number }[]
+      expect(ogImage[0].url).toBe(`${BASE}/opengraph-image`)
+      expect(ogImage[0].url.startsWith('https://')).toBe(true)
+      expect(ogImage[0].width).toBe(1200)
+      expect(ogImage[0].height).toBe(630)
+      const twImage = meta.twitter?.images as { url: string }[]
+      expect(twImage[0].url).toBe(`${BASE}/opengraph-image`)
     }
+  })
+
+  it('uses the stable image path, not a per-build hash', () => {
+    // Next appends a cache-busting hash per build; pinning it would leave a
+    // stale image URL as soon as the card is regenerated.
+    const ogImage = payCheckoutMetadata('s').openGraph?.images as { url: string }[]
+    expect(ogImage[0].url).not.toMatch(/\?[0-9a-f]{8,}/)
   })
 })
