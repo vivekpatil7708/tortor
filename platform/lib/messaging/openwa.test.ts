@@ -4,7 +4,7 @@ import { OpenWaProvider, isOpenWaConfigured, openWaConfig, toChatId } from './op
 const fetchMock = vi.fn()
 
 const SESSION_ID = '41a82fc5-5ee5-4eb6-8bc3-bbb902517fae'
-const config = { url: 'http://localhost:2785', apiKey: 'owa_k1_test', sessionId: SESSION_ID }
+const config = { url: 'http://localhost:2785', apiKey: 'owa_k1_test', sessionId: SESSION_ID, defaultCountryCode: '91' }
 
 const reply = (status: number, body: unknown) =>
   new Response(typeof body === 'string' ? body : JSON.stringify(body), { status })
@@ -18,6 +18,7 @@ beforeEach(() => {
   vi.stubEnv('OPENWA_URL', '')
   vi.stubEnv('OPENWA_API_KEY', '')
   vi.stubEnv('OPENWA_SESSION_ID', '')
+  vi.stubEnv('OPENWA_DEFAULT_COUNTRY_CODE', '')
 })
 
 afterEach(() => {
@@ -38,7 +39,20 @@ describe('reading OpenWA settings from the environment', () => {
       OPENWA_URL: 'http://localhost:2785/',
       OPENWA_API_KEY: ' k ',
       OPENWA_SESSION_ID: SESSION_ID,
-    })).toEqual({ url: 'http://localhost:2785', apiKey: 'k', sessionId: SESSION_ID })
+    })).toEqual({ url: 'http://localhost:2785', apiKey: 'k', sessionId: SESSION_ID, defaultCountryCode: '91' })
+  })
+
+  it('uses the country code from the environment when given', () => {
+    expect(openWaConfig({
+      OPENWA_URL: 'http://x', OPENWA_API_KEY: 'k', OPENWA_SESSION_ID: SESSION_ID,
+      OPENWA_DEFAULT_COUNTRY_CODE: '1',
+    })!.defaultCountryCode).toBe('1')
+  })
+
+  it('falls back to India when the country code is blank or junk', () => {
+    const base = { OPENWA_URL: 'http://x', OPENWA_API_KEY: 'k', OPENWA_SESSION_ID: SESSION_ID }
+    expect(openWaConfig({ ...base, OPENWA_DEFAULT_COUNTRY_CODE: '' })!.defaultCountryCode).toBe('91')
+    expect(openWaConfig({ ...base, OPENWA_DEFAULT_COUNTRY_CODE: '+91' })!.defaultCountryCode).toBe('91')
   })
 
   it('reports whether the integration is configured', () => {
@@ -74,6 +88,20 @@ describe('turning a phone number into a WhatsApp chat id', () => {
     // Not Indian, and not 10 digits, so no prefix is invented.
     expect(toChatId('+44 7700 900123')).toBe('447700900123@c.us')
     expect(toChatId('14155552671')).toBe('14155552671@c.us')
+  })
+
+  it('assumes the country code it is given for a bare 10-digit number', () => {
+    // A US deployment sets this to 1, so 9172632189 resolves to the US number
+    // rather than the unrelated Indian one below.
+    expect(toChatId('9172632189', '1')).toBe('19172632189@c.us')
+    expect(toChatId('9172632189', '91')).toBe('919172632189@c.us')
+  })
+
+  it('does not invent a prefix when the country code is empty', () => {
+    // Nothing is assumed, so a bare local number is rejected rather than sent
+    // somewhere plausible but wrong.
+    expect(toChatId('9172632189', '')).toBeNull()
+    expect(toChatId('8830184550', '')).toBeNull()
   })
 
   it('refuses anything that cannot be a phone number', () => {

@@ -14,6 +14,7 @@ describe.skipIf(!live)('live OpenWA instance', () => {
       url: process.env.OPENWA_URL!,
       apiKey: process.env.OPENWA_API_KEY!,
       sessionId: process.env.OPENWA_SESSION_ID!,
+      defaultCountryCode: '91',
     })
 
     // Sent to a number that is deliberately not on WhatsApp. A rejection past
@@ -36,6 +37,7 @@ describe.skipIf(!live)('live OpenWA instance', () => {
       url: process.env.OPENWA_URL!,
       apiKey: process.env.OPENWA_API_KEY!,
       sessionId: 'toropay',
+      defaultCountryCode: '91',
     })
 
     const result = await provider.sendMessage({ to: '918830184550', body: 'should not send' })
