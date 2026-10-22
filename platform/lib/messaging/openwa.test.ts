@@ -58,9 +58,27 @@ describe('turning a phone number into a WhatsApp chat id', () => {
     expect(toChatId('0918830184550')).toBe('918830184550@c.us')
   })
 
+  it('adds India\'s country code to a bare 10-digit mobile number', () => {
+    // Without this the gateway accepts `8830184550@c.us` and the message never
+    // arrives, which is the worst possible failure: silent.
+    expect(toChatId('8830184550')).toBe('918830184550@c.us')
+    expect(toChatId('+91 88301 84550')).toBe(toChatId('8830184550'))
+  })
+
+  it('drops a national trunk 0 before adding the country code', () => {
+    expect(toChatId('08830184550')).toBe('918830184550@c.us')
+    expect(toChatId('008830184550')).toBe('918830184550@c.us')
+  })
+
+  it('leaves a number that already has a country code alone', () => {
+    // Not Indian, and not 10 digits, so no prefix is invented.
+    expect(toChatId('+44 7700 900123')).toBe('447700900123@c.us')
+    expect(toChatId('14155552671')).toBe('14155552671@c.us')
+  })
+
   it('refuses anything that cannot be a phone number', () => {
-    // A bogus chat id must fail here rather than being accepted by the gateway,
-    // which does not validate the recipient at all.
+    // A bogus chat id must fail here rather than being sent to the gateway,
+    // which accepts some unmatchable ids without complaint.
     expect(toChatId('')).toBeNull()
     expect(toChatId(null)).toBeNull()
     expect(toChatId(undefined)).toBeNull()

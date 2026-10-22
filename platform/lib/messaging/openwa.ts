@@ -63,18 +63,24 @@ export function isOpenWaConfigured(env: Partial<NodeJS.ProcessEnv> = process.env
  *
  * Handles the shapes that reach us from order records and manual entry:
  * `+91 98765 43210`, `09876543210`, `919876543210`, `98765-43210`. A leading
- * `0` is a national trunk prefix and is dropped after the country code is
- * accounted for. Returns null when there is nothing usable, so a malformed
- * number fails loudly rather than being sent to a bogus chat id.
+ * `0` is a national trunk prefix and is dropped. A bare 10-digit number is
+ * assumed to be an Indian mobile missing its country code, which is by far the
+ * common case here; without this the gateway accepts `9876543210@c.us` but the
+ * message does not reach anyone, so it fails silently. Returns null when there
+ * is nothing usable, so a malformed number fails loudly rather than being sent
+ * to a bogus chat id.
  */
 export function toChatId(phone: string | null | undefined): string | null {
   if (!phone) return null
   const digits = phone.replace(/\D/g, '')
   if (!digits) return null
-  // `0` prefixes a national number (0XXXXXXXXXX); strip it. A bare 10-digit
-  // number is assumed to already carry its country code.
-  const trimmed = digits.startsWith('0') && digits.length > 10 ? digits.slice(1) : digits
-  if (trimmed.length < 10 || trimmed.length > 15) return null
+
+  // `0` prefixes a national number (09876543210); strip it. A bare 10-digit
+  // number is a local mobile number, so add India's country code.
+  let trimmed = digits.startsWith('0') ? digits.replace(/^0+/, '') : digits
+  if (trimmed.length === 10) trimmed = `91${trimmed}`
+
+  if (trimmed.length < 11 || trimmed.length > 15) return null
   return `${trimmed}@c.us`
 }
 
