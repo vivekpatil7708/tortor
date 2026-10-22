@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
+import { isOpenWaConfigured } from '@/lib/messaging/openwa'
+import { isWhatsAppEnabledFor, whatsAppChannelDescription } from '@/lib/messaging/whatsapp-access'
 
 export async function GET() {
   try {
-    await requireSession()
+    const session = await requireSession()
     const hasResendKey = !!process.env.RESEND_API_KEY
-    const hasTwilioKey = !!process.env.TWILIO_ACCOUNT_SID && !!process.env.TWILIO_AUTH_TOKEN
+
+    // WhatsApp is sent through a self-hosted OpenWA gateway, so the channel is
+    // "available" only when that gateway is configured AND this merchant is on
+    // the early-access allowlist. The badge and the send route share the same
+    // check, so what a merchant is shown matches what they can do.
+    const whatsappConfigured = isOpenWaConfigured()
+    const whatsappEnabled = isWhatsAppEnabledFor(session.email)
 
     return NextResponse.json({
       channels: {
@@ -16,10 +24,12 @@ export async function GET() {
           setup_help: 'Add RESEND_API_KEY to your environment variables.',
         },
         whatsapp: {
-          status: hasTwilioKey ? 'available' : 'coming_soon',
+          status: whatsappConfigured && whatsappEnabled ? 'available' : 'coming_soon',
           provider: 'WhatsApp',
-          description: hasTwilioKey ? 'WhatsApp Business API configured and ready.' : 'Coming soon — WhatsApp message sending will be available soon.',
-          setup_help: 'Add TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN to enable WhatsApp messaging.',
+          description: whatsAppChannelDescription(whatsappEnabled, whatsappConfigured),
+          setup_help: whatsappEnabled
+            ? 'WhatsApp messaging is ready to use.'
+            : 'WhatsApp messaging is being rolled out gradually. Contact support if you need it enabled.',
         },
         instagram: {
           status: 'coming_soon',
