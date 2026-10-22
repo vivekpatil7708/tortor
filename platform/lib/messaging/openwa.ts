@@ -34,10 +34,20 @@ const DEFAULT_TIMEOUT_MS = 20_000
 /** Gateway errors we treat as "try again later" rather than a permanent failure. */
 const TRANSIENT_STATUSES = new Set([408, 409, 425, 429, 500, 502, 503, 504])
 
+/**
+ * The country whose code is assumed for a number that has none of its own.
+ * Most merchants here are in India, so 91 is the sensible default; a wrong
+ * guess is dangerous rather than merely ineffective, which is why it is
+ * overridable rather than hardcoded.
+ */
+export const DEFAULT_COUNTRY_CODE = '91'
+
 export interface OpenWaConfig {
   url: string
   apiKey: string
   sessionId: string
+  /** Country code assumed for a bare 10-digit number. */
+  defaultCountryCode: string
 }
 
 /**
@@ -50,7 +60,8 @@ export function openWaConfig(env: Partial<NodeJS.ProcessEnv> = process.env): Ope
   const apiKey = (env.OPENWA_API_KEY || '').trim()
   const sessionId = (env.OPENWA_SESSION_ID || '').trim()
   if (!url || !apiKey || !sessionId) return null
-  return { url, apiKey, sessionId }
+  const configured = (env.OPENWA_DEFAULT_COUNTRY_CODE || '').replace(/\D/g, '')
+  return { url, apiKey, sessionId, defaultCountryCode: configured || DEFAULT_COUNTRY_CODE }
 }
 
 /** Whether OpenWA is configured well enough to attempt a send. */
@@ -63,22 +74,32 @@ export function isOpenWaConfigured(env: Partial<NodeJS.ProcessEnv> = process.env
  *
  * Handles the shapes that reach us from order records and manual entry:
  * `+91 98765 43210`, `09876543210`, `919876543210`, `98765-43210`. A leading
- * `0` is a national trunk prefix and is dropped. A bare 10-digit number is
- * assumed to be an Indian mobile missing its country code, which is by far the
- * common case here; without this the gateway accepts `9876543210@c.us` but the
- * message does not reach anyone, so it fails silently. Returns null when there
- * is nothing usable, so a malformed number fails loudly rather than being sent
- * to a bogus chat id.
+ * `0` is a national trunk prefix and is dropped.
+ *
+ * A bare 10-digit number has no country code, so one has to be assumed. That
+ * assumption is genuinely risky: `9172632189` is a real US number, but read as
+ * Indian it becomes `919172632189`, which is a *different real number* - so the
+ * message would reach a stranger rather than fail. The assumed country is
+ * therefore configurable (`OPENWA_DEFAULT_COUNTRY_CODE`, default `91`), so the
+ * guess matches where the merchants actually are and can be changed without a
+ * code change.
+ *
+ * Returns null when there is nothing usable, so a malformed number fails loudly
+ * rather than being sent to a bogus chat id.
  */
-export function toChatId(phone: string | null | undefined): string | null {
+export function toChatId(
+  phone: string | null | undefined,
+  defaultCountryCode: string = DEFAULT_COUNTRY_CODE,
+): string | null {
   if (!phone) return null
   const digits = phone.replace(/\D/g, '')
   if (!digits) return null
 
-  // `0` prefixes a national number (09876543210); strip it. A bare 10-digit
-  // number is a local mobile number, so add India's country code.
-  let trimmed = digits.startsWith('0') ? digits.replace(/^0+/, '') : digits
-  if (trimmed.length === 10) trimmed = `91${trimmed}`
+  // `0` prefixes a national number (09876543210); strip it. What is left may
+  // still be missing its country code if it is as short as a local number.
+  let trimmed = digits.replace(/^0+/, '') || digits
+  const cc = defaultCountryCode.replace(/\D/g, '')
+  if (cc && trimmed.length === 10) trimmed = `${cc}${trimmed}`
 
   if (trimmed.length < 11 || trimmed.length > 15) return null
   return `${trimmed}@c.us`
@@ -99,7 +120,7 @@ export class OpenWaProvider implements MessagingProvider {
       return { providerMessageId: null, ok: false, status: 'failed', error: check.error }
     }
 
-    const chatId = toChatId(input.to)
+    const chatId = toChatId(input.to, this.config.defaultCountryCode)
     if (!chatId) {
       return {
         providerMessageId: null,
