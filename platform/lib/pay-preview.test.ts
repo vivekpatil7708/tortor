@@ -82,19 +82,23 @@ describe('pay page preview metadata', () => {
     // customer, so it never carries anything about an order.
     for (const meta of [payCheckoutMetadata('s'), payStatusMetadata('s')]) {
       const ogImage = meta.openGraph?.images as { url: string; width?: number; height?: number }[]
-      expect(ogImage[0].url).toBe(`${BASE}/opengraph-image`)
+      expect(ogImage[0].url).toBe(`${BASE}/og-card.png`)
       expect(ogImage[0].url.startsWith('https://')).toBe(true)
       expect(ogImage[0].width).toBe(1200)
       expect(ogImage[0].height).toBe(630)
       const twImage = meta.twitter?.images as { url: string }[]
-      expect(twImage[0].url).toBe(`${BASE}/opengraph-image`)
+      expect(twImage[0].url).toBe(`${BASE}/og-card.png`)
     }
   })
 
-  it('uses the stable image path, not a per-build hash', () => {
-    // Next appends a cache-busting hash per build; pinning it would leave a
-    // stale image URL as soon as the card is regenerated.
+  it('serves the card from a static path, not the uncacheable generated route', () => {
+    // app/opengraph-image is an Edge render whose ImageResponse hardcodes
+    // `max-age=0, must-revalidate`, and a next.config header cannot override a
+    // header the route already set. Pointing at the static file is what makes
+    // the card fast and cacheable for a preview crawler.
     const ogImage = payCheckoutMetadata('s').openGraph?.images as { url: string }[]
+    expect(ogImage[0].url).not.toContain('/opengraph-image')
+    expect(ogImage[0].url).toMatch(/\/og-card\.png$/)
     expect(ogImage[0].url).not.toMatch(/\?[0-9a-f]{8,}/)
   })
 })
