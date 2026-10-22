@@ -7,6 +7,7 @@ import { renderTemplate } from '@/lib/messaging'
 import { renderOrderConfirmationEmail } from '@/lib/email'
 import { getMessagingProvider, type MessagingProvider } from '@/lib/messaging/provider'
 import { isOpenWaConfigured } from '@/lib/messaging/openwa'
+import { isWhatsAppEnabledFor } from '@/lib/messaging/whatsapp-access'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const fromAddress = process.env.RESEND_FROM || 'ToroPay <onboarding@resend.dev>'
@@ -107,6 +108,16 @@ export async function POST(req: NextRequest) {
     let errorMessage: string | null = null
 
     if (channel === 'whatsapp') {
+      // Early access: only allowlisted accounts may send WhatsApp, so a bad send
+      // affects a tester rather than every merchant's customers. Checked before
+      // the provider so a merchant who is not on the list gets a clear "not for
+      // you yet" rather than a confusing note about server configuration.
+      if (!isWhatsAppEnabledFor(session.email)) {
+        return NextResponse.json(
+          { error: 'WhatsApp not available for your account yet' },
+          { status: 501 },
+        )
+      }
       const wa = whatsAppProvider()
       if (!wa) {
         return NextResponse.json(

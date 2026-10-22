@@ -59,9 +59,79 @@ beforeEach(() => {
   // OpenWA unconfigured by default, so tests opt in explicitly.
   openwa.isOpenWaConfigured.mockReturnValue(false)
   openwa.sendMessage.mockResolvedValue({ providerMessageId: 'wa1', ok: true, status: 'sent' })
+  // The signed-in merchant is on the WhatsApp early-access list unless a test
+  // says otherwise, so the sending tests exercise the send path rather than the
+  // allowlist gate.
+  vi.stubEnv('WHATSAPP_ENABLED_MERCHANTS', 'me@example.com')
+  vi.stubEnv('ADMIN_EMAIL', '')
 })
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllEnvs()
+})
+
+describe('WhatsApp early access', () => {
+  it('refuses a merchant who is not on the allowlist and says so', async () => {
+    vi.stubEnv('WHATSAPP_ENABLED_MERCHANTS', 'someone-else@example.com')
+    openwa.isOpenWaConfigured.mockReturnValue(true)
+
+    const res = await sendMessage(request({
+      channel: 'whatsapp', recipient: '9876543210', template: 'Hi', orderId: 'TXN-1',
+    }))
+
+    expect(res.status).toBe(501)
+    expect((await res.json()).error).toBe('WhatsApp not available for your account yet')
+  })
+
+  it('does not contact the provider or write a log row when refused', async () => {
+    vi.stubEnv('WHATSAPP_ENABLED_MERCHANTS', 'someone-else@example.com')
+    openwa.isOpenWaConfigured.mockReturnValue(true)
+
+    await sendMessage(request({
+      channel: 'whatsapp', recipient: '9876543210', template: 'Hi', orderId: 'TXN-1',
+    }))
+
+    expect(openwa.sendMessage).not.toHaveBeenCalled()
+    expect(db.messageLog.create).not.toHaveBeenCalled()
+  })
+
+  it('still sends email for a merchant who is not on the WhatsApp list', async () => {
+    // The allowlist gates WhatsApp only - it must not become a general
+    // messaging kill switch.
+    vi.stubEnv('WHATSAPP_ENABLED_MERCHANTS', '')
+
+    const res = await sendMessage(request({
+      channel: 'email', recipient: 'asha@example.com', template: 'Hi', orderId: 'TXN-1',
+    }))
+
+    expect(res.status).not.toBe(501)
+  })
+
+  it('allows the admin account even when the list is empty', async () => {
+    vi.stubEnv('WHATSAPP_ENABLED_MERCHANTS', '')
+    vi.stubEnv('ADMIN_EMAIL', 'me@example.com')
+    openwa.isOpenWaConfigured.mockReturnValue(true)
+
+    const res = await sendMessage(request({
+      channel: 'whatsapp', recipient: '9876543210', template: 'Hi', orderId: 'TXN-1',
+    }))
+
+    expect(res.status).toBe(200)
+  })
+
+  it('refuses when the allowlist is unset, so a missing env var is not an open door', async () => {
+    vi.stubEnv('WHATSAPP_ENABLED_MERCHANTS', '')
+    vi.stubEnv('ADMIN_EMAIL', '')
+    openwa.isOpenWaConfigured.mockReturnValue(true)
+
+    const res = await sendMessage(request({
+      channel: 'whatsapp', recipient: '9876543210', template: 'Hi', orderId: 'TXN-1',
+    }))
+
+    expect(res.status).toBe(501)
+  })
+})
 
 describe('WhatsApp sending', () => {
   it('sends through the provider and records the message as sent', async () => {
