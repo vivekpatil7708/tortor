@@ -44,6 +44,8 @@ const request = (body: unknown) =>
 const order = (over: Partial<Record<string, unknown>> = {}) => ({
   customerEmail: 'asha@example.com',
   customerPhone: '9876543210',
+  status: 'success',
+  txnId: 'TXN-1',
   paymentLink: { slug: 'abc123' },
   ...over,
 })
@@ -226,12 +228,12 @@ describe('WhatsApp sending', () => {
     expect(openwa.sendMessage).not.toHaveBeenCalled()
   })
 
-  it('builds the payment link from the link slug, not the order id', async () => {
+  it('builds the link from the link slug, not the order id', async () => {
     // `/pay/<slug>` looks the link up by slug. A URL built from the txn id can
     // never resolve, and lands the customer on "This payment link doesn't
     // exist", so the slug is the only usable value here.
     openwa.isOpenWaConfigured.mockReturnValue(true)
-    db.transaction.findFirst.mockResolvedValue(order({ paymentLink: { slug: 'abc123' } }))
+    db.transaction.findFirst.mockResolvedValue(order({ status: 'pending', paymentLink: { slug: 'abc123' } }))
 
     await sendMessage(request({
       channel: 'whatsapp', recipient: '9876543210',
@@ -239,6 +241,23 @@ describe('WhatsApp sending', () => {
     }))
 
     expect(openwa.sendMessage.mock.calls[0][0].body).toBe('Pay here: https://www.toropay.co.in/pay/abc123')
+  })
+
+  it('sends an already-paid order to its status page, not the checkout', async () => {
+    // Otherwise the message says "Payment status: success" and then offers a
+    // page that asks for the money again, so the customer could pay twice.
+    openwa.isOpenWaConfigured.mockReturnValue(true)
+    db.transaction.findFirst.mockResolvedValue(
+      order({ status: 'success', txnId: 'TXN-9', paymentLink: { slug: 'abc123' } }),
+    )
+
+    await sendMessage(request({
+      channel: 'whatsapp', recipient: '9876543210',
+      template: 'Status: {{payment_link}}', orderId: 'TXN-9',
+    }))
+
+    expect(openwa.sendMessage.mock.calls[0][0].body)
+      .toBe('Status: https://www.toropay.co.in/pay/abc123/success?txn=TXN-9')
   })
 
   it('leaves the link out entirely when the order has no payment link', async () => {
@@ -264,7 +283,9 @@ describe('WhatsApp sending', () => {
     // The link decides where the customer's money is asked for, so it is taken
     // from the order rather than from anything the browser supplies.
     openwa.isOpenWaConfigured.mockReturnValue(true)
-    db.transaction.findFirst.mockResolvedValue(order({ paymentLink: { slug: 'real-slug' } }))
+    db.transaction.findFirst.mockResolvedValue(
+      order({ status: 'pending', paymentLink: { slug: 'real-slug' } }),
+    )
 
     await sendMessage(request({
       channel: 'whatsapp', recipient: '9876543210',

@@ -5,6 +5,7 @@ import {
   SAMPLE_DATA,
   SUPPORTED_VARIABLES,
   getUsedVariables,
+  orderLinkUrl,
   renderMessage,
   renderTemplate,
   resolveTemplate,
@@ -112,6 +113,45 @@ describe('renderMessage', () => {
 
   it('still fills in the values it has', () => {
     expect(renderMessage('Hi {{customer_name}}', data)).toBe('Hi Ravi')
+  })
+})
+
+describe('orderLinkUrl', () => {
+  const slug = 'AWEkbs6x3r'
+  const txn = 'TXN1792066577157-_9G0C'
+
+  it('sends a paid order to its status page, not the checkout', () => {
+    // A message that says "Payment status: success" and then links to a page
+    // asking for payment is contradictory, and risks the customer paying twice.
+    const url = orderLinkUrl(slug, 'success', txn)
+    expect(url).toBe(`https://www.toropay.co.in/pay/${slug}/success?txn=${txn}`)
+    expect(url).not.toMatch(/\/pay\/[^/]+$/)
+  })
+
+  it('still sends an unpaid order to the checkout', () => {
+    // Waiting on a confirmation means the money is not in, so the payment step
+    // is still the right destination.
+    for (const status of ['pending', 'initiated', 'failed']) {
+      expect(orderLinkUrl(slug, status, txn)).toBe(`https://www.toropay.co.in/pay/${slug}`)
+    }
+  })
+
+  it('escapes a transaction id that needs it, so the link cannot break', () => {
+    expect(orderLinkUrl(slug, 'success', 'TXN 1/2&3')).toBe(
+      `https://www.toropay.co.in/pay/${slug}/success?txn=TXN%201%2F2%263`,
+    )
+  })
+
+  it('falls back to the checkout rather than a status page with no order', () => {
+    // Without a txn id the status page cannot identify an order, so it would
+    // only be able to say "Payment not found" - the checkout is more useful.
+    expect(orderLinkUrl(slug, 'success', null)).toBe(`https://www.toropay.co.in/pay/${slug}`)
+    expect(orderLinkUrl(slug, 'success', undefined)).toBe(`https://www.toropay.co.in/pay/${slug}`)
+  })
+
+  it('has no URL at all for an order with no payment link', () => {
+    expect(orderLinkUrl(null, 'success', txn)).toBe('')
+    expect(orderLinkUrl(undefined, 'pending', txn)).toBe('')
   })
 })
 
