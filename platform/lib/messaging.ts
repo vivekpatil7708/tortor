@@ -124,6 +124,36 @@ export function renderTemplate(template: string, data: Record<string, string>): 
   })
 }
 
+/**
+ * The wording a send should start from: the merchant's own saved template when
+ * they have one for that channel, otherwise our default. A saved template with
+ * an empty body is ignored, since that would send a blank message.
+ */
+export function resolveTemplate(
+  channel: string,
+  saved: Record<string, { subject: string; body: string }> | null | undefined,
+): { subject: string; body: string } {
+  const own = saved?.[channel]
+  if (own && (own.body.trim() || own.subject.trim())) {
+    return { subject: own.subject ?? '', body: own.body ?? '' }
+  }
+  return DEFAULT_TEMPLATES[channel] || { subject: '', body: '' }
+}
+
+/**
+ * Turns the `message_templates` rows into a channel-keyed lookup. Rows are one
+ * per channel per merchant, so a later row wins if duplicates ever exist.
+ */
+export function templatesByChannel(
+  rows: Array<{ channel: string; subject?: string | null; body?: string | null }>,
+): Record<string, { subject: string; body: string }> {
+  const byChannel: Record<string, { subject: string; body: string }> = {}
+  for (const row of rows) {
+    byChannel[row.channel] = { subject: row.subject ?? '', body: row.body ?? '' }
+  }
+  return byChannel
+}
+
 export function getUsedVariables(template: string): string[] {
   const vars: string[] = []
   let match: RegExpExecArray | null

@@ -97,4 +97,15 @@ describe('signup', () => {
     expect(res.status).toBe(400)
     expect(res.body.error).toMatch(/at least 8/)
   })
+
+  it('requires a phone number', async () => {
+    // The number is how the merchant is reached on WhatsApp, so a sign-up
+    // without one is refused and no account is created.
+    for (const phone of [undefined, '', '   ']) {
+      const res = await post(signup, { ...details, phone })
+      expect(res.status).toBe(400)
+      expect(res.body.error).toMatch(/phone/i)
+    }
+    expect(db.merchant.create).not.toHaveBeenCalled()
+  })
 })

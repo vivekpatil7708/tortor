@@ -1,13 +1,78 @@
 import { describe, expect, it } from 'vitest'
 import {
   BROADCAST_VARIABLES,
+  DEFAULT_TEMPLATES,
   SAMPLE_DATA,
   SUPPORTED_VARIABLES,
   getUsedVariables,
   renderTemplate,
+  resolveTemplate,
+  templatesByChannel,
   unsupportedVariables,
   validateTemplate,
 } from './messaging'
+
+describe('resolveTemplate', () => {
+  it('prefers the merchant\'s saved wording over our default', () => {
+    const saved = { whatsapp: { subject: '', body: 'Thanks {{customer_name}}!' } }
+    expect(resolveTemplate('whatsapp', saved).body).toBe('Thanks {{customer_name}}!')
+  })
+
+  it('falls back to the default when nothing was saved', () => {
+    expect(resolveTemplate('whatsapp', {})).toEqual(DEFAULT_TEMPLATES.whatsapp)
+    expect(resolveTemplate('whatsapp', null)).toEqual(DEFAULT_TEMPLATES.whatsapp)
+    expect(resolveTemplate('whatsapp', undefined)).toEqual(DEFAULT_TEMPLATES.whatsapp)
+  })
+
+  it('ignores a saved row that is blank, rather than sending nothing', () => {
+    // A half-saved row should not turn a real message into an empty one.
+    expect(resolveTemplate('whatsapp', { whatsapp: { subject: '', body: '   ' } }))
+      .toEqual(DEFAULT_TEMPLATES.whatsapp)
+  })
+
+  it('keeps a saved subject even when the body is blank', () => {
+    // An email with a subject still says something, so it is used as-is.
+    expect(resolveTemplate('email', { email: { subject: 'Your receipt', body: '' } }).subject)
+      .toBe('Your receipt')
+  })
+
+  it('falls back to the default for a channel with no template at all', () => {
+    expect(resolveTemplate('carrier-pigeon', {})).toEqual({ subject: '', body: '' })
+  })
+
+  it('only uses the template for the channel being sent', () => {
+    const saved = { email: { subject: 'S', body: 'email body' } }
+    expect(resolveTemplate('whatsapp', saved)).toEqual(DEFAULT_TEMPLATES.whatsapp)
+  })
+})
+
+describe('templatesByChannel', () => {
+  it('keys rows by their channel', () => {
+    expect(templatesByChannel([
+      { channel: 'email', subject: 'S', body: 'B' },
+      { channel: 'whatsapp', subject: '', body: 'W' },
+    ])).toEqual({
+      email: { subject: 'S', body: 'B' },
+      whatsapp: { subject: '', body: 'W' },
+    })
+  })
+
+  it('treats a missing subject or body as an empty string', () => {
+    expect(templatesByChannel([{ channel: 'whatsapp', subject: null, body: null }]))
+      .toEqual({ whatsapp: { subject: '', body: '' } })
+  })
+
+  it('keeps the last row when a channel repeats', () => {
+    expect(templatesByChannel([
+      { channel: 'whatsapp', subject: '', body: 'old' },
+      { channel: 'whatsapp', subject: '', body: 'new' },
+    ]).whatsapp.body).toBe('new')
+  })
+
+  it('returns nothing for no rows', () => {
+    expect(templatesByChannel([])).toEqual({})
+  })
+})
 
 describe('renderTemplate', () => {
   it('fills in the values it is given', () => {

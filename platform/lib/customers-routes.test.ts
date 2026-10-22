@@ -140,17 +140,46 @@ describe('creating a customer', () => {
   })
 
   it('rejects a malformed email and phone', async () => {
-    expect((await createCustomer(request({ full_name: 'Asha', email: 'not-an-email' }))).status).toBe(400)
+    // A phone is included so each case fails on the field under test.
+    expect((await createCustomer(request({ full_name: 'Asha', phone: '9876543210', email: 'not-an-email' }))).status).toBe(400)
     expect((await createCustomer(request({ full_name: 'Asha', phone: 'abc' }))).status).toBe(400)
+  })
+
+  it('requires a phone number', async () => {
+    // A customer with no phone cannot be reached on WhatsApp, so the number is
+    // required rather than merely validated when present.
+    for (const body of [{ full_name: 'Asha' }, { full_name: 'Asha', phone: '' }, { full_name: 'Asha', phone: '   ' }]) {
+      const res = await createCustomer(request(body))
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toBe('Phone number is required')
+    }
+    expect(db.customer.create).not.toHaveBeenCalled()
   })
 
   it('tidies tags: trims, removes blanks and duplicates', async () => {
     db.customer.create.mockResolvedValue(customerRow())
-    await createCustomer(request({ full_name: 'Asha', tags: ['  vip ', '', 'vip', 'repeat'] }))
+    await createCustomer(request({ full_name: 'Asha', phone: '9876543210', tags: ['  vip ', '', 'vip', 'repeat'] }))
 
     expect(db.customer.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ tags: ['vip', 'repeat'] }),
     }))
+  })
+
+  it('stores a trimmed phone, not the raw input', async () => {
+    db.customer.create.mockResolvedValue(customerRow())
+    await createCustomer(request({ full_name: 'Asha', phone: '  9876543210  ' }))
+
+    expect(db.customer.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ phone: '9876543210' }),
+    }))
+  })
+
+  it('rejects an over-long phone rather than truncating it to something valid', async () => {
+    // 20 digits pass the format check; a 25 digit number must not be cut down
+    // to a different, plausible-looking number.
+    expect((await createCustomer(request({ full_name: 'Asha', phone: '9'.repeat(20) }))).status).toBe(201)
+    expect((await createCustomer(request({ full_name: 'Asha', phone: '9'.repeat(25) }))).status).toBe(400)
+    expect(db.customer.create).toHaveBeenCalledTimes(1)
   })
 
   it('requires a verified email', async () => {
@@ -207,6 +236,36 @@ describe('one customer', () => {
   it('refuses an empty edit', async () => {
     db.customer.findFirst.mockResolvedValue({ id: 'c1' })
     expect((await updateCustomer(request({}, 'PATCH'), params('c1'))).status).toBe(400)
+    expect(db.customer.update).not.toHaveBeenCalled()
+  })
+
+  it('will not clear a phone number', async () => {
+    // Editing is how a merchant fixes a number, not how they remove one: a
+    // customer without a phone is unreachable on WhatsApp.
+    db.customer.findFirst.mockResolvedValue({ id: 'c1' })
+
+    for (const phone of ['', '   ', null]) {
+      const res = await updateCustomer(request({ phone }, 'PATCH'), params('c1'))
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toBe('Phone number is required')
+    }
+    expect(db.customer.update).not.toHaveBeenCalled()
+  })
+
+  it('leaves the phone alone when the edit does not mention it', async () => {
+    // An existing customer saved before phones were required must still be
+    // editable (for example to change their name) without adding a number.
+    db.customer.findFirst.mockResolvedValue({ id: 'c1' })
+    db.customer.update.mockResolvedValue(customerRow())
+
+    const res = await updateCustomer(request({ full_name: 'Asha R' }, 'PATCH'), params('c1'))
+    expect(res.status).toBe(200)
+    expect(db.customer.update.mock.calls[0][0].data).not.toHaveProperty('phone')
+  })
+
+  it('rejects a malformed phone on edit', async () => {
+    db.customer.findFirst.mockResolvedValue({ id: 'c1' })
+    expect((await updateCustomer(request({ phone: 'abc' }, 'PATCH'), params('c1'))).status).toBe(400)
     expect(db.customer.update).not.toHaveBeenCalled()
   })
 

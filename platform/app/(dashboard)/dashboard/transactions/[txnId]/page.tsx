@@ -4,8 +4,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { formatAmount, formatDate } from '@/lib/utils'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, MessageCircle } from 'lucide-react'
 import CopyButton from '@/components/ui/copy-button'
+import { Button } from '@/components/ui/button'
 import SendConfirmationModal from '@/components/dashboard/send-confirmation-modal'
 import { useStatusAction } from '@/components/dashboard/status-action'
 import { NextStepCard } from '@/components/dashboard/transaction-row'
@@ -18,6 +19,9 @@ export default function TransactionDetailPage() {
   const [error, setError] = useState('')
   const [showSendModal, setShowSendModal] = useState(false)
   const [logs, setLogs] = useState<Record<string, any>[]>([])
+  // Whether this merchant may send WhatsApp (the early-access allowlist). Drives
+  // the Send WhatsApp button, so it only appears for accounts that can use it.
+  const [whatsAppAvailable, setWhatsAppAvailable] = useState(false)
   // The saved payment comes back without its link details, so keep those.
   const statusAction = useStatusAction(updated => setTxn(prev => ({ ...prev, ...updated })))
 
@@ -36,6 +40,14 @@ export default function TransactionDetailPage() {
   }, [txnId])
 
   useEffect(() => { fetchTxn() }, [fetchTxn])
+
+  useEffect(() => {
+    api.getChannelStatus()
+      .then(r => setWhatsAppAvailable((r.channels as Record<string, { status: string }>)?.whatsapp?.status === 'available'))
+      // A failed check hides the button rather than offering a send that would
+      // be refused.
+      .catch(() => setWhatsAppAvailable(false))
+  }, [])
 
   if (loading) return (
     <div className="space-y-4">
@@ -59,11 +71,20 @@ export default function TransactionDetailPage() {
     <div>
       <div className="mb-6">
         <button onClick={() => router.push('/dashboard/transactions')} className="mb-2 text-xs font-medium text-gray-500 hover:text-gray-600">&larr; Transactions</button>
-        <h1 className="text-2xl font-bold tracking-tight">{formatAmount(txn.amount)} from {txn.customer_name || 'a customer'}</h1>
-        <p className="mt-1 text-sm text-gray-500">{formatDate(txn.created_at)}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-          <span>Reference: <span className="break-all font-mono">{txn.txn_id}</span></span>
-          <CopyButton text={txn.txn_id} className="border border-gray-200 bg-white hover:bg-gray-50" />
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{formatAmount(txn.amount)} from {txn.customer_name || 'a customer'}</h1>
+            <p className="mt-1 text-sm text-gray-500">{formatDate(txn.created_at)}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+              <span>Reference: <span className="break-all font-mono">{txn.txn_id}</span></span>
+              <CopyButton text={txn.txn_id} className="border border-gray-200 bg-white hover:bg-gray-50" />
+            </div>
+          </div>
+          {whatsAppAvailable && txn.customer_phone ? (
+            <Button size="sm" variant="secondary" onClick={() => setShowSendModal(true)}>
+              <MessageCircle className="h-3.5 w-3.5" aria-hidden /> Send WhatsApp
+            </Button>
+          ) : null}
         </div>
       </div>
 

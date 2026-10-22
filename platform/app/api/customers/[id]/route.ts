@@ -113,8 +113,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       data.fullName = fullName.slice(0, 120)
     }
     if (body.phone !== undefined) {
-      const phone = body.phone?.trim() || null
-      if (phone && !/^[0-9+\-\s]{6,20}$/.test(phone)) return apiError(400, 'Enter a valid phone number')
+      const phone = body.phone?.trim() || ''
+      // Required, and not clearable: a customer without a phone cannot be sent
+      // WhatsApp messages. Existing rows with no phone keep it until edited.
+      if (!phone) return apiError(400, 'Phone number is required')
+      if (!/^[0-9+\-\s]{6,20}$/.test(phone)) return apiError(400, 'Enter a valid phone number')
       data.phone = phone
     }
     if (body.email !== undefined) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { DEFAULT_TEMPLATES, SUPPORTED_VARIABLES, renderTemplate } from '@/lib/messaging'
+import { DEFAULT_TEMPLATES, SUPPORTED_VARIABLES, renderTemplate, resolveTemplate, templatesByChannel } from '@/lib/messaging'
 import { X, Send, Eye, EyeOff, Check, Copy, ExternalLink, MessageSquare } from 'lucide-react'
 
 interface Props {
@@ -12,18 +12,32 @@ interface Props {
 }
 
 export default function SendConfirmationModal({ txn, onClose, onSent }: Props) {
-  const [channel, setChannel] = useState('whatsapp')
-  const [recipient, setRecipient] = useState(txn.customer_phone || txn.customer_email || '')
-  const [subject, setSubject] = useState(DEFAULT_TEMPLATES.email.subject)
-  const [body, setBody] = useState(DEFAULT_TEMPLATES.whatsapp.body)
+  // WhatsApp needs the customer's phone; email needs their address. Starting on
+  // WhatsApp only makes sense when we actually have a number, otherwise the
+  // field would be pre-filled with an email address.
+  const hasCustomerPhone = Boolean(txn.customer_phone)
+  const [channel, setChannel] = useState(hasCustomerPhone ? 'whatsapp' : 'email')
+  const [recipient, setRecipient] = useState(
+    hasCustomerPhone ? txn.customer_phone : (txn.customer_email || ''),
+  )
+  const [subject, setSubject] = useState(DEFAULT_TEMPLATES[hasCustomerPhone ? 'whatsapp' : 'email'].subject)
+  const [body, setBody] = useState(DEFAULT_TEMPLATES[hasCustomerPhone ? 'whatsapp' : 'email'].body)
   const [showPreview, setShowPreview] = useState(false)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [copied, setCopied] = useState(false)
   const [channelStatus, setChannelStatus] = useState<Record<string, any> | null>(null)
+  // The merchant's own saved wording, keyed by channel. Loaded so the message we
+  // send is the template they configured on the messaging page, not our default.
+  const [savedTemplates, setSavedTemplates] = useState<Record<string, { subject: string; body: string }> | null>(null)
 
   useEffect(() => {
     api.getChannelStatus().then(r => setChannelStatus(r.channels as unknown as Record<string, any>)).catch(() => {})
+    api.getMessagingTemplates()
+      .then(r => setSavedTemplates(templatesByChannel(r.templates as unknown as Array<{ channel: string; subject: string; body: string }>)))
+      // A merchant who has never saved a template uses the defaults, which is
+      // what the messaging page shows them before they save anything.
+      .catch(() => setSavedTemplates({}))
   }, [])
 
   const fillData: Record<string, string> = {
@@ -42,20 +56,16 @@ export default function SendConfirmationModal({ txn, onClose, onSent }: Props) {
   }
 
   useEffect(() => {
-    const defaults = DEFAULT_TEMPLATES[channel]
-    if (defaults) {
-      setSubject(defaults.subject)
-      setBody(defaults.body)
-    }
-  }, [channel])
+    // Waits for the saved templates to load, so a merchant with their own
+    // wording never briefly sees - or accidentally sends - our default.
+    if (savedTemplates === null) return
+    const template = resolveTemplate(channel, savedTemplates)
+    setSubject(template.subject)
+    setBody(template.body)
+  }, [channel, savedTemplates])
 
   const handleChannelChange = (ch: string) => {
     setChannel(ch)
-    const defaults = DEFAULT_TEMPLATES[ch]
-    if (defaults) {
-      setSubject(defaults.subject)
-      setBody(defaults.body)
-    }
     if (ch === 'email') setRecipient(txn.customer_email || '')
     else setRecipient(txn.customer_phone || '')
   }
@@ -124,11 +134,19 @@ export default function SendConfirmationModal({ txn, onClose, onSent }: Props) {
             <div className="flex flex-wrap gap-2">
               {['whatsapp', 'email', 'instagram'].map(ch => {
                 const st = channelStatus?.[ch]?.status
+                // WhatsApp needs a number to send to. Without one the channel
+                // cannot work, so it is disabled rather than allowed to fail.
+                const needsPhone = ch === 'whatsapp' && !hasCustomerPhone
                 return (
-                  <button key={ch} onClick={() => handleChannelChange(ch)}
-                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold capitalize ${channel === ch ? 'bg-charcoal text-white' : 'border border-gray-200 text-gray-500 hover:text-charcoal'}`}>
+                  <button key={ch} onClick={() => handleChannelChange(ch)} disabled={needsPhone}
+                    title={needsPhone ? 'This customer has no phone number on the order.' : undefined}
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold capitalize ${channel === ch ? 'bg-charcoal text-white' : 'border border-gray-200 text-gray-500 hover:text-charcoal'} ${needsPhone ? 'cursor-not-allowed opacity-40 hover:text-gray-500' : ''}`}>
                     {ch === 'instagram' ? 'Instagram' : ch === 'whatsapp' ? 'WhatsApp' : 'Email'}
-                    {st === 'coming_soon' && <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Soon</span>}
+                    {needsPhone ? (
+                      <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500">No phone</span>
+                    ) : st === 'coming_soon' && (
+                      <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Soon</span>
+                    )}
                   </button>
                 )
               })}

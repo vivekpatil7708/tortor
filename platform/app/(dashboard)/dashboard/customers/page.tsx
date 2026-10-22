@@ -80,12 +80,18 @@ function CustomerForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (saving) return
+    // The browser enforces the required phone, but check again so the form works
+    // the same if that attribute is ever lost or bypassed.
+    if (!form.phone.trim()) {
+      setError('Phone number is required')
+      return
+    }
     setSaving(true)
     setError('')
     // Tags are typed as one comma separated line and stored as a list.
     const body = {
       full_name: form.full_name,
-      phone: form.phone || null,
+      phone: form.phone.trim(),
       email: form.email || null,
       notes: form.notes || null,
       tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
@@ -120,8 +126,9 @@ function CustomerForm({
         <label className="block">
           <span className="mb-1 block text-xs font-semibold text-gray-500">Phone</span>
           <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
-            inputMode="tel" placeholder="+91 98765 43210"
+            inputMode="tel" placeholder="+91 98765 43210" required
             className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-gray-500" />
+          <span className="mt-1 block text-xs text-gray-400">Needed to send WhatsApp messages to this customer.</span>
         </label>
         <label className="block">
           <span className="mb-1 block text-xs font-semibold text-gray-500">Email</span>
