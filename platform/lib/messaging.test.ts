@@ -5,6 +5,7 @@ import {
   SAMPLE_DATA,
   SUPPORTED_VARIABLES,
   getUsedVariables,
+  renderMessage,
   renderTemplate,
   resolveTemplate,
   templatesByChannel,
@@ -71,6 +72,46 @@ describe('templatesByChannel', () => {
 
   it('returns nothing for no rows', () => {
     expect(templatesByChannel([])).toEqual({})
+  })
+})
+
+describe('renderMessage', () => {
+  const data = { customer_name: 'Ravi', order_id: 'TXN-1', merchant_name: 'My Store' }
+
+  it('drops a line whose value was missing, instead of sending the placeholder', () => {
+    // The default template ends with "Payment link: {{payment_link}}". An order
+    // with no payment link must not reach the customer as a bare placeholder.
+    const out = renderMessage('Hi {{customer_name}}\nPayment link: {{payment_link}}', data)
+    expect(out).toBe('Hi Ravi')
+    expect(out).not.toContain('{{')
+    expect(out).not.toContain('Payment link')
+  })
+
+  it('keeps the payment link line when there is a link', () => {
+    const out = renderMessage('Hi {{customer_name}}\nPayment link: {{payment_link}}', {
+      ...data, payment_link: 'https://www.toropay.co.in/pay/abc',
+    })
+    expect(out).toContain('Payment link: https://www.toropay.co.in/pay/abc')
+  })
+
+  it('leaves a placeholder that sits inside a sentence alone', () => {
+    // Only whole lines that would be empty are removed; a missing value in the
+    // middle of real text stays visible so the mistake is obvious.
+    expect(renderMessage('Hi {{customer_name}}, code {{weird}} ok', data))
+      .toBe('Hi Ravi, code {{weird}} ok')
+  })
+
+  it('does not leave a run of blank lines where the link was', () => {
+    const out = renderMessage('A\nPayment link: {{payment_link}}\nB', data)
+    expect(out).toBe('A\nB')
+  })
+  it('keeps ordinary blank lines between paragraphs', () => {
+    const out = renderMessage('A\n\nB', data)
+    expect(out).toBe('A\n\nB')
+  })
+
+  it('still fills in the values it has', () => {
+    expect(renderMessage('Hi {{customer_name}}', data)).toBe('Hi Ravi')
   })
 })
 
