@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { DEFAULT_TEMPLATES, SUPPORTED_VARIABLES, renderTemplate, resolveTemplate, templatesByChannel } from '@/lib/messaging'
+import { DEFAULT_TEMPLATES, SUPPORTED_VARIABLES, renderMessage, renderTemplate, resolveTemplate, templatesByChannel } from '@/lib/messaging'
 import { X, Send, Eye, EyeOff, Check, Copy, ExternalLink, MessageSquare } from 'lucide-react'
 
 interface Props {
@@ -71,7 +71,9 @@ export default function SendConfirmationModal({ txn, onClose, onSent }: Props) {
   }
 
   const renderedSubject = renderTemplate(subject, fillData)
-  const renderedBody = renderTemplate(body, fillData)
+  // Matches what the server will actually send, so the preview does not promise
+  // a payment link that gets dropped, or vice versa.
+  const renderedBody = renderMessage(body, fillData)
 
   const handleSend = async () => {
     if (!recipient) return

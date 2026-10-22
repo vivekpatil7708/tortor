@@ -125,6 +125,41 @@ export function renderTemplate(template: string, data: Record<string, string>): 
 }
 
 /**
+ * Render a message for sending, dropping any line whose only content was a
+ * variable we had no value for.
+ *
+ * A default template ends with `Payment link: {{payment_link}}`. An order with
+ * no payment link has no URL to put there, and sending the customer the literal
+ * `{{payment_link}}` (or a `Payment link:` label with nothing after it) looks
+ * broken. Unfilled placeholders elsewhere are left alone, so this only removes
+ * lines that would otherwise be empty or half-empty.
+ */
+export function renderMessage(template: string, data: Record<string, string>): string {
+  const filled = renderTemplate(template, data)
+
+  // A `Label: {{var}}` line whose variable we could not fill would leave just
+  // the label behind, reading as a broken message. Such a line, and a line that
+  // is nothing but an unfilled placeholder, are both dropped; the decision is
+  // made here because the original line is what carries that information.
+  const isDroppable = (line: string) =>
+    line.includes('{{') &&
+    (line.replace(/\s*[A-Za-z ]+:\s*\{\{\w+\}\}\s*$/g, '').trim() === '' ||
+      line.replace(VARIABLE_REGEX, '').trim() === '')
+
+  const lines = filled.split('\n')
+  const output: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    if (isDroppable(lines[i])) continue
+    // A blank line that sat next to a dropped line was only spacing for it, so
+    // it goes too; blank lines between content we kept are preserved.
+    if (lines[i].trim() === '' && (isDroppable(lines[i - 1]) || isDroppable(lines[i + 1]))) continue
+    output.push(lines[i].trimEnd())
+  }
+
+  return output.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+}
+
+/**
  * The wording a send should start from: the merchant's own saved template when
  * they have one for that channel, otherwise our default. A saved template with
  * an empty body is ignored, since that would send a blank message.
