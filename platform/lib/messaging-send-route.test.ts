@@ -177,6 +177,39 @@ describe('WhatsApp sending', () => {
     expect(logged().providerMessageId).toBeNull()
   })
 
+  it('tells the merchant why the send failed, not just that it did', async () => {
+    // Otherwise a wrong number and a gateway that is down look identical, and
+    // neither the merchant nor support can tell which one happened.
+    openwa.isOpenWaConfigured.mockReturnValue(true)
+    openwa.sendMessage.mockResolvedValue({
+      providerMessageId: null, ok: false, status: 'failed',
+      error: "OpenWA send failed (400): Session 'toropay' is not active.",
+    })
+    const res = await sendMessage(request({
+      channel: 'whatsapp', recipient: '9876543210', template: 'Hi', orderId: 'TXN-1',
+    }))
+
+    const body = await res.json()
+    expect(res.status).toBe(502)
+    expect(body.error).toContain('could not be sent')
+    expect(body.error).toContain("Session 'toropay' is not active.")
+  })
+
+  it('still answers sensibly when the provider gives no reason', async () => {
+    openwa.isOpenWaConfigured.mockReturnValue(true)
+    openwa.sendMessage.mockResolvedValue({
+      providerMessageId: null, ok: false, status: 'failed', error: '',
+    })
+
+    const res = await sendMessage(request({
+      channel: 'whatsapp', recipient: '9876543210', template: 'Hi', orderId: 'TXN-1',
+    }))
+
+    const body = await res.json()
+    expect(res.status).toBe(502)
+    expect(body.error).toBe('The WhatsApp message could not be sent. Please try again later.')
+  })
+
   it('refuses without writing a log row when no provider is configured', async () => {
     // isOpenWaConfigured is false and no Meta credentials exist, so there is
     // nothing that could deliver this message.

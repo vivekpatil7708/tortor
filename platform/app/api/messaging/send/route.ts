@@ -138,7 +138,10 @@ export async function POST(req: NextRequest) {
         providerMessageId = result.providerMessageId
       } else {
         status = 'failed'
-        errorMessage = result.error || 'WhatsApp send failed'
+        // Kept as the provider reported it. Left empty rather than filled with a
+        // placeholder, so the response can say nothing useful instead of
+        // something vague like "WhatsApp send failed".
+        errorMessage = result.error || null
       }
     } else if (resend) {
       provider = 'resend'
@@ -188,8 +191,16 @@ export async function POST(req: NextRequest) {
 
     if (status === 'failed') {
       const label = channel === 'whatsapp' ? 'WhatsApp' : 'email'
+      // The provider's own reason is deliberately included: without it the
+      // merchant only sees "could not be sent" and has no way to tell a wrong
+      // number from a gateway that is down, which makes support impossible.
       return NextResponse.json(
-        { error: `The ${label} message could not be sent. Please try again later.`, log },
+        {
+          error: errorMessage
+            ? `The ${label} message could not be sent: ${errorMessage}`
+            : `The ${label} message could not be sent. Please try again later.`,
+          log,
+        },
         { status: 502 },
       )
     }

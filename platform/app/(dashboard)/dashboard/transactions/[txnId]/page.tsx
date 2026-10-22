@@ -176,7 +176,11 @@ export default function TransactionDetailPage() {
                       <span className="text-gray-500">to {log.recipient}</span>
                     </div>
                     {log.subject && <p className="mt-1 text-xs font-medium text-gray-600">{log.subject}</p>}
-                    <p className="mt-0.5 text-xs text-gray-500">{new Date(log.created_at).toLocaleString('en-IN')}</p>
+                    {/* Why a send failed, so the merchant is not left guessing. */}
+                    {log.status !== 'sent' && log.errorMessage && (
+                      <p className="mt-1 break-words text-xs text-red-600">{log.errorMessage}</p>
+                    )}
+                    <p className="mt-0.5 text-xs text-gray-500">{new Date(log.createdAt).toLocaleString('en-IN')}</p>
                   </div>
                 ))}
               </div>
