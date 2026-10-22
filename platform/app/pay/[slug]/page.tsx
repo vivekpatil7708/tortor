@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import type { Metadata } from 'next'
 import {
   CHECKOUT_MERCHANT_FIELDS,
   CLOSED_LINK_MERCHANT_FIELDS,
@@ -7,12 +8,25 @@ import {
 } from '@/lib/serializers'
 import { TXN_ID_PATTERN, customerView } from '@/lib/checkout-status'
 import { linkRoom } from '@/lib/link-uses'
+import { payCheckoutMetadata } from '@/lib/pay-preview'
 import { isValidRedirectUrl } from '@/lib/validate-url'
 import { notFound, redirect } from 'next/navigation'
 import CheckoutClient from './checkout-client'
 import LinkClosed, { type ClosedReason } from './link-closed'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * Gives the checkout its own preview identity, so it no longer claims to be
+ * the homepage and collide with the status page in a chat app's cache. The
+ * tags say nothing about the order - only the slug, which is already visible.
+ */
+export async function generateMetadata(
+  props: { params: Promise<{ slug: string }> },
+): Promise<Metadata> {
+  const { slug } = await props.params
+  return payCheckoutMetadata(slug)
+}
 
 async function getLinkData(slug: string, txnId: string | undefined) {
   // Deleted links don't exist; switched-off ones get a friendly page.

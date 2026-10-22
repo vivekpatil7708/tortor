@@ -1,9 +1,22 @@
 import { CheckCircle2, Clock, SearchX, ShieldCheck, XCircle } from 'lucide-react'
+import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
+import { payStatusMetadata } from '@/lib/pay-preview'
 import { formatAmount } from '@/lib/utils'
 import CopyButton from '@/components/ui/copy-button'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * The preview card is the same for every order and carries no customer name,
+ * amount or transaction id - only the slug, which is already in the URL.
+ */
+export async function generateMetadata(
+  props: { params: Promise<{ slug: string }> },
+): Promise<Metadata> {
+  const { slug } = await props.params
+  return payStatusMetadata(slug)
+}
 
 const STATES = {
   success: { Icon: CheckCircle2, title: 'Payment confirmed', color: 'text-green-600', note: (seller: string) => `${seller} has confirmed your payment. Thank you!` },
