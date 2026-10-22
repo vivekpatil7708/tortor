@@ -137,12 +137,17 @@ export async function POST(req: NextRequest) {
     const fullName = body.full_name?.trim()
     if (!fullName) return apiError(400, 'Customer name is required')
 
-    const phone = body.phone?.trim().slice(0, 20) || null
+    // A phone number is required: it is how the merchant reaches the customer on
+    // WhatsApp, and a customer without one cannot be messaged at all.
+    const phone = body.phone?.trim() || ''
+    if (!phone) return apiError(400, 'Phone number is required')
     const email = body.email?.trim().slice(0, 200) || null
 
-    // An email must look like one; a phone is optional but must be digits if given.
+    // An email must look like one if given; the phone must look like a number.
+    // Checked before any truncation, so an over-long number is rejected rather
+    // than quietly cut down to something that looks valid.
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return apiError(400, 'Enter a valid email address')
-    if (phone && !/^[0-9+\-\s]{6,20}$/.test(phone)) return apiError(400, 'Enter a valid phone number')
+    if (!/^[0-9+\-\s]{6,20}$/.test(phone)) return apiError(400, 'Enter a valid phone number')
 
     // Tags arrive as free text; keep them short, trimmed, unique and capped.
     const tags = Array.isArray(body.tags)
