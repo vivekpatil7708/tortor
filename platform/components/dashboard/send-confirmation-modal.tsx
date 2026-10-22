@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { DEFAULT_TEMPLATES, SUPPORTED_VARIABLES, renderMessage, renderTemplate, resolveTemplate, templatesByChannel } from '@/lib/messaging'
+import { DEFAULT_TEMPLATES, SUPPORTED_VARIABLES, orderLinkUrl, renderMessage, renderTemplate, resolveTemplate, templatesByChannel } from '@/lib/messaging'
 import { X, Send, Eye, EyeOff, Check, Copy, ExternalLink, MessageSquare } from 'lucide-react'
 
 interface Props {
@@ -48,7 +48,10 @@ export default function SendConfirmationModal({ txn, onClose, onSent }: Props) {
     order_amount: String(txn.amount || ''),
     currency: 'INR',
     payment_status: txn.status || 'Confirmed',
-    payment_link: txn.payment_link?.slug ? `https://www.toropay.co.in/pay/${txn.payment_link.slug}` : '',
+    // A paid order gets its status page rather than the checkout, so the
+    // preview matches the link the server will actually send and the customer
+    // is not asked to pay again.
+    payment_link: orderLinkUrl(txn.payment_link?.slug, txn.status, txn.txn_id),
     delivery_eta: '3-5 business days',
     support_email: txn.merchant?.email || '',
     support_phone: txn.merchant?.phone || '',

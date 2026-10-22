@@ -3,7 +3,7 @@ import { Resend } from 'resend'
 import { requireSession } from '@/lib/auth'
 import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
 import { prisma } from '@/lib/prisma'
-import { renderMessage, renderTemplate } from '@/lib/messaging'
+import { orderLinkUrl, renderMessage, renderTemplate } from '@/lib/messaging'
 import { renderOrderConfirmationEmail } from '@/lib/email'
 import { getMessagingProvider, type MessagingProvider } from '@/lib/messaging/provider'
 import { isOpenWaConfigured } from '@/lib/messaging/openwa'
@@ -53,7 +53,13 @@ export async function POST(req: NextRequest) {
     // Messages only go to the customer of one of this merchant's own orders.
     const order = await prisma.transaction.findFirst({
       where: { txnId: String(orderId), merchantId: session.id },
-      select: { customerEmail: true, customerPhone: true, paymentLink: { select: { slug: true } } },
+      select: {
+        customerEmail: true,
+        customerPhone: true,
+        status: true,
+        txnId: true,
+        paymentLink: { select: { slug: true } },
+      },
     })
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
 
@@ -90,22 +96,26 @@ export async function POST(req: NextRequest) {
     const overrides = Object.fromEntries(
       Object.entries((data ?? {}) as Record<string, unknown>).filter(([, v]) => typeof v === 'string' && v.trim() !== '')
     ) as Record<string, string>
-    // The payment link is set from the order AFTER the browser's values, because
-    // it decides where the customer's money is asked for. Letting the browser
-    // choose it would let a message point at any URL at all.
+    // The link is set from the order AFTER the browser's values, because it
+    // decides where the customer is sent. Letting the browser choose it would
+    // let a message point at any URL at all.
     delete overrides.payment_link
     // `/pay/<slug>` resolves the payment link by its slug, so a link built from
     // the order's txn id can never work - it lands on "This payment link doesn't
     // exist". Orders created without a payment link have no URL to offer at all,
     // so the link is left out rather than pointing somewhere broken.
-    const orderSlug = order.paymentLink?.slug
+    //
+    // Which of the link's two jobs this is depends on the order: a paid order
+    // gets its status page, an unpaid one the checkout. Telling a customer who
+    // has already paid to "complete payment" invites a second payment.
+    const orderLink = orderLinkUrl(order.paymentLink?.slug, order.status, order.txnId)
     const fillData: Record<string, string> = {
       merchant_name: session.businessName || session.email || 'Merchant',
       support_email: session.email || '',
       support_phone: session.phone || '',
       currency: 'INR',
       ...overrides,
-      ...(orderSlug ? { payment_link: `https://www.toropay.co.in/pay/${orderSlug}` } : {}),
+      ...(orderLink ? { payment_link: orderLink } : {}),
     }
 
     const renderedSubject = subject ? renderTemplate(subject, fillData) : ''

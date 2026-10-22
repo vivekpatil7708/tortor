@@ -59,7 +59,7 @@ export const SAMPLE_DATA: SampleData = {
   order_amount: '1,500.00',
   currency: 'INR',
   payment_status: 'Confirmed',
-  payment_link: 'https://www.toropay.co.in/pay/sample-slug',
+  payment_link: 'https://www.toropay.co.in/pay/sample-slug/success?txn=TXN-12345',
   delivery_eta: '3-5 business days',
   support_email: 'support@mystore.com',
   support_phone: '+91-9876543210',
@@ -78,7 +78,7 @@ Product: {{product_name}}
 Amount: {{currency}} {{order_amount}}
 Payment status: {{payment_status}}
 
-You can view or complete payment here: {{payment_link}}
+View this order or complete payment here: {{payment_link}}
 
 For help, contact us at {{support_email}} or {{support_phone}}.
 
@@ -89,7 +89,7 @@ Thank you.`,
     body: `Hi {{customer_name}}, your order {{order_id}} with {{merchant_name}} is confirmed.
 Amount: {{currency}} {{order_amount}}
 Payment status: {{payment_status}}
-Payment link: {{payment_link}}
+Order details: {{payment_link}}
 Thank you.`,
   },
   instagram: {
@@ -122,6 +122,33 @@ export function renderTemplate(template: string, data: Record<string, string>): 
     if (key in data) return data[key]
     return `{{${key}}}`
   })
+}
+
+/**
+ * Where a customer should be sent for one order.
+ *
+ * A single `/pay/<slug>` URL serves two different jobs, and picking the wrong
+ * one is misleading: it is the checkout while money is still owed, and the
+ * status page once the payment is done. Sending the checkout URL for an order
+ * that already says "Payment status: success" tells the customer to pay again,
+ * and the page they land on has no idea which order they mean because it only
+ * learns that from `?txn=`.
+ *
+ * So a paid order gets the status URL, keyed by its transaction id, and an
+ * unpaid one gets the plain checkout URL. Anything without a slug has no usable
+ * URL at all.
+ */
+export function orderLinkUrl(
+  slug: string | null | undefined,
+  status: string | null | undefined,
+  txnId: string | null | undefined,
+): string {
+  if (!slug) return ''
+  const base = `https://www.toropay.co.in/pay/${slug}`
+  // `success` is the only status that means the money is in. Waiting on a
+  // confirmation still needs the payment step, so that keeps the checkout URL.
+  if (status !== 'success' || !txnId) return base
+  return `${base}/success?txn=${encodeURIComponent(txnId)}`
 }
 
 /**
