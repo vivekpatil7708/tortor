@@ -62,15 +62,20 @@ export async function POST(req: NextRequest) {
     const parsed = campaignInputSchema.safeParse(raw)
     if (!parsed.success) return apiError(400, firstInputProblem(parsed.error))
 
-    const problem = templateProblem(parsed.data.subject, parsed.data.body)
-    if (problem) return apiError(400, problem)
+    if (parsed.data.channel === 'email') {
+      const problem = templateProblem(parsed.data.subject, parsed.data.body)
+      if (problem) return apiError(400, problem)
+    } else if (!parsed.data.subject && !parsed.data.body.trim()) {
+      return apiError(400, 'The message body is required')
+    }
 
     const campaign = await prisma.broadcastCampaign.create({
       data: {
         name: parsed.data.name,
-        subject: parsed.data.subject,
+        subject: parsed.data.subject || '',
         body: parsed.data.body,
-        ctaLabel: parsed.data.ctaLabel || null,
+        ctaLabel: parsed.data.channel === 'email' ? (parsed.data.ctaLabel || null) : null,
+        channel: parsed.data.channel,
         audience: JSON.stringify(parsed.data.audience),
         createdBy: session.email,
         status: 'draft',
@@ -89,6 +94,7 @@ export async function POST(req: NextRequest) {
           subject: campaign.subject,
           body: campaign.body,
           cta_label: campaign.ctaLabel,
+          channel: campaign.channel,
           status: campaign.status,
           audience: campaign.audience,
           created_at: campaign.createdAt.toISOString(),

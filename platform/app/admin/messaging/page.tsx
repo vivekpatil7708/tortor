@@ -12,6 +12,7 @@ interface PreviewSample {
   business_name: string
   subject: string
   body: string
+  phone?: string | null
 }
 
 interface Preview {
@@ -24,6 +25,7 @@ interface Preview {
 }
 
 export default function AdminMessagingCompose() {
+  const [channel, setChannel] = useState<'email' | 'whatsapp'>('email')
   const [name, setName] = useState('')
   const [subject, setSubject] = useState(DEFAULT_BROADCAST_TEMPLATE.subject)
   const [body, setBody] = useState(DEFAULT_BROADCAST_TEMPLATE.body)
@@ -37,7 +39,7 @@ export default function AdminMessagingCompose() {
   const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<{ campaign_id: string; total: number; sent: number; failed: number; remaining: number } | null>(null)
+  const [result, setResult] = useState<{ campaign_id: string; total: number; sent: number; failed: number; remaining: number; channel?: string } | null>(null)
 
   // A template can be picked from the template library.
   useEffect(() => {
@@ -47,6 +49,7 @@ export default function AdminMessagingCompose() {
       .then(r => (r.ok ? r.json() : null))
       .then(data => {
         if (!data?.template) return
+        if (data.template.channel === 'whatsapp') setChannel('whatsapp')
         setSubject(data.template.subject || '')
         setBody(data.template.body)
         setName(data.template.name)
@@ -61,7 +64,7 @@ export default function AdminMessagingCompose() {
     [subject, body]
   )
 
-  const previewRequest = useDebounced({ subject, body, ctaLabel: ctaLabel || undefined, audience }, 700)
+  const previewRequest = useDebounced({ subject, body, ctaLabel: ctaLabel || undefined, audience, channel }, 700)
 
   useEffect(() => {
     let cancelled = false
@@ -93,18 +96,19 @@ export default function AdminMessagingCompose() {
     }
   }, [previewRequest])
 
-  const canSend = Boolean(subject.trim() && body.trim()) && unsupported.length === 0 && !sending && !saving
+  const canSend = Boolean(body.trim()) && (channel === 'whatsapp' || subject.trim()) && unsupported.length === 0 && !sending && !saving
 
   async function saveCampaign(): Promise<string> {
     const res = await fetch('/api/admin/campaigns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: name.trim() || subject.trim(),
-        subject,
+        name: name.trim() || subject.trim() || body.trim().slice(0, 60),
+        subject: channel === 'whatsapp' ? '' : subject,
         body,
-        ctaLabel: ctaLabel.trim() || undefined,
+        ctaLabel: channel === 'email' ? (ctaLabel.trim() || undefined) : undefined,
         audience,
+        channel,
       }),
     })
     const data = await res.json()
@@ -133,7 +137,7 @@ export default function AdminMessagingCompose() {
       const res = await fetch(`/api/admin/campaigns/${id}/send`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not send the campaign')
-      setResult(data)
+      setResult({ ...data, channel })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not send the campaign')
     } finally {
@@ -148,15 +152,33 @@ export default function AdminMessagingCompose() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">New broadcast</h1>
         <p className="text-sm text-gray-500">
-          Write one message and send it to the merchants you choose.
+          {channel === 'whatsapp'
+            ? 'Write one WhatsApp message and send it to merchants that have a phone number.'
+            : 'Write one message and send it to the merchants you choose.'}
         </p>
+        <div className="mt-3 inline-flex rounded-xl border border-gray-200 bg-white p-1 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setChannel('email')}
+            className={`rounded-lg px-3 py-1.5 ${channel === 'email' ? 'bg-[#7bb86c] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            Email
+          </button>
+          <button
+            type="button"
+            onClick={() => setChannel('whatsapp')}
+            className={`rounded-lg px-3 py-1.5 ${channel === 'whatsapp' ? 'bg-[#7bb86c] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+          >
+            WhatsApp
+          </button>
+        </div>
       </div>
 
       {result && (
         <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-5">
           <p className="font-semibold text-green-800">Campaign sent</p>
           <p className="mt-1 text-sm text-green-700">
-            {result.sent} of {result.total} merchants emailed
+            {result.sent} of {result.total} merchants {result.channel === 'whatsapp' ? 'messaged on WhatsApp' : 'emailed'}
             {result.failed > 0 ? `, ${result.failed} failed` : ''}
             {result.remaining > 0 ? `, ${result.remaining} still waiting to go out` : ''}.
           </p>
@@ -186,20 +208,24 @@ export default function AdminMessagingCompose() {
               placeholder="e.g. October product update"
               className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-charcoal"
             />
-            <p className="mt-1 text-[11px] text-gray-400">Only you see this. Recipients see the subject line.</p>
+            <p className="mt-1 text-[11px] text-gray-400">
+              {channel === 'whatsapp' ? 'Only you see this.' : 'Only you see this. Recipients see the subject line.'}
+            </p>
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-500" htmlFor="campaign-subject">
-              Subject line
-            </label>
-            <input
-              id="campaign-subject"
-              value={subject}
-              onChange={e => setSubject(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-charcoal"
-            />
-          </div>
+          {channel === 'email' && (
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-500" htmlFor="campaign-subject">
+                Subject line
+              </label>
+              <input
+                id="campaign-subject"
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-charcoal"
+              />
+            </div>
+          )}
 
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-500" htmlFor="campaign-body">
@@ -209,23 +235,28 @@ export default function AdminMessagingCompose() {
               id="campaign-body"
               value={body}
               onChange={e => setBody(e.target.value)}
-              rows={12}
+              rows={channel === 'whatsapp' ? 10 : 12}
               className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-mono outline-none focus:border-charcoal"
             />
+            {channel === 'whatsapp' && (
+              <p className="mt-1 text-[11px] text-gray-400">Plain text. Only merchants with a phone number will be messaged.</p>
+            )}
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-500" htmlFor="campaign-cta">
-              Button label
-            </label>
-            <input
-              id="campaign-cta"
-              value={ctaLabel}
-              onChange={e => setCtaLabel(e.target.value)}
-              placeholder="Share Your Feedback"
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-charcoal"
-            />
-          </div>
+          {channel === 'email' && (
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-500" htmlFor="campaign-cta">
+                Button label
+              </label>
+              <input
+                id="campaign-cta"
+                value={ctaLabel}
+                onChange={e => setCtaLabel(e.target.value)}
+                placeholder="Share Your Feedback"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-charcoal"
+              />
+            </div>
+          )}
 
           <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
             <p className="mb-2 text-xs font-semibold text-gray-400">Variables you can use</p>
@@ -256,12 +287,12 @@ export default function AdminMessagingCompose() {
               disabled={!canSend}
               className="flex items-center gap-1.5 rounded-xl bg-[#7bb86c] px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
             >
-              {sending ? 'Sending...' : `Send to ${recipients} merchant${recipients === 1 ? '' : 's'}`}
+              {sending ? 'Sending...' : `Send ${channel === 'whatsapp' ? 'WhatsApp' : 'email'} to ${recipients} merchant${recipients === 1 ? '' : 's'}`}
             </button>
             <button
               type="button"
               onClick={handleSaveDraft}
-              disabled={saving || sending || unsupported.length > 0}
+              disabled={saving || sending || (channel === 'email' && unsupported.length > 0)}
               className="rounded-xl border border-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save as draft'}
@@ -283,9 +314,13 @@ export default function AdminMessagingCompose() {
             {preview && !previewError && (
               <>
                 <p className="mb-3 rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                  Goes to <strong>{preview.total}</strong> merchant{preview.total === 1 ? '' : 's'}.
-                  {preview.suppressed > 0 && (
+                  Goes to <strong>{preview.total}</strong> merchant{preview.total === 1 ? '' : 's'}
+                  {channel === 'whatsapp' ? ' on WhatsApp' : ''}.
+                  {channel === 'email' && preview.suppressed > 0 && (
                     <> {preview.suppressed} address{preview.suppressed === 1 ? ' is' : 'es are'} on the suppression list and will not be emailed.</>
+                  )}
+                  {channel === 'whatsapp' && (
+                    <> Only merchants with a phone number are included.</>
                   )}
                   {preview.too_many && (
                     <> This audience is too large to send to in one go. Narrow it down first.</>
@@ -300,8 +335,10 @@ export default function AdminMessagingCompose() {
                   <div className="space-y-3">
                     {preview.sample.map(sample => (
                       <div key={sample.email} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                        <p className="mb-1 text-[11px] font-medium text-gray-400">To {sample.business_name} ({sample.email})</p>
-                        <p className="mb-2 text-xs font-semibold text-gray-700">{sample.subject}</p>
+                        <p className="mb-1 text-[11px] font-medium text-gray-400">
+                          To {sample.business_name} ({channel === 'whatsapp' ? (sample.phone || 'no phone') : sample.email})
+                        </p>
+                        {channel === 'email' && sample.subject && <p className="mb-2 text-xs font-semibold text-gray-700">{sample.subject}</p>}
                         <p className="whitespace-pre-wrap text-sm text-gray-600">{sample.body}</p>
                       </div>
                     ))}

@@ -5,7 +5,7 @@ import { apiError } from '@/lib/api-response'
 import { adminErrorResponse } from '@/lib/admin-api'
 import { isRateLimited } from '@/lib/rate-limit'
 import { dispatchCampaign } from '@/lib/broadcast-campaign'
-import { emailProviderProblem } from '@/lib/broadcast-sender'
+import { emailProviderProblem, whatsappProviderProblem } from '@/lib/broadcast-sender'
 import { recordAdminAction } from '@/lib/admin-audit'
 
 export const maxDuration = 60
@@ -22,7 +22,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const campaign = await prisma.broadcastCampaign.findUnique({ where: { id } })
     if (!campaign) return apiError(404, 'Campaign not found')
 
-    const providerProblem = emailProviderProblem()
+    const providerProblem =
+      campaign.channel === 'whatsapp' ? whatsappProviderProblem() : emailProviderProblem()
     if (providerProblem) return apiError(503, providerProblem)
 
     if (await isRateLimited(req, 'admin_campaign_sent', MAX_SENDS_PER_HOUR, 60)) {
