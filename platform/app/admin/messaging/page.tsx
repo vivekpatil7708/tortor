@@ -24,6 +24,12 @@ interface Preview {
   sample: PreviewSample[]
 }
 
+interface DirectRecipient {
+  id: string
+  value: string
+  label: string
+}
+
 export default function AdminMessagingCompose() {
   const [channel, setChannel] = useState<'email' | 'whatsapp'>('email')
   const [name, setName] = useState('')
@@ -31,6 +37,8 @@ export default function AdminMessagingCompose() {
   const [body, setBody] = useState(DEFAULT_BROADCAST_TEMPLATE.body)
   const [ctaLabel, setCtaLabel] = useState('')
   const [audience, setAudience] = useState<Audience>({ status: 'active' })
+  const [directRecipients, setDirectRecipients] = useState<DirectRecipient[]>([])
+  const [directInput, setDirectInput] = useState('')
 
   const [preview, setPreview] = useState<Preview | null>(null)
   const [previewing, setPreviewing] = useState(false)
@@ -64,7 +72,10 @@ export default function AdminMessagingCompose() {
     [subject, body]
   )
 
-  const previewRequest = useDebounced({ subject, body, ctaLabel: ctaLabel || undefined, audience, channel }, 700)
+  const previewRequest = useDebounced(
+    { subject, body, ctaLabel: ctaLabel || undefined, audience, channel, directRecipients: directRecipients.map(r => ({ value: r.value, label: r.label })) },
+    700
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -96,7 +107,13 @@ export default function AdminMessagingCompose() {
     }
   }, [previewRequest])
 
-  const canSend = Boolean(body.trim()) && (channel === 'whatsapp' || subject.trim()) && unsupported.length === 0 && !sending && !saving
+  const canSend =
+    Boolean(body.trim()) &&
+    (channel === 'whatsapp' || subject.trim()) &&
+    unsupported.length === 0 &&
+    !sending &&
+    !saving &&
+    (preview?.total ?? 0) > 0
 
   async function saveCampaign(): Promise<string> {
     const res = await fetch('/api/admin/campaigns', {
@@ -109,6 +126,7 @@ export default function AdminMessagingCompose() {
         ctaLabel: channel === 'email' ? (ctaLabel.trim() || undefined) : undefined,
         audience,
         channel,
+        directRecipients: directRecipients.map(r => ({ value: r.value, label: r.label })),
       }),
     })
     const data = await res.json()
@@ -127,6 +145,34 @@ export default function AdminMessagingCompose() {
     } finally {
       setSaving(false)
     }
+  }
+
+  function addDirectRecipient() {
+    const raw = directInput.trim()
+    if (!raw) return
+    if (channel === 'email') {
+      const email = raw.toLowerCase()
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return
+      if (directRecipients.some(r => r.value.toLowerCase() === email)) {
+        setDirectInput('')
+        return
+      }
+      setDirectRecipients(prev => [...prev, { id: crypto.randomUUID(), value: email, label: email }])
+      setDirectInput('')
+      return
+    }
+    const digits = raw.replace(/\D/g, '')
+    if (digits.length < 10) return
+    if (directRecipients.some(r => r.value.replace(/\D/g, '') === digits)) {
+      setDirectInput('')
+      return
+    }
+    setDirectRecipients(prev => [...prev, { id: crypto.randomUUID(), value: raw.replace(/[^\d+]/g, '') || digits, label: raw }])
+    setDirectInput('')
+  }
+
+  function removeDirectRecipient(id: string) {
+    setDirectRecipients(prev => prev.filter(r => r.id !== id))
   }
 
   async function handleSend() {
@@ -274,6 +320,54 @@ export default function AdminMessagingCompose() {
           </div>
 
           <div>
+            <p className="mb-2 text-xs font-semibold text-gray-500">
+              {channel === 'whatsapp' ? 'Add phone numbers directly' : 'Add emails directly'}
+            </p>
+            <div className="rounded-2xl border border-gray-200 bg-white p-4">
+              <div className="flex gap-2">
+                <input
+                  value={directInput}
+                  onChange={e => setDirectInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addDirectRecipient()
+                    }
+                  }}
+                  placeholder={channel === 'whatsapp' ? 'e.g. +91 9876543210' : 'e.g. name@example.com'}
+                  className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-charcoal"
+                />
+                <button
+                  type="button"
+                  onClick={addDirectRecipient}
+                  className="rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                >
+                  Add
+                </button>
+              </div>
+              {directRecipients.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {directRecipients.map(r => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => removeDirectRecipient(r.id)}
+                      className="rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600 ring-1 ring-gray-200 hover:ring-gray-400"
+                    >
+                      {r.label} ×
+                    </button>
+                  ))}
+                </div>
+              )}
+              <p className="mt-2 text-[11px] text-gray-400">
+                {channel === 'whatsapp'
+                  ? 'These numbers are messaged directly in addition to the audience above.'
+                  : 'These emails are messaged directly in addition to the audience above.'}
+              </p>
+            </div>
+          </div>
+
+          <div>
             <p className="mb-2 text-xs font-semibold text-gray-500">Who receives it</p>
             <div className="rounded-2xl border border-gray-200 bg-white p-4">
               <AudienceBuilder value={audience} onChange={setAudience} />
@@ -287,7 +381,7 @@ export default function AdminMessagingCompose() {
               disabled={!canSend}
               className="flex items-center gap-1.5 rounded-xl bg-[#7bb86c] px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
             >
-              {sending ? 'Sending...' : `Send ${channel === 'whatsapp' ? 'WhatsApp' : 'email'} to ${recipients} merchant${recipients === 1 ? '' : 's'}`}
+              {sending ? 'Sending...' : `Send ${channel === 'whatsapp' ? 'WhatsApp' : 'email'} to ${recipients} ${channel === 'whatsapp' ? 'recipient' : 'merchant'}${recipients === 1 ? '' : 's'}`}
             </button>
             <button
               type="button"
@@ -314,13 +408,14 @@ export default function AdminMessagingCompose() {
             {preview && !previewError && (
               <>
                 <p className="mb-3 rounded-xl bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                  Goes to <strong>{preview.total}</strong> merchant{preview.total === 1 ? '' : 's'}
+                  Goes to <strong>{preview.total}</strong> {channel === 'whatsapp' ? 'recipient' : 'merchant'}
+                  {preview.total === 1 ? '' : 's'}
                   {channel === 'whatsapp' ? ' on WhatsApp' : ''}.
                   {channel === 'email' && preview.suppressed > 0 && (
                     <> {preview.suppressed} address{preview.suppressed === 1 ? ' is' : 'es are'} on the suppression list and will not be emailed.</>
                   )}
                   {channel === 'whatsapp' && (
-                    <> Only merchants with a phone number are included.</>
+                    <> Merchants with a phone number and any numbers you add directly are included.</>
                   )}
                   {preview.too_many && (
                     <> This audience is too large to send to in one go. Narrow it down first.</>

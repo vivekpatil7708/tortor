@@ -63,7 +63,7 @@ export async function merchantIdsByTransactionCount(range: { min?: number; max?:
  */
 export async function resolveRecipients(
   audience: Audience,
-  options: { max?: number; channel?: string } = {}
+  options: { max?: number; channel?: string; directRecipients?: Array<{ value: string; label: string }> } = {}
 ): Promise<{
   recipients: BroadcastRecipient[]
   paymentLinks: Map<string, string>
@@ -87,35 +87,61 @@ export async function resolveRecipients(
     where = { AND: [where, { id: { in: ids } }] }
   }
 
-  const matched = await prisma.merchant.count({ where })
-  const tooMany = matched > MAX_CAMPAIGN_RECIPIENTS
-  const take = Math.min(options.max ?? MAX_CAMPAIGN_RECIPIENTS, MAX_CAMPAIGN_RECIPIENTS)
-
   const merchants = await prisma.merchant.findMany({
     where,
     select: { id: true, email: true, businessName: true, phone: true },
     orderBy: { createdAt: 'asc' },
-    take,
   })
+
+  const matched = merchants.length + (options.directRecipients?.length ?? 0)
+  const tooMany = matched > MAX_CAMPAIGN_RECIPIENTS
+  const take = Math.min(options.max ?? MAX_CAMPAIGN_RECIPIENTS, MAX_CAMPAIGN_RECIPIENTS)
 
   // Suppression is an email concept (bounces and complaints). A WhatsApp
   // broadcast is not filtered by it.
+  let recipients: BroadcastRecipient[] = []
   if (channel !== 'email') {
-    return { recipients: merchants, paymentLinks: await paymentLinksFor(merchants), matched, suppressed: 0, tooMany }
+    recipients = merchants.slice(0, take)
+  } else {
+    const suppressions = await prisma.emailSuppression.findMany({ select: { email: true } })
+    const suppressedEmails = suppressions.map(s => s.email.toLowerCase())
+    const suppressedSet = new Set(suppressedEmails)
+    recipients = merchants.filter(m => !suppressedSet.has(m.email.toLowerCase())).slice(0, take)
   }
 
-  // The addresses that must not be emailed again.
-  const suppressions = await prisma.emailSuppression.findMany({ select: { email: true } })
-  const suppressedEmails = suppressions.map(s => s.email.toLowerCase())
-  const suppressedSet = new Set(suppressedEmails)
-  const recipients = merchants.filter(m => !suppressedSet.has(m.email.toLowerCase()))
+  // Add direct recipients
+  if (options.directRecipients && options.directRecipients.length > 0) {
+    const existingEmails = new Set(recipients.map(r => r.email.toLowerCase()))
+    const existingPhones = new Set(recipients.map(r => (r.phone || '').replace(/\D/g, '')))
+    for (const dr of options.directRecipients) {
+      if (channel === 'email') {
+        const email = dr.value.toLowerCase()
+        if (existingEmails.has(email)) continue
+        existingEmails.add(email)
+        recipients.push({
+          id: `direct:${email}`,
+          email,
+          businessName: dr.label || email,
+          phone: null,
+        })
+      } else {
+        const digits = dr.value.replace(/\D/g, '')
+        if (existingPhones.has(digits)) continue
+        existingPhones.add(digits)
+        recipients.push({
+          id: `direct:${digits}`,
+          email: dr.label || `${digits}@direct.toropay`,
+          businessName: dr.label || dr.value,
+          phone: dr.value,
+        })
+      }
+      if (recipients.length >= take && options.max) break
+    }
+  }
 
-  // How many of the whole audience are on that list, not just the sample.
-  const suppressed = suppressedEmails.length
-    ? await prisma.merchant.count({ where: { AND: [where, { email: { in: suppressedEmails } }] } })
-    : 0
+  const suppressed = channel === 'email' ? (merchants.length - recipients.filter(r => !r.id.startsWith('direct:')).length) : 0
 
-  return { recipients, paymentLinks: await paymentLinksFor(recipients), matched, suppressed, tooMany }
+  return { recipients, paymentLinks: await paymentLinksFor(recipients.filter(r => !r.id.startsWith('direct:'))), matched, suppressed, tooMany }
 }
 
 /** The first active payment link of each merchant, as an absolute URL. */
@@ -170,9 +196,17 @@ export async function dispatchCampaign(
     throw new Error(`This audience matches more than ${MAX_CAMPAIGN_RECIPIENTS} merchants. Narrow it down first.`)
   }
 
+  // Filter out direct recipients without proper contact info
+  const validRecipients = recipients.filter(r => {
+    if (r.id.startsWith('direct:')) {
+      if (campaign.channel === 'whatsapp') return r.phone && r.phone.replace(/\D/g, '').length >= 10
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)
+    }
+    return true
+  })
   // A log row for every recipient. Rows that already exist are left alone, so
   // a campaign that is sent again does not email anybody twice.
-  await createPendingLogs(recipients, {
+  await createPendingLogs(validRecipients, {
     campaignId,
     createdBy: campaign.createdBy,
     subject: campaign.subject,
@@ -188,13 +222,14 @@ export async function dispatchCampaign(
   })
 
   const merchantRows = await prisma.merchant.findMany({
-    where: { id: { in: pending.map(row => row.merchantId) } },
+    where: { id: { in: pending.map(row => row.merchantId).filter(id => !id.startsWith('direct:')) } },
     select: { id: true, email: true, businessName: true, phone: true },
   })
   const merchantById = new Map(merchantRows.map(m => [m.id, m]))
   const queued: QueuedRecipient[] = pending
     .map(row => {
-      const merchant = merchantById.get(row.merchantId)
+      const direct = validRecipients.find(r => r.id === row.merchantId)
+      const merchant = direct || merchantById.get(row.merchantId)
       if (!merchant) return null
       return {
         recipient: {
@@ -204,14 +239,14 @@ export async function dispatchCampaign(
           phone: merchant.phone,
         },
         logId: row.id,
-        paymentLink: paymentLinks.get(merchant.id) ?? null,
+        paymentLink: paymentLinks.get(merchant.id.startsWith('direct:') ? '' : merchant.id) ?? null,
       }
     })
     .filter((entry): entry is QueuedRecipient => entry !== null)
 
   await prisma.broadcastCampaign.update({
     where: { id: campaignId },
-    data: { status: 'sending', totalCount: matched - suppressed },
+    data: { status: 'sending', totalCount: validRecipients.length },
   })
 
   const outcome = await deliverQueuedRecipients(
@@ -246,7 +281,7 @@ export async function dispatchCampaign(
 
   return {
     campaignId,
-    total: matched - suppressed,
+    total: validRecipients.length,
     sent: sentCount,
     failed: failedCount,
     remaining: pendingCount,

@@ -14,6 +14,15 @@ const previewSchema = z.object({
   ctaLabel: z.string().trim().max(80).optional(),
   audience: audienceSchema.default({}),
   channel: z.enum(['email', 'whatsapp', 'instagram']).default('email'),
+  directRecipients: z
+    .array(
+      z.object({
+        value: z.string().trim().min(1),
+        label: z.string().trim().min(1),
+      })
+    )
+    .max(500)
+    .default([]),
 })
 
 /** How many recipients are shown in the preview. */
@@ -27,7 +36,7 @@ export async function POST(req: NextRequest) {
     const parsed = previewSchema.safeParse(raw)
     if (!parsed.success) return apiError(400, 'The preview could not be read')
 
-    const { subject, body, ctaLabel, audience, channel } = parsed.data
+    const { subject, body, ctaLabel, audience, channel, directRecipients } = parsed.data
 
     const unsupported = unsupportedVariables(`${subject}\n${body}`, BROADCAST_VARIABLES)
     // Only a sample is needed to show what the message looks like, so the
@@ -35,6 +44,7 @@ export async function POST(req: NextRequest) {
     const { recipients, paymentLinks, matched, suppressed, tooMany } = await resolveRecipients(audience, {
       max: 50,
       channel,
+      directRecipients,
     })
 
     const context = broadcastContext()
