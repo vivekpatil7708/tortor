@@ -10,6 +10,7 @@ import { imageFileProblem } from '@/lib/image-input'
 import { LoadError } from '@/components/ui/load-error'
 import { Button } from '@/components/ui/button'
 import { Zap, ShoppingBag, ChevronDown, ArrowRight } from 'lucide-react'
+import { formatMoney } from '@/lib/ui-format'
 
 interface CustomField {
   name: string
@@ -46,6 +47,7 @@ export default function NewLinkPage() {
   const [upisLoaded, setUpisLoaded] = useState(false)
   const [upisFailed, setUpisFailed] = useState(false)
   const [mode, setMode] = useState<'quick' | 'sell'>('quick')
+  const [catalog, setCatalog] = useState<Record<string, unknown>[]>([])
 
   const [form, setForm] = useState({
     title: '', description: '', upi_id: '', amount: '', amount_flexible: false,
@@ -81,6 +83,7 @@ export default function NewLinkPage() {
   useEffect(() => {
     api.me().then(({ merchant: m }) => setMerchant(m)).catch(() => {})
     loadUpis()
+    api.getProducts('?status=active&page_size=100').then((res: any) => setCatalog(res.products || [])).catch(() => {})
 
     const stored = sessionStorage.getItem('toropay_template')
     if (stored) {
@@ -147,6 +150,20 @@ export default function NewLinkPage() {
       ;(updated[i] as any)[key] = val
     }
     setProducts(updated)
+  }
+
+  function addFromCatalog(catalogProduct: Record<string, unknown>) {
+    const item: ProductItem = {
+      name: String(catalogProduct.name || ''),
+      category: '',
+      description: String(catalogProduct.description || ''),
+      price: catalogProduct.price == null ? '' : String(catalogProduct.price),
+      delivery: String(catalogProduct.product_type) === 'digital' ? 'digital' : 'delivery',
+      availability: catalogProduct.status === 'active' ? 'in-stock' : 'out-of-stock',
+      image: typeof catalogProduct.image_url === 'string' ? catalogProduct.image_url : '',
+      quantity: undefined,
+    }
+    setProducts([...products, item])
   }
 
   function removeProduct(i: number) {
@@ -553,6 +570,15 @@ export default function NewLinkPage() {
                   <p className="text-sm font-semibold text-gray-700">Products / Services</p>
                   <button type="button" onClick={addProduct} className="text-sm font-semibold text-primary-600 hover:underline">+ Add item</button>
                 </div>
+                {catalog.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {catalog.map(cp => (
+                      <button key={String(cp.id)} type="button" onClick={() => addFromCatalog(cp)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs hover:bg-gray-50">
+                        + {String(cp.name)} · {formatMoney(Number(cp.price))}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {products.length === 0 ? (
                   <p className="text-xs text-gray-500">Add products to build a multi-item order form (used with the Sell Items mode).</p>
                 ) : (
