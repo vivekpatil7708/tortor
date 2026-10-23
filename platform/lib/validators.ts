@@ -15,6 +15,9 @@ export const productSchema = z.object({
   status: z.enum(['active', 'draft', 'archived']).default('active'),
   stock_quantity: z.number().int().min(0).optional().nullable(),
   low_stock_threshold: z.number().int().min(0).optional().nullable(),
+  hsn_code: z.string().max(20).optional().nullable(),
+  tax_rate: z.number().min(0).max(100).optional().nullable(),
+  tax_exempt: z.boolean().optional().default(false),
 })
 
 // ============================================================

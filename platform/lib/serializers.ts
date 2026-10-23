@@ -225,6 +225,9 @@ export function serializeProduct(p: Product) {
     status: p.status,
     stock_quantity: p.stockQuantity,
     low_stock_threshold: p.lowStockThreshold,
+    hsn_code: p.hsnCode,
+    tax_rate: p.taxRate?.toNumber() ?? null,
+    tax_exempt: p.taxExempt,
     created_at: p.createdAt.toISOString(),
     updated_at: p.updatedAt.toISOString(),
   }
