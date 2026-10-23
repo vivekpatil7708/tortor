@@ -66,7 +66,7 @@ export async function createPendingLogs(
     const chunk = recipients.slice(i, i + CHUNK)
     const result = await prisma.messageLog.createMany({
       data: chunk.map(recipient => ({
-        merchantId: recipient.id,
+        merchantId: recipient.id.startsWith('direct:') ? recipient.id : recipient.id,
         campaignId: options.campaignId,
         channel,
         // A WhatsApp message is addressed to the merchant's phone; email to
@@ -108,6 +108,7 @@ export async function deliverQueuedRecipients(
     }
 
     const entry = queued[i]
+    const isDirect = entry.recipient.id.startsWith('direct:')
 
     let status = 'sent'
     let providerMessageId: string | null = null
@@ -122,7 +123,7 @@ export async function deliverQueuedRecipients(
       renderedBody = renderTemplate(
         template.body,
         recipientVariables(entry.recipient, context, {
-          paymentLink: entry.paymentLink,
+          paymentLink: isDirect ? null : entry.paymentLink,
           feedbackFormLink: options.feedbackFormLink,
         })
       )
@@ -147,9 +148,9 @@ export async function deliverQueuedRecipients(
       }
     } else {
       const email = buildRecipientEmail(entry.recipient, template, context, {
-        paymentLink: entry.paymentLink,
+        paymentLink: isDirect ? null : entry.paymentLink,
         feedbackFormLink: options.feedbackFormLink,
-        trackingPixelUrl: trackingPixelUrl(entry.logId, context.appUrl),
+        trackingPixelUrl: isDirect ? undefined : trackingPixelUrl(entry.logId, context.appUrl),
       })
       renderedSubject = email.subject
       renderedBody = email.body

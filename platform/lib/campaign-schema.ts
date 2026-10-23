@@ -19,6 +19,15 @@ export const campaignInputSchema = z.object({
   ctaLabel: z.string().trim().max(MAX_CTA_LENGTH).optional(),
   audience: audienceSchema.default({}),
   channel: z.enum(CHANNELS).default('email'),
+  directRecipients: z
+    .array(
+      z.object({
+        value: z.string().trim().min(1),
+        label: z.string().trim().min(1),
+      })
+    )
+    .max(500)
+    .optional(),
 })
 
 export type CampaignInput = z.infer<typeof campaignInputSchema>
