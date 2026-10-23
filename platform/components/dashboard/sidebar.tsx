@@ -20,6 +20,7 @@ export const navGroups: Array<{ title: string; folded?: boolean; items: NavItem[
       { label: 'Payment Links', href: '/dashboard/links', icon: Link2 },
       { label: 'Transactions', href: '/dashboard/transactions', icon: Banknote },
       { label: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },
+      { label: 'Products', href: '/dashboard/products', icon: Package },
     ],
   },
   {
