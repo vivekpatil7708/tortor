@@ -63,7 +63,7 @@ export async function merchantIdsByTransactionCount(range: { min?: number; max?:
  */
 export async function resolveRecipients(
   audience: Audience,
-  options: { max?: number } = {}
+  options: { max?: number; channel?: string } = {}
 ): Promise<{
   recipients: BroadcastRecipient[]
   paymentLinks: Map<string, string>
@@ -71,7 +71,15 @@ export async function resolveRecipients(
   suppressed: number
   tooMany: boolean
 }> {
+  const channel = options.channel ?? 'email'
   let where = audienceWhere(audience)
+
+  // A WhatsApp broadcast can only reach a merchant that has a phone number on
+  // file, so the audience is narrowed down to those merchants rather than
+  // counting recipients that could never be messaged.
+  if (channel === 'whatsapp') {
+    where = { AND: [where, { phone: { not: null } }, { phone: { not: '' } }] }
+  }
 
   const countFilter = transactionCountFilter(audience)
   if (countFilter) {
@@ -90,6 +98,12 @@ export async function resolveRecipients(
     take,
   })
 
+  // Suppression is an email concept (bounces and complaints). A WhatsApp
+  // broadcast is not filtered by it.
+  if (channel !== 'email') {
+    return { recipients: merchants, paymentLinks: await paymentLinksFor(merchants), matched, suppressed: 0, tooMany }
+  }
+
   // The addresses that must not be emailed again.
   const suppressions = await prisma.emailSuppression.findMany({ select: { email: true } })
   const suppressedEmails = suppressions.map(s => s.email.toLowerCase())
@@ -101,8 +115,13 @@ export async function resolveRecipients(
     ? await prisma.merchant.count({ where: { AND: [where, { email: { in: suppressedEmails } }] } })
     : 0
 
+  return { recipients, paymentLinks: await paymentLinksFor(recipients), matched, suppressed, tooMany }
+}
+
+/** The first active payment link of each merchant, as an absolute URL. */
+async function paymentLinksFor(merchants: BroadcastRecipient[]): Promise<Map<string, string>> {
   const links = await prisma.paymentLink.findMany({
-    where: { merchantId: { in: recipients.map(m => m.id) }, status: 'active' },
+    where: { merchantId: { in: merchants.map(m => m.id) }, status: 'active' },
     select: { merchantId: true, slug: true },
     orderBy: { createdAt: 'asc' },
   })
@@ -111,17 +130,19 @@ export async function resolveRecipients(
   for (const link of links) {
     if (!paymentLinks.has(link.merchantId)) paymentLinks.set(link.merchantId, `${appUrl}/pay/${link.slug}`)
   }
-
-  return { recipients, paymentLinks, matched, suppressed, tooMany }
+  return paymentLinks
 }
 
 /** The merchants a saved campaign goes to. */
 export async function resolveCampaignRecipients(campaignId: string) {
-  const campaign = await prisma.broadcastCampaign.findUnique({ where: { id: campaignId }, select: { audience: true } })
+  const campaign = await prisma.broadcastCampaign.findUnique({
+    where: { id: campaignId },
+    select: { audience: true, channel: true },
+  })
   if (!campaign) {
     return { recipients: [], paymentLinks: new Map(), matched: 0, suppressed: 0, tooMany: false }
   }
-  return resolveRecipients(audienceOf(campaign))
+  return resolveRecipients(audienceOf(campaign), { channel: campaign.channel })
 }
 
 /**
@@ -142,7 +163,9 @@ export async function dispatchCampaign(
   const parsed = parseAudience(campaign.audience)
   if (!parsed.ok) throw new Error(parsed.error)
 
-  const { recipients, paymentLinks, matched, suppressed, tooMany } = await resolveRecipients(parsed.audience)
+  const { recipients, paymentLinks, matched, suppressed, tooMany } = await resolveRecipients(parsed.audience, {
+    channel: campaign.channel,
+  })
   if (tooMany) {
     throw new Error(`This audience matches more than ${MAX_CAMPAIGN_RECIPIENTS} merchants. Narrow it down first.`)
   }
@@ -153,6 +176,7 @@ export async function dispatchCampaign(
     campaignId,
     createdBy: campaign.createdBy,
     subject: campaign.subject,
+    channel: campaign.channel,
   })
 
   // The rows still waiting to be sent.
@@ -200,6 +224,7 @@ export async function dispatchCampaign(
     {
       deadline: options.deadline ?? Date.now() + DEFAULT_SEND_DEADLINE_MS,
       feedbackFormLink: campaignFeedbackLink(campaignId),
+      channel: campaign.channel,
     }
   )
 

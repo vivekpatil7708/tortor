@@ -7,20 +7,21 @@ export const MAX_SUBJECT_LENGTH = 200
 export const MAX_BODY_LENGTH = 5000
 export const MAX_CTA_LENGTH = 80
 
-/** What an admin fills in to make a campaign. */
-export const campaignInputSchema = z.object({
-  name: z.string().trim().min(1, 'Give the campaign a name').max(MAX_NAME_LENGTH),
-  subject: z.string().trim().min(1, 'The subject line is required').max(MAX_SUBJECT_LENGTH),
-  body: z.string().trim().min(1, 'The message body is required').max(MAX_BODY_LENGTH),
-  ctaLabel: z.string().trim().max(MAX_CTA_LENGTH).optional(),
-  audience: audienceSchema.default({}),
-})
-
-export type CampaignInput = z.infer<typeof campaignInputSchema>
-
 /** The channels a message can be sent on. */
 export const CHANNELS = ['email', 'whatsapp', 'instagram'] as const
 export type Channel = typeof CHANNELS[number]
+
+/** What an admin fills in to make a campaign. */
+export const campaignInputSchema = z.object({
+  name: z.string().trim().min(1, 'Give the campaign a name').max(MAX_NAME_LENGTH),
+  subject: z.string().trim().max(MAX_SUBJECT_LENGTH).default(''),
+  body: z.string().trim().min(1, 'The message body is required').max(MAX_BODY_LENGTH),
+  ctaLabel: z.string().trim().max(MAX_CTA_LENGTH).optional(),
+  audience: audienceSchema.default({}),
+  channel: z.enum(CHANNELS).default('email'),
+})
+
+export type CampaignInput = z.infer<typeof campaignInputSchema>
 
 /** A template in the admin's own library. */
 export const templateInputSchema = z.object({
