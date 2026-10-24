@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { formatMoney, formatDateTime, humanize } from '@/lib/ui-format'
 
 type Snapshot = { recipient_name?: string; line1?: string; line2?: string; city?: string; state?: string; pincode?: string; phone?: string } | null
@@ -14,12 +15,22 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [invoice, setInvoice] = useState<Record<string, unknown> | null>(null)
+  const [invoiceLoading, setInvoiceLoading] = useState(false)
 
   const load = useCallback(async () => {
     try {
       setLoading(true)
       const data = await api.getOrder(id)
       setOrder(data.order)
+      // Try to load invoice if exists
+      try {
+        const invRes = await fetch(`/api/orders/${id}/invoice`)
+        if (invRes.ok) {
+          const invData = await invRes.json()
+          setInvoice(invData.invoice)
+        }
+      } catch {}
     } catch {
       setError('Order not found')
     } finally {
@@ -28,6 +39,29 @@ export default function OrderDetailPage() {
   }, [id])
 
   useEffect(() => { load() }, [load])
+
+  async function generateInvoice() {
+    if (!order) return
+    setInvoiceLoading(true)
+    try {
+      const res = await fetch(`/api/orders/${id}/invoice`, { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        setInvoice(data.invoice)
+      } else {
+        alert(data.error || 'Failed to generate invoice')
+      }
+    } catch {
+      alert('Failed to generate invoice')
+    } finally {
+      setInvoiceLoading(false)
+    }
+  }
+
+  function downloadInvoice() {
+    if (!invoice) return
+    window.open(`/api/invoices/${invoice.id}/download`, '_blank')
+  }
 
   if (loading) return (
     <div className="space-y-4">
@@ -60,10 +94,21 @@ export default function OrderDetailPage() {
           <h1 className="text-2xl font-bold tracking-tight">{String(order.order_number ?? 'Order')}</h1>
           <p className="text-sm text-gray-500">Placed {formatDateTime(String(order.created_at))}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Badge>{humanize(String(order.payment_status))}</Badge>
           <Badge>{humanize(String(order.order_status))}</Badge>
           <Badge>{humanize(String(order.fulfillment_summary_status))}</Badge>
+          {order.payment_status === 'paid' && (
+            invoice ? (
+              <Button size="sm" variant="secondary" onClick={downloadInvoice}>
+                View Invoice {String(invoice.invoice_number)}
+              </Button>
+            ) : (
+              <Button size="sm" onClick={generateInvoice} disabled={invoiceLoading}>
+                {invoiceLoading ? 'Generating...' : 'Generate Invoice'}
+              </Button>
+            )
+          )}
         </div>
       </div>
 
