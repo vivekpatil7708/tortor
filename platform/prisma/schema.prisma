@@ -290,7 +290,6 @@ model Merchant {
   auditLogs          AuditLog[]
   invoices           Invoice[]
 
-
   // Phase 2 payments relations
   payments            Payment[]
   checkoutLinks       CheckoutLink[]
@@ -461,6 +460,8 @@ model Order {
   paidAt                   DateTime?                @map("paid_at")
   cancelledAt              DateTime?                @map("cancelled_at")
   completedAt              DateTime?                @map("completed_at")
+  invoiceNumber            String?                  @map("invoice_number")
+  invoiceGeneratedAt       DateTime?                @map("invoice_generated_at")
   updatedAt                DateTime                 @updatedAt @map("updated_at")
 
   merchant             Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
@@ -479,14 +480,15 @@ model Order {
 
   invoice Invoice?
 
-
   @@unique([merchantId, orderNumber])
   @@unique([merchantId, merchantOrderReference])
+  @@unique([merchantId, invoiceNumber])
   @@index([merchantId, createdAt])
   @@index([merchantId, paymentStatus])
   @@index([merchantId, orderStatus])
   @@index([merchantId, fulfillmentSummaryStatus])
   @@index([merchantId, source])
+  @@index([merchantId, invoiceGeneratedAt])
   @@map("orders")
 }
 
