@@ -182,7 +182,7 @@ export async function createInvoiceForOrder(orderId: string, merchantId: string)
             orderId,
             invoiceNumber,
             invoiceDate,
-            sellerName: merchant.businessName || merchant.name || null,
+            sellerName: merchant.taxLegalName || merchant.businessName || merchant.name || null,
             sellerGstin: merchant.gstin,
             sellerAddress: merchant.address,
             sellerState: sellerStateCode ? stateName(sellerStateCode) : null,
