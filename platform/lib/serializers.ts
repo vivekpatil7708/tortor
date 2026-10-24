@@ -402,6 +402,8 @@ export function serializeOrder(o: Order & {
     paid_at: o.paidAt?.toISOString() ?? null,
     cancelled_at: o.cancelledAt?.toISOString() ?? null,
     completed_at: o.completedAt?.toISOString() ?? null,
+    invoice_number: o.invoiceNumber,
+    invoice_generated_at: o.invoiceGeneratedAt?.toISOString() ?? null,
     updated_at: o.updatedAt.toISOString(),
     customer: o.customer ? serializeCustomer(o.customer) : null,
     order_items: o.orderItems?.map(serializeOrderItem),

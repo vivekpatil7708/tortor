@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireMerchant } from '@/lib/tenant'
-import { prisma } from '@/lib/prisma'
 import { apiError, publicErrorMessage } from '@/lib/api-response'
-import { createInvoiceForOrder } from '@/lib/invoice'
+import { createInvoiceForOrder, getInvoiceNumberForOrder } from '@/lib/invoice'
 
 export async function POST(
   req: NextRequest,
@@ -12,8 +11,18 @@ export async function POST(
     const session = await requireMerchant()
     const { id: orderId } = await params
     const invoice = await createInvoiceForOrder(orderId, session.id)
-    return NextResponse.json({ invoice }, { status: 201 })
-  } catch (err: any) {
+    return NextResponse.json(
+      {
+        invoice: {
+          id: invoice.id,
+          invoice_number: invoice.invoiceNumber,
+          invoice_date: invoice.invoiceDate.toISOString(),
+          order_id: invoice.orderId,
+        },
+      },
+      { status: 201 }
+    )
+  } catch (err) {
     const msg = publicErrorMessage(err, 'Could not generate invoice')
     if (msg.includes('not found') || msg.includes('Order not found')) return apiError(404, msg)
     if (msg.includes('paid')) return apiError(400, msg)
@@ -29,9 +38,15 @@ export async function GET(
   try {
     const session = await requireMerchant()
     const { id: orderId } = await params
-    const invoice = await prisma.invoice.findFirst({ where: { orderId, merchantId: session.id } })
-    if (!invoice) return apiError(404, 'Invoice not found')
-    return NextResponse.json({ invoice })
+    const order = await getInvoiceNumberForOrder(orderId, session.id)
+    if (!order) return apiError(404, 'Order not found')
+    if (!order.invoiceNumber) return apiError(404, 'Invoice not generated')
+    return NextResponse.json({
+      invoice: {
+        invoice_number: order.invoiceNumber,
+        invoice_generated_at: order.invoiceGeneratedAt?.toISOString() ?? null,
+      },
+    })
   } catch (err) {
     const msg = publicErrorMessage(err, 'Could not load invoice')
     if (msg === 'Unauthorized') return apiError(401, msg)
