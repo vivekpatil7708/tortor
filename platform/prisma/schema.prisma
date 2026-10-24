@@ -288,6 +288,8 @@ model Merchant {
   shipmentEvents     ShipmentEvent[]
   orderStatusHistory OrderStatusHistory[]
   auditLogs          AuditLog[]
+  invoices           Invoice[]
+
 
   // Phase 2 payments relations
   payments            Payment[]
@@ -309,6 +311,7 @@ model Merchant {
   returnRequests       ReturnRequest[]
   refunds              Refund[]
   inventoryAdjustments InventoryAdjustment[]
+
 
   // OAuth (public MCP connectors)
   oauthAuthCodes    OAuthAuthCode[]
@@ -423,6 +426,7 @@ model Product {
   // Phase 4 relations
   inventoryAdjustments InventoryAdjustment[]
 
+
   @@index([merchantId, status])
   @@map("products")
 }
@@ -472,6 +476,9 @@ model Order {
   refunds              Refund[]
   followUpTasks        FollowUpTask[]
   inventoryAdjustments InventoryAdjustment[]
+
+  invoice Invoice?
+
 
   @@unique([merchantId, orderNumber])
   @@unique([merchantId, merchantOrderReference])
@@ -1066,6 +1073,7 @@ model ReturnRequest {
   refunds              Refund[]
   inventoryAdjustments InventoryAdjustment[]
 
+
   @@unique([merchantId, returnNumber])
   @@index([merchantId, status])
   @@index([merchantId, createdAt])
@@ -1544,4 +1552,58 @@ model OAuthAccessToken {
   @@index([clientId])
   @@index([merchantId])
   @@map("oauth_access_tokens")
+}
+
+
+model Invoice {
+  id              String   @id @default(uuid())
+  merchantId      String   @map("merchant_id")
+  orderId         String   @unique @map("order_id")
+  invoiceNumber   String   @map("invoice_number")
+  invoiceDate     DateTime @default(now()) @map("invoice_date")
+  dueDate         DateTime? @map("due_date")
+
+  sellerName      String?  @map("seller_name")
+  sellerGstin     String?  @map("seller_gstin")
+  sellerAddress   String?  @map("seller_address")
+  sellerState     String?  @map("seller_state")
+  sellerStateCode String?  @map("seller_state_code")
+  sellerEmail     String?  @map("seller_email")
+  sellerPhone     String?  @map("seller_phone")
+
+  buyerName       String?  @map("buyer_name")
+  buyerEmail      String?  @map("buyer_email")
+  buyerPhone      String?  @map("buyer_phone")
+  buyerAddress    String?  @map("buyer_address")
+  buyerGstin      String?  @map("buyer_gstin")
+  buyerState      String?  @map("buyer_state")
+  buyerStateCode  String?  @map("buyer_state_code")
+
+  currency        String   @default("INR")
+  subtotal        Decimal  @db.Decimal(10, 2)
+  discount        Decimal  @default(0) @db.Decimal(10, 2)
+  shipping        Decimal  @default(0) @db.Decimal(10, 2)
+  taxAmount       Decimal  @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  total           Decimal  @db.Decimal(10, 2)
+
+  cgstAmount      Decimal  @default(0) @map("cgst_amount") @db.Decimal(10, 2)
+  sgstAmount      Decimal  @default(0) @map("sgst_amount") @db.Decimal(10, 2)
+  igstAmount      Decimal  @default(0) @map("igst_amount") @db.Decimal(10, 2)
+  taxRate         Decimal? @map("tax_rate") @db.Decimal(5, 2)
+  isInterState    Boolean  @default(false) @map("is_inter_state")
+
+  itemsJson       Json     @map("items_json")
+
+  notes           String?
+  terms           String?
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  merchant        Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, invoiceNumber])
+  @@index([merchantId, invoiceDate])
+  @@map("invoices")
 }
