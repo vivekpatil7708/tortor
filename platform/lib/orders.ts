@@ -3,6 +3,7 @@ import { generateOrderNumber, generateTrackingToken } from '@/lib/status'
 import { logAudit } from '@/lib/audit'
 import { restoreStockForOrder } from '@/lib/inventory'
 import { decidePaymentStatusChange } from '@/lib/payment-transitions'
+import { redeemCouponForOrder } from '@/lib/coupons'
 import type {
   OrderSource,
   PaymentStatus,
@@ -32,6 +33,8 @@ export interface CreateOrderInput {
   discountAmount?: number
   shippingAmount?: number
   taxAmount?: number
+  couponId?: string | null
+  couponCode?: string | null
   shippingAddress?: Record<string, unknown> | null
   billingAddress?: Record<string, unknown> | null
   internalNotes?: string | null
@@ -66,6 +69,8 @@ export async function createOrder(input: CreateOrderInput) {
     discountAmount = 0,
     shippingAmount = 0,
     taxAmount = 0,
+    couponId = null,
+    couponCode = null,
     shippingAddress = null,
     billingAddress = null,
     internalNotes = null,
@@ -165,6 +170,8 @@ export async function createOrder(input: CreateOrderInput) {
         shippingAmount: shipping,
         taxAmount: tax,
         totalAmount: total,
+        couponId,
+        couponCode,
         paymentStatus,
         orderStatus: orderStatus === 'pending_payment' ? 'pending_payment' : orderStatus,
         shippingAddressSnapshot: (shippingAddress as object) ?? undefined,
@@ -216,6 +223,7 @@ export async function createOrder(input: CreateOrderInput) {
           changeReason: 'Payment marked as paid at order creation',
         },
       })
+      await redeemCouponForOrder(tx, couponId)
     }
 
     await logAudit({
@@ -381,6 +389,10 @@ export async function setPaymentStatus(params: {
         changeReason: reason,
       },
     })
+
+    if (nextStatus === 'paid') {
+      await redeemCouponForOrder(tx, order.couponId)
+    }
 
     await logAudit({
       merchantId,

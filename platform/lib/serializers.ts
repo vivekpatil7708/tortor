@@ -10,6 +10,7 @@ import type {
   Product,
   Order,
   OrderItem,
+  Coupon,
   Fulfillment,
   FulfillmentItem,
   Package,
@@ -233,6 +234,33 @@ export function serializeProduct(p: Product) {
   }
 }
 
+export function serializeCoupon(c: Coupon) {
+  const now = Date.now()
+  const status = !c.isActive
+    ? 'inactive'
+    : c.expiresAt && c.expiresAt.getTime() <= now
+      ? 'expired'
+      : c.maxUses !== null && c.usedCount >= c.maxUses
+        ? 'exhausted'
+        : 'active'
+
+  return {
+    id: c.id,
+    merchant_id: c.merchantId,
+    code: c.code,
+    discount_type: c.discountType,
+    discount_value: c.discountValue.toNumber(),
+    min_order_amount: c.minOrderAmount?.toNumber() ?? null,
+    max_uses: c.maxUses,
+    used_count: c.usedCount,
+    expires_at: c.expiresAt?.toISOString() ?? null,
+    is_active: c.isActive,
+    status,
+    created_at: c.createdAt.toISOString(),
+    updated_at: c.updatedAt.toISOString(),
+  }
+}
+
 export function serializeOrderItem(i: OrderItem) {
   return {
     id: i.id,
@@ -359,6 +387,7 @@ export function serializeOrder(o: Order & {
     currency: o.currency,
     subtotal_amount: o.subtotalAmount.toNumber(),
     discount_amount: o.discountAmount.toNumber(),
+    coupon_code: o.couponCode,
     shipping_amount: o.shippingAmount.toNumber(),
     tax_amount: o.taxAmount.toNumber(),
     total_amount: o.totalAmount.toNumber(),

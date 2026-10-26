@@ -184,6 +184,42 @@ export const productListQuerySchema = z.object({
   page_size: z.coerce.number().int().min(1).max(100).optional().default(50),
 })
 
+// ============================================================
+// COUPONS
+// ============================================================
+
+export const couponSchema = z
+  .object({
+    code: z
+      .string()
+      .trim()
+      .min(2, 'Code must be at least 2 characters')
+      .max(40, 'Code must be 40 characters or fewer')
+      .regex(/^[A-Za-z0-9_-]+$/, 'Use letters, numbers, dashes or underscores only'),
+    discount_type: z.enum(['percentage', 'fixed']),
+    discount_value: z.number().positive('Discount must be greater than 0').max(1_000_000),
+    min_order_amount: z.number().min(0).optional().nullable(),
+    max_uses: z.number().int().min(1).optional().nullable(),
+    expires_at: z.string().datetime({ offset: true }).optional().nullable(),
+    is_active: z.boolean().optional().default(true),
+  })
+  .superRefine((value, ctx) => {
+    if (value.discount_type === 'percentage' && value.discount_value > 100) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['discount_value'],
+        message: 'A percentage discount cannot be more than 100',
+      })
+    }
+  })
+
+export const couponListQuerySchema = z.object({
+  search: z.string().max(200).optional(),
+  status: z.enum(['active', 'inactive', 'expired', 'exhausted']).optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  page_size: z.coerce.number().int().min(1).max(100).optional().default(50),
+})
+
 export const merchantProfileSchema = z.object({
   business_name: z.string().min(1).max(200),
   support_email: z.string().email().optional().nullable().or(z.literal('')).nullable(),

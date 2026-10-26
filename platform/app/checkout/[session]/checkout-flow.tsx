@@ -25,6 +25,7 @@ export interface CheckoutView {
     order_number: string
     subtotal_amount: number
     discount_amount: number
+    coupon_code: string | null
     shipping_amount: number
     tax_amount: number
     total_amount: number
@@ -68,6 +69,18 @@ export default function CheckoutFlow({ view }: Props) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [payResult, setPayResult] = useState<{ status: string; flagged?: boolean; reason?: string } | null>(null)
+  const [totals, setTotals] = useState({
+    subtotal: order.subtotal_amount,
+    discount: order.discount_amount,
+    shipping: order.shipping_amount,
+    tax: order.tax_amount,
+    total: order.total_amount,
+  })
+  const [payable, setPayable] = useState(payment.amount)
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(order.coupon_code)
+  const [couponInput, setCouponInput] = useState('')
+  const [couponBusy, setCouponBusy] = useState(false)
+  const [couponError, setCouponError] = useState('')
 
   const primaryColor = merchant.brand_color_primary || '#7bb86c'
   const secondaryColor = merchant.brand_color_secondary || '#2c2c2c'
@@ -92,6 +105,61 @@ export default function CheckoutFlow({ view }: Props) {
     if (trimmedName.length < 2) return 'Name must be at least 2 characters'
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Enter a valid email address'
     return null
+  }
+
+  async function applyCoupon() {
+    const code = couponInput.trim()
+    if (!code) return
+    setCouponBusy(true)
+    setCouponError('')
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session: payment.checkout_session_id, code }),
+      })
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string
+        coupon?: { code: string }
+        totals?: typeof totals
+      }
+      if (!res.ok || !data.totals || !data.coupon) {
+        setCouponError(data.error || 'Could not apply this coupon')
+        return
+      }
+      setTotals(data.totals)
+      setPayable(data.totals.total)
+      setAppliedCoupon(data.coupon.code)
+      setCouponInput('')
+    } catch {
+      setCouponError('Network error — please try again')
+    } finally {
+      setCouponBusy(false)
+    }
+  }
+
+  async function removeCoupon() {
+    setCouponBusy(true)
+    setCouponError('')
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session: payment.checkout_session_id }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { error?: string; totals?: typeof totals }
+      if (!res.ok || !data.totals) {
+        setCouponError(data.error || 'Could not remove this coupon')
+        return
+      }
+      setTotals(data.totals)
+      setPayable(data.totals.total)
+      setAppliedCoupon(null)
+    } catch {
+      setCouponError('Network error — please try again')
+    } finally {
+      setCouponBusy(false)
+    }
   }
 
   async function beginPayment() {
@@ -169,15 +237,15 @@ export default function CheckoutFlow({ view }: Props) {
     if (appName) {
       const app = UPI_APPS.find(a => a.name === appName)
       if (app) {
-        window.location.href = buildAppDeepLink(app, vpa, payment.amount, txnId, note)
+        window.location.href = buildAppDeepLink(app, vpa, payable, txnId, note)
         return
       }
     }
     const isAndroid = /android/i.test(navigator.userAgent)
     if (isAndroid && /chrome/i.test(navigator.userAgent)) {
-      window.location.href = buildUpiIntentUrl(vpa, payment.amount, txnId, note)
+      window.location.href = buildUpiIntentUrl(vpa, payable, txnId, note)
     } else {
-      window.location.href = buildUpiPayUrl(vpa, payment.amount, txnId, note)
+      window.location.href = buildUpiPayUrl(vpa, payable, txnId, note)
     }
   }
 
@@ -236,7 +304,7 @@ export default function CheckoutFlow({ view }: Props) {
     const vpa = merchant.upi_id || ''
     const note = `Order ${order.order_number}`
     const txnId = payment.payment_reference
-    const qrSrc = `/api/qr?vpa=${encodeURIComponent(vpa)}&amount=${payment.amount}&txn_id=${encodeURIComponent(txnId)}&note=${encodeURIComponent(note)}`
+    const qrSrc = `/api/qr?vpa=${encodeURIComponent(vpa)}&amount=${payable}&txn_id=${encodeURIComponent(txnId)}&note=${encodeURIComponent(note)}`
     const markedSent = payResult?.status === 'processing' || payResult?.status === 'pending'
     return (
       <div className={`flex min-h-screen items-center justify-center ${bg} p-4`} style={bgStyle}>
@@ -246,7 +314,7 @@ export default function CheckoutFlow({ view }: Props) {
               <img src={merchant.business_logo_url} className="mx-auto mb-3 h-12 object-contain" alt="" />
             )}
             <div className="text-4xl font-bold tracking-tight" style={{ color: secondaryColor }}>
-              {formatAmount(payment.amount)}
+              {formatAmount(payable)}
             </div>
             <p className="mt-1 text-sm opacity-70">{merchant.business_name}</p>
             <p className="mt-1 font-mono text-xs opacity-50">{payment.payment_reference}</p>
@@ -271,7 +339,7 @@ export default function CheckoutFlow({ view }: Props) {
               <button onClick={() => openUpi()}
                 className={`mb-3 w-full py-3.5 text-base font-bold text-white ${btnRadius}`}
                 style={{ backgroundColor: primaryColor }}>
-                Pay with UPI — {formatAmount(payment.amount)}
+                Pay with UPI — {formatAmount(payable)}
               </button>
 
               <div className="mb-4 grid grid-cols-3 gap-2">
@@ -307,7 +375,7 @@ export default function CheckoutFlow({ view }: Props) {
               <img src={merchant.business_logo_url} className="mx-auto mb-3 h-12 object-contain" alt="" />
             )}
             <div className="text-4xl font-bold tracking-tight" style={{ color: secondaryColor }}>
-              {formatAmount(payment.amount)}
+              {formatAmount(payable)}
             </div>
             <p className="mt-1 text-sm opacity-70">{merchant.business_name}</p>
             <p className="mt-1 font-mono text-xs opacity-50">{payment.payment_reference}</p>
@@ -331,7 +399,7 @@ export default function CheckoutFlow({ view }: Props) {
               <button onClick={simulatePay} disabled={busy}
                 className={`w-full py-3.5 text-base font-bold text-white ${btnRadius} disabled:opacity-60`}
                 style={{ backgroundColor: primaryColor }}>
-                {busy ? 'Processing…' : `Pay ${formatAmount(payment.amount)}`}
+                {busy ? 'Processing…' : `Pay ${formatAmount(payable)}`}
               </button>
               <button onClick={goToCancel} className={`mt-2 w-full py-2.5 text-sm font-semibold opacity-60 transition-opacity hover:opacity-90`}>
                 Cancel
@@ -359,15 +427,47 @@ export default function CheckoutFlow({ view }: Props) {
         <div className="mb-4">
           <OrderSummary
             items={order.items}
-            subtotal={order.subtotal_amount}
-            discount={order.discount_amount}
-            shipping={order.shipping_amount}
-            tax={order.tax_amount}
-            total={order.total_amount}
+            subtotal={totals.subtotal}
+            discount={totals.discount}
+            shipping={totals.shipping}
+            tax={totals.tax}
+            total={totals.total}
             currency={payment.currency}
             isDark={isDark}
             verified
           />
+        </div>
+
+        <div className="mb-4">
+          {appliedCoupon ? (
+            <div className={`flex items-center justify-between rounded-xl border px-3 py-2 text-xs font-semibold ${isDark ? 'border-green-400/30 bg-green-500/10 text-green-300' : 'border-green-200 bg-green-50 text-green-700'}`}>
+              <span>Coupon {appliedCoupon} applied</span>
+              <button type="button" onClick={removeCoupon} disabled={couponBusy} className="underline underline-offset-2 disabled:opacity-50">
+                {couponBusy ? 'Removing…' : 'Remove'}
+              </button>
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="coupon-code" className="mb-1 block text-xs font-semibold opacity-70">Have a coupon?</label>
+              <div className="flex gap-2">
+                <input
+                  id="coupon-code"
+                  value={couponInput}
+                  onChange={e => { setCouponInput(e.target.value); setCouponError('') }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon() } }}
+                  placeholder="Enter coupon code"
+                  autoComplete="off"
+                  className={`min-w-0 flex-1 rounded-xl border px-4 py-2.5 text-sm uppercase outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`}
+                />
+                <button type="button" onClick={applyCoupon} disabled={couponBusy || !couponInput.trim()}
+                  className={`shrink-0 px-4 py-2.5 text-sm font-bold text-white ${btnRadius} disabled:opacity-50`}
+                  style={{ backgroundColor: primaryColor }}>
+                  {couponBusy ? 'Applying…' : 'Apply'}
+                </button>
+              </div>
+              {couponError && <p className="mt-1.5 text-xs font-medium text-red-500">{couponError}</p>}
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -393,7 +493,7 @@ export default function CheckoutFlow({ view }: Props) {
         <button onClick={beginPayment} disabled={busy}
           className={`mt-6 w-full py-3.5 text-base font-bold text-white ${btnRadius} disabled:opacity-60`}
           style={{ backgroundColor: primaryColor }}>
-          {busy ? 'Preparing payment…' : `Continue to Pay ${formatAmount(order.total_amount)}`}
+          {busy ? 'Preparing payment…' : `Continue to Pay ${formatAmount(totals.total)}`}
         </button>
 
         <p className="mt-4 text-center text-[13px] opacity-70">Powered by ToroPay</p>

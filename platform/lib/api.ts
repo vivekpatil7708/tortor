@@ -260,6 +260,18 @@ export const api = {
   getProducts: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
     request<{ products: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/products${params || ''}`),
 
+  getCoupons: <T extends Record<string, unknown> = Record<string, unknown>>(params?: string) =>
+    request<{ coupons: T[]; total: number; page: number; page_size: number; total_pages: number }>(`/api/coupons${params || ''}`),
+
+  createCoupon: (body: Record<string, unknown>) =>
+    request<{ coupon: Record<string, unknown> }>('/api/coupons', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateCoupon: (id: string, body: Record<string, unknown>) =>
+    request<{ coupon: Record<string, unknown> }>(`/api/coupons/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteCoupon: (id: string) =>
+    request<{ ok: boolean }>(`/api/coupons/${id}`, { method: 'DELETE' }),
+
   getProduct: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
     request<{ product: T }>(`/api/products/${id}`),
 
