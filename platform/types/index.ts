@@ -80,6 +80,7 @@ export interface AnalyticsSummary {
   pending_orders: number
   gross_payment_volume: number
   refund_amount: number
+  net_payment_volume: number
   conversion_rate: number
   average_order_value: number
 }

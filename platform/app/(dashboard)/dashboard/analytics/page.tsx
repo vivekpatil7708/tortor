@@ -164,7 +164,9 @@ export default function AnalyticsPage() {
             <KPICard label="Paid" value={String(summary?.successful_payments || 0)} color="text-green-600" subtitle={summary?.conversion_rate ? `${summary.conversion_rate}% conversion` : undefined} />
             <KPICard label="Failed" value={String(summary?.failed_payments || 0)} color="text-red-600" />
             <KPICard label="Waiting for you" value={String(summary?.waiting_payments || 0)} color="text-amber-600" subtitle="Customers say they've paid" />
-            <KPICard label="Money received" value={formatAmount(Number(summary?.gross_payment_volume || 0))} color="text-purple-600" />
+            <KPICard label="Money received" value={formatAmount(Number(summary?.gross_payment_volume || 0))} color="text-purple-600" subtitle="Before refunds" />
+            <KPICard label="Refunds sent" value={formatAmount(Number(summary?.refund_amount || 0))} color="text-red-600" subtitle="Marked as processed" />
+            <KPICard label="Net received" value={formatAmount(Number(summary?.net_payment_volume ?? summary?.gross_payment_volume ?? 0))} color="text-emerald-600" subtitle="After refunds" />
             <KPICard label="Abandoned" value={String(summary?.abandoned_checkouts || 0)} color="text-gray-500" subtitle="Started, not paid in 30 min" />
             <KPICard label="Average payment" value={formatAmount(Number(summary?.average_order_value || 0))} color="text-blue-600" />
             <KPICard label="Conversion rate" value={summary?.conversion_rate ? `${summary.conversion_rate}%` : '0%'} color="text-emerald-600" />

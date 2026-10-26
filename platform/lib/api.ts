@@ -171,6 +171,22 @@ export const api = {
   updateTransaction: (txnId: string, body: Record<string, unknown>) =>
     request<{ transaction: Record<string, unknown> }>(`/api/transactions/${txnId}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
+  getRefunds: (status?: 'pending' | 'processed' | 'failed') =>
+    request<{
+      refunds: Record<string, unknown>[]
+      total_pending: number
+      total_processed: number
+    }>(`/api/refunds${status ? `?status=${status}` : ''}`),
+
+  createRefund: (body: { order_id?: string; transaction_id?: string; amount: number; reason?: string }) =>
+    request<{ refund: Record<string, unknown> }>('/api/refunds', { method: 'POST', body: JSON.stringify(body) }),
+
+  processRefund: (id: string) =>
+    request<{ refund: Record<string, unknown>; notifications: Array<Record<string, unknown>> }>(`/api/refunds/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'processed' }),
+    }),
+
   getPendingUpiPayments: () => request<{ payments: Array<Record<string, unknown>> }>('/api/payments/pending'),
 
   confirmUpiPayment: (id: string) =>

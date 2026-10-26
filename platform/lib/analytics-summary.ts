@@ -14,12 +14,22 @@ export type AnalyticsSummary = {
   pending_orders: number
   gross_payment_volume: number
   refund_amount: number
+  net_payment_volume: number
   conversion_rate: number
   average_order_value: number
   success_rate: number | null
   waiting_payments: number
   abandoned_checkouts: number
   in_progress_checkouts: number
+}
+
+function isMissingTableError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err.code === 'P2021' || err.code === 'P2022')
+  )
 }
 
 /** The merchant's summary, or null when the from/to values aren't valid dates. */
@@ -38,7 +48,10 @@ export async function analyticsSummary(
   // Counted and added up in the database, so every transaction is included
   // without loading them all.
   const holdStart = new Date(Date.now() - CHECKOUT_HOLD_MINUTES * 60_000)
-  const [groups, abandoned] = await Promise.all([
+  const refundWhere: Prisma.RefundWhereInput = { merchantId }
+  if (from || to) refundWhere.createdAt = createdAt
+
+  const [groups, abandoned, refunds] = await Promise.all([
     prisma.transaction.groupBy({
       by: ['status'],
       where,
@@ -47,6 +60,18 @@ export async function analyticsSummary(
     }),
     // Checkouts started over 30 minutes ago that the customer never marked as paid.
     prisma.transaction.count({ where: { AND: [where, { status: 'initiated', createdAt: { lt: holdStart } }] } }),
+    // Refunds recorded manually. Until the refunds migration is run this table
+    // is missing; analytics must keep working while the migration is pending.
+    // Statuses are grouped and matched here so the query stays valid even before
+    // the database enum has the new "processed" value.
+    prisma.refund.groupBy({
+      by: ['status'],
+      where: refundWhere,
+      _sum: { amount: true },
+    }).catch(err => {
+      if (isMissingTableError(err)) return []
+      throw err
+    }),
   ])
   const count = (...statuses: string[]) =>
     groups.filter(g => statuses.includes(g.status)).reduce((a, g) => a + g._count._all, 0)
@@ -61,6 +86,11 @@ export async function analyticsSummary(
   // Success rate counts only payments that were settled either way, so a
   // customer who opened the link and left isn't counted as a failure.
   const settled = successful + count('failed')
+  const refundAmount = roundToPaise(
+    refunds
+      .filter(refund => refund.status === 'processed' || refund.status === 'completed')
+      .reduce((total, refund) => total + (refund._sum.amount?.toNumber() ?? 0), 0)
+  )
 
   return {
     total_orders: totalOrders,
@@ -69,7 +99,9 @@ export async function analyticsSummary(
     pending_orders: count('pending', 'initiated'),
     // Totals of many amounts are rounded back to whole paise.
     gross_payment_volume: roundToPaise(totalRevenue),
-    refund_amount: roundToPaise(sum('refunded')),
+    refund_amount: refundAmount,
+    // What the merchant actually kept after refunds they have marked as sent.
+    net_payment_volume: roundToPaise(Math.max(0, totalRevenue - refundAmount)),
     conversion_rate: Math.round(conversion * 10) / 10,
     average_order_value: Math.round(avgOrder * 100) / 100,
     success_rate: settled > 0 ? Math.round((successful / settled) * 1000) / 10 : null,

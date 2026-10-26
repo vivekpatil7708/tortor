@@ -16,6 +16,7 @@ const db = vi.hoisted(() => ({
   },
   paymentLink: { findMany: vi.fn(), groupBy: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
   upiId: { findFirst: vi.fn() },
+  refund: { groupBy: vi.fn() },
   apiRequestLog: { create: vi.fn() },
 }))
 const notifyPaymentStatus = vi.hoisted(() => vi.fn())
@@ -62,6 +63,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   db.apiRequestLog.create.mockResolvedValue({})
   db.transaction.updateMany.mockResolvedValue({ count: 1 })
+  db.refund.groupBy.mockResolvedValue([])
 })
 
 describe('GET /api/v1/transactions', () => {

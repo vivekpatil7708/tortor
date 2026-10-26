@@ -7,6 +7,7 @@ const db = vi.hoisted(() => ({
   upiId: { findFirst: vi.fn() },
   paymentLink: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   transaction: { groupBy: vi.fn(), count: vi.fn() },
+  refund: { groupBy: vi.fn().mockResolvedValue([]) },
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 vi.mock('@/lib/auth', () => ({ requireSession: vi.fn(async () => ({ id: 'm1', emailVerifiedAt: new Date() })) }))

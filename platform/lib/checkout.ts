@@ -4,6 +4,7 @@ import { createOrder, type OrderItemInput } from '@/lib/orders'
 import { getProvider } from '@/lib/payments'
 import { resolveItemPrices, computeTotals, verifyAmount } from '@/lib/pricing'
 import { checkCoupon, normalizeCouponCode } from '@/lib/coupons'
+import { publicRefundSummaryForOrder, type PublicRefundSummary } from '@/lib/refund-tracking'
 import type { KeyMode, PaymentStatus, OrderSource } from '@prisma/client'
 
 export const TOROPAY_PUBLIC_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://checkout.toropay.co.in'
@@ -332,6 +333,8 @@ export interface CheckoutView {
     custom_message: string | null
     upi_id: string | null
   }
+  /** Only present once a refund has been recorded for this order. */
+  refunds: PublicRefundSummary | null
 }
 
 /**
@@ -372,6 +375,9 @@ export async function getCheckoutView(checkoutSessionId: string): Promise<Checko
   const activeUpi = payment.merchant.upiIds
     .filter(u => u.status === 'active')
     .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary))[0]?.vpa ?? null
+  const refunds = ['paid', 'partially_refunded', 'refunded'].includes(payment.status)
+    ? await publicRefundSummaryForOrder(o.id)
+    : null
   return {
     payment: {
       checkout_session_id: payment.checkoutSessionId,
@@ -421,6 +427,7 @@ export async function getCheckoutView(checkoutSessionId: string): Promise<Checko
       custom_message: null,
       upi_id: activeUpi,
     },
+    refunds,
   }
 }
 
