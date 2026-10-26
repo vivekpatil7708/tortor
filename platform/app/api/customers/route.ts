@@ -3,6 +3,7 @@ import { requireMerchant } from '@/lib/tenant'
 import { prisma } from '@/lib/prisma'
 import { apiError, publicErrorMessage } from '@/lib/api-response'
 import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
+import { dispatchMerchantWebhook } from '@/lib/webhook-delivery'
 
 const DEFAULT_LIMIT = 50
 const MAX_LIMIT = 200
@@ -173,6 +174,20 @@ export async function POST(req: NextRequest) {
       },
       include: { _count: { select: { addresses: true } } },
     })
+
+    // Customers are not test/live scoped; treat a dashboard-created customer as
+    // a live event. A failed receiver must not fail the save.
+    await dispatchMerchantWebhook({
+      merchantId: session.id,
+      mode: 'live',
+      eventType: 'customer.created',
+      data: {
+        customer_id: customer.id,
+        full_name: customer.fullName,
+        email: customer.email,
+        phone: customer.phone,
+      },
+    }).catch(() => {})
 
     return NextResponse.json({ customer: serialize(customer, 0) }, { status: 201 })
   } catch (err) {

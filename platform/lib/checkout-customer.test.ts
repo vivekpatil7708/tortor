@@ -9,6 +9,9 @@ const db = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 
+const webhooks = vi.hoisted(() => ({ dispatchMerchantWebhook: vi.fn() }))
+vi.mock('@/lib/webhook-delivery', () => webhooks)
+
 import { getCheckoutView, updateCheckoutCustomer } from '@/lib/checkout'
 
 const ORDER_CREATED = new Date('2026-10-06T10:00:00Z')
@@ -39,6 +42,7 @@ const savedCustomer = {
 beforeEach(() => {
   vi.clearAllMocks()
   db.customer.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ id: 'new', ...data, createdAt: ORDER_CREATED }))
+  webhooks.dispatchMerchantWebhook.mockResolvedValue([])
 })
 
 describe('updateCheckoutCustomer', () => {
@@ -50,6 +54,17 @@ describe('updateCheckoutCustomer', () => {
     expect(db.customer.findFirst).not.toHaveBeenCalled()
     expect(db.customer.create).toHaveBeenCalledWith({
       data: { merchantId: 'm1', fullName: 'Mallory', email: 'asha@example.com', phone: null },
+    })
+    expect(webhooks.dispatchMerchantWebhook).toHaveBeenCalledWith({
+      merchantId: 'm1',
+      mode: 'live',
+      eventType: 'customer.created',
+      data: {
+        customer_id: 'new',
+        full_name: 'Mallory',
+        email: 'asha@example.com',
+        phone: null,
+      },
     })
   })
 

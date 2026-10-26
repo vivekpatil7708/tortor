@@ -5,6 +5,8 @@ import { generateSlug } from '@/lib/utils'
 import { isValidRedirectUrl } from '@/lib/validate-url'
 import { isValidWebhookUrl } from '@/lib/safe-fetch'
 import { productsImageProblem } from '@/lib/image-input'
+import { dispatchMerchantWebhook } from '@/lib/webhook-delivery'
+import { TOROPAY_PUBLIC_URL } from '@/lib/checkout'
 import type { PaymentLink } from '@prisma/client'
 
 // Creating a payment link, shared by the dashboard route (app/api/links POST)
@@ -90,5 +92,23 @@ export async function createPaymentLink(merchantId: string, body: CreateLinkInpu
       slug,
     },
   })
+
+  // Delivery is best-effort: a slow receiver must never stop the link from
+  // being created. Links are not test/live scoped, so this is a live event.
+  await dispatchMerchantWebhook({
+    merchantId,
+    mode: 'live',
+    eventType: 'payment_link.created',
+    data: {
+      link_id: link.id,
+      title: link.title,
+      slug: link.slug,
+      link_url: `${TOROPAY_PUBLIC_URL.replace(/\/+$/, '')}/pay/${link.slug}`,
+      amount: link.amount ? Number(link.amount) : null,
+      amount_flexible: link.amountFlexible,
+      upi_id: link.upiId,
+    },
+  }).catch(() => {})
+
   return { ok: true, link }
 }

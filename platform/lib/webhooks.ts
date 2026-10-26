@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import { prisma } from './prisma'
 import { postWebhook, UnsafeWebhookUrlError } from './safe-fetch'
 import { nextWebhookAttemptAt, retryWindowStart } from './webhook-retry'
+import { dispatchMerchantWebhook } from './webhook-delivery'
 
 export function signWebhookPayload(payload: string, secret: string) {
   return crypto.createHmac('sha256', secret).update(payload).digest('hex')
@@ -147,23 +148,41 @@ export async function notifyPaymentStatus(transactionId: string, status: 'succes
       merchant: { include: { settings: true } },
     },
   })
-  if (!txn?.paymentLink?.webhookUrl) return
+  if (!txn) return
 
-  await deliverMerchantWebhook({
-    merchantId: txn.merchantId,
-    transactionId: txn.id,
-    url: txn.paymentLink.webhookUrl,
-    event: `payment.${status}`,
-    secret: await getWebhookSecret(txn.merchantId, txn.merchant.settings?.webhookSecret),
-    payload: {
-      txn_id: txn.txnId,
-      amount: txn.amount,
-      status,
-      customer_name: txn.customerName,
-      customer_phone: txn.customerPhone,
-      customer_email: txn.customerEmail,
-      payment_app: txn.paymentApp,
-      link_title: txn.paymentLink.title,
-    },
-  })
+  const payload = {
+    transaction_id: txn.id,
+    txn_id: txn.txnId,
+    amount: txn.amount,
+    status,
+    customer_name: txn.customerName,
+    customer_phone: txn.customerPhone,
+    customer_email: txn.customerEmail,
+    payment_app: txn.paymentApp,
+    link_id: txn.paymentLinkId,
+    link_title: txn.paymentLink?.title ?? null,
+  }
+
+  // The older per-link webhook URL keeps its existing payment.success /
+  // payment.failed contract.
+  if (txn.paymentLink?.webhookUrl) {
+    await deliverMerchantWebhook({
+      merchantId: txn.merchantId,
+      transactionId: txn.id,
+      url: txn.paymentLink.webhookUrl,
+      event: `payment.${status}`,
+      secret: await getWebhookSecret(txn.merchantId, txn.merchant.settings?.webhookSecret),
+      payload,
+    })
+  }
+
+  // The endpoint system uses the clearer Zapier-style trigger names.
+  if (status === 'success' || status === 'failed') {
+    await dispatchMerchantWebhook({
+      merchantId: txn.merchantId,
+      mode: 'live',
+      eventType: status === 'success' ? 'payment.confirmed' : 'payment.rejected',
+      data: payload,
+    }).catch(() => {})
+  }
 }

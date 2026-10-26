@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Copy, Check, Plus, RotateCcw, Trash2, KeyRound } from 'lucide-react'
 import { api } from '@/lib/api'
+import { WEBHOOK_EVENTS } from '@/lib/webhook-events'
 import { Button } from '@/components/ui/button'
 import { LoadError } from '@/components/ui/load-error'
 
@@ -60,6 +62,93 @@ function WebhookSecret() {
           <Button type="submit" size="sm" disabled={saving}>{saving ? 'Saving…' : 'Save secret'}</Button>
         </form>
       )}
+    </section>
+  )
+}
+
+/** The server-side contract for every outgoing webhook, kept beside the keys. */
+function WebhookPayloadDocs() {
+  return (
+    <section className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="font-bold">Webhook payload format</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            ToroPay POSTs JSON to your endpoint. Every event has the same envelope; only the event type and data change.
+          </p>
+        </div>
+        <Link href="/dashboard/developers/webhook-logs" className="text-xs font-semibold text-gray-600 hover:text-charcoal">
+          View delivery logs →
+        </Link>
+      </div>
+
+      <pre className="mt-4 overflow-x-auto rounded-xl bg-gray-900 p-4 text-[11px] leading-5 text-gray-100">{`{
+  "id": "evt_abc123",
+  "type": "payment.confirmed",
+  "created_at": "2026-10-27T10:30:00.000Z",
+  "data": {
+    "transaction_id": "txn_...",
+    "txn_id": "TP-TXN-...",
+    "amount": 1499,
+    "status": "success",
+    "customer_name": "Asha Rao",
+    "customer_phone": "9876543210",
+    "payment_app": "Google Pay",
+    "link_id": "...",
+    "link_title": "October invoice"
+  }
+}`}</pre>
+
+      <h3 className="mt-5 text-sm font-bold">Headers</h3>
+      <ul className="mt-2 space-y-1 text-sm text-gray-600">
+        <li><code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">Content-Type: application/json</code></li>
+        <li><code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">X-ToroPay-Event: payment.confirmed</code> — the same value as <code className="font-mono text-xs">type</code></li>
+        <li><code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs">X-ToroPay-Signature: &lt;hex&gt;</code> — HMAC SHA-256 of the raw request body using your signing secret</li>
+      </ul>
+
+      <h3 className="mt-5 text-sm font-bold">Events</h3>
+      <p className="mt-1 text-xs text-gray-500">
+        These are the endpoint triggers. A payment link that still uses its own per-link webhook URL receives the older
+        <code className="mx-1 rounded bg-white px-1 py-0.5 font-mono">payment.success</code> /
+        <code className="mx-1 rounded bg-white px-1 py-0.5 font-mono">payment.failed</code> payload instead.
+      </p>
+      <div className="mt-2 divide-y divide-gray-100 rounded-xl border border-gray-100 bg-white/60">
+        {WEBHOOK_EVENTS.map(event => (
+          <div key={event.value} className="flex flex-col gap-0.5 px-3 py-2 sm:flex-row sm:items-baseline sm:gap-3">
+            <code className="w-56 shrink-0 font-mono text-xs font-semibold text-gray-700">{event.value}</code>
+            <span className="text-xs text-gray-500">{event.description}</span>
+          </div>
+        ))}
+      </div>
+
+      <h3 className="mt-5 text-sm font-bold">Verify the signature</h3>
+      <p className="mt-1 text-sm text-gray-600">
+        Compare the signature in constant time. Use the exact raw body bytes — parsing and re-serialising JSON can change them.
+      </p>
+      <pre className="mt-2 overflow-x-auto rounded-xl bg-gray-900 p-4 text-[11px] leading-5 text-gray-100">{`const crypto = require('crypto')
+
+const expected = crypto
+  .createHmac('sha256', process.env.TOROPAY_WEBHOOK_SECRET)
+  .update(rawBody)
+  .digest('hex')
+
+const received = req.headers['x-toropay-signature'] || ''
+if (expected.length !== received.length ||
+    !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received))) {
+  return res.status(400).end()
+}`}</pre>
+
+      <p className="mt-4 text-xs text-gray-500">
+        Failed deliveries are retried automatically with backoff. Open{' '}
+        <Link href="/dashboard/developers/webhook-logs" className="font-semibold text-gray-600 hover:underline">
+          Webhook logs
+        </Link>{' '}
+        to inspect the payload, response and retry any delivery manually. See{' '}
+        <Link href="/dashboard/webhooks" className="font-semibold text-gray-600 hover:underline">
+          Webhooks
+        </Link>{' '}
+        to add or remove endpoints.
+      </p>
     </section>
   )
 }
@@ -261,6 +350,7 @@ export default function DevelopersPage() {
       )}
 
       <WebhookSecret />
+      <WebhookPayloadDocs />
     </div>
   )
 }

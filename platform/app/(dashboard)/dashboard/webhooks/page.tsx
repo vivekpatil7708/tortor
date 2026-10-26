@@ -1,24 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Plus, Trash2, RefreshCw, Send, Copy, Check, ChevronDown, AlertTriangle } from 'lucide-react'
 import { api } from '@/lib/api'
+import { WEBHOOK_EVENTS, WEBHOOK_EVENT_LABELS } from '@/lib/webhook-events'
 import { Button } from '@/components/ui/button'
 import { LoadError } from '@/components/ui/load-error'
 
-/** Every event ToroPay can deliver. Kept in step with OUTGOING_WEBHOOK_EVENTS on the server. */
-const EVENT_OPTIONS = [
-  { value: 'order.created', label: 'Order created' },
-  { value: 'order.paid', label: 'Order paid' },
-  { value: 'order.updated', label: 'Order updated' },
-  { value: 'payment.paid', label: 'Payment paid' },
-  { value: 'payment.failed', label: 'Payment failed' },
-  { value: 'fulfillment.created', label: 'Fulfillment created' },
-  { value: 'fulfillment.shipped', label: 'Fulfillment shipped' },
-  { value: 'fulfillment.delivered', label: 'Fulfillment delivered' },
-] as const
-
-const EVENT_LABELS: Record<string, string> = Object.fromEntries(EVENT_OPTIONS.map(o => [o.value, o.label]))
+/** Every event ToroPay can deliver. Kept in step with the server catalogue. */
+const EVENT_OPTIONS = WEBHOOK_EVENTS
 
 interface Endpoint {
   id: string
@@ -120,6 +111,16 @@ function EndpointCard({ endpoint, onChange, onSecretRotated }: {
   const [testing, setTesting] = useState(false)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const subscribedEvents = EVENT_OPTIONS.filter(option =>
+    endpoint.event_types.includes('*') || endpoint.event_types.includes(option.value))
+  const [testEvent, setTestEvent] = useState<string>(subscribedEvents[0]?.value ?? 'order.created')
+
+  useEffect(() => {
+    if (subscribedEvents.length && !subscribedEvents.some(option => option.value === testEvent)) {
+      setTestEvent(subscribedEvents[0].value)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endpoint.event_types])
 
   async function loadDeliveries() {
     setLoadingLogs(true)
@@ -182,7 +183,7 @@ function EndpointCard({ endpoint, onChange, onSecretRotated }: {
     setTesting(true)
     setMessage('')
     try {
-      const res = await api.sendTestWebhook(endpoint.id)
+      const res = await api.sendTestWebhook(endpoint.id, testEvent)
       setMessage(res.message)
       if (expanded) loadDeliveries()
       onChange()
@@ -212,7 +213,7 @@ function EndpointCard({ endpoint, onChange, onSecretRotated }: {
           <p className="mt-1 text-xs text-gray-500">
             {endpoint.event_types.includes('*')
               ? 'All events'
-              : endpoint.event_types.map(e => EVENT_LABELS[e] || e).join(', ')}
+              : endpoint.event_types.map(e => WEBHOOK_EVENT_LABELS[e] || e).join(', ')}
           </p>
           <p className="mt-0.5 text-xs text-gray-400">
             {endpoint.last_delivery_at
@@ -221,9 +222,6 @@ function EndpointCard({ endpoint, onChange, onSecretRotated }: {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <button onClick={sendTest} disabled={testing} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-charcoal" aria-label="Send test event">
-            <Send className={`h-4 w-4 ${testing ? 'animate-pulse' : ''}`} />
-          </button>
           <button onClick={toggleActive} disabled={busy} className="rounded-lg p-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 hover:text-charcoal">
             {endpoint.active ? 'Turn off' : 'Turn on'}
           </button>
@@ -235,14 +233,29 @@ function EndpointCard({ endpoint, onChange, onSecretRotated }: {
 
       {message && <p role="status" className="mt-2 text-xs text-gray-600">{message}</p>}
 
-      <button onClick={toggleExpand} className="mt-3 flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-charcoal">
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-        {expanded ? 'Hide delivery log' : 'Delivery log'}
-      </button>
-
-      <button onClick={rotate} disabled={busy} className="ml-3 mt-3 text-xs font-semibold text-gray-500 hover:text-charcoal">
-        Rotate secret
-      </button>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <select
+          value={testEvent}
+          onChange={e => setTestEvent(e.target.value)}
+          aria-label="Test event type"
+          className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-gray-500"
+        >
+          {subscribedEvents.map(option => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+        <Button type="button" size="sm" variant="secondary" onClick={sendTest} disabled={testing || !subscribedEvents.length}>
+          <Send className={`mr-1.5 h-3.5 w-3.5 ${testing ? 'animate-pulse' : ''}`} />
+          {testing ? 'Sending…' : 'Send test event'}
+        </Button>
+        <button onClick={toggleExpand} className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-charcoal">
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          {expanded ? 'Hide delivery log' : 'Delivery log'}
+        </button>
+        <button onClick={rotate} disabled={busy} className="text-xs font-semibold text-gray-500 hover:text-charcoal">
+          Rotate secret
+        </button>
+      </div>
 
       {expanded && (
         <div className="mt-2 rounded-xl border border-gray-100 bg-white/60 p-2">
@@ -330,7 +343,10 @@ export default function WebhooksPage() {
           <h1 className="text-2xl font-extrabold tracking-tight">Webhooks</h1>
           <p className="text-sm text-gray-500">
             Send order and payment events to your own server as they happen. Each request is signed with
-            the X-ToroPay-Signature header so you can verify it came from ToroPay.
+            the X-ToroPay-Signature header so you can verify it came from ToroPay.{' '}
+            <Link href="/dashboard/developers/webhook-logs" className="font-semibold text-gray-600 hover:underline">
+              View delivery logs
+            </Link>
           </p>
         </div>
         <Button type="button" size="sm" onClick={() => setShowForm(s => !s)}>

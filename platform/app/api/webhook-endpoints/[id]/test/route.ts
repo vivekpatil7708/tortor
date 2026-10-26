@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireMerchant } from '@/lib/tenant'
 import { sendTestWebhook } from '@/lib/webhook-delivery'
+import { isWebhookEvent } from '@/lib/webhook-events'
 import { apiError, publicErrorMessage } from '@/lib/api-response'
 
-/** Send a sample order.created event to this endpoint so a merchant can test their receiver. */
-export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+/** Send a sample event to this endpoint so a merchant can test their receiver. */
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireMerchant()
     const { id } = await ctx.params
+    const body = (await req.json().catch(() => ({}))) as { event_type?: unknown }
+    const eventType = body.event_type ?? 'order.created'
+    if (!isWebhookEvent(eventType)) return apiError(400, 'Unknown webhook event')
 
-    const result = await sendTestWebhook(id, session.id)
+    const result = await sendTestWebhook(id, session.id, eventType)
     if (!result.success && !result.logId) return apiError(404, 'Webhook endpoint not found')
 
     return NextResponse.json({
       success: result.success,
       log_id: result.logId ?? null,
       message: result.success
-        ? 'Test event delivered. Check your endpoint received it.'
+        ? `Test ${eventType} event delivered. Check your endpoint received it.`
         : 'Test event sent but the endpoint did not return 2xx. See the delivery log for details.',
     })
   } catch (err) {
