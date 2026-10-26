@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit'
 import { restoreStockForOrder } from '@/lib/inventory'
 import { decidePaymentStatusChange } from '@/lib/payment-transitions'
 import { redeemCouponForOrder } from '@/lib/coupons'
+import { dispatchMerchantWebhook } from '@/lib/webhook-delivery'
 import type {
   OrderSource,
   PaymentStatus,
@@ -98,8 +99,9 @@ export async function createOrder(input: CreateOrderInput) {
   const total = round2(subtotal - discount + shipping + tax)
   if (total < 0) throw new Error('Total amount cannot be negative')
 
-  return prisma.$transaction(
+  const result = await prisma.$transaction(
     async (tx) => {
+    let createdCustomer = false
     // Generate a unique order number
     let orderNumber = ''
     for (let attempt = 0; attempt < 5; attempt++) {
@@ -150,6 +152,7 @@ export async function createOrder(input: CreateOrderInput) {
           },
         })
         resolvedCustomerId = created.id
+        createdCustomer = true
       }
     }
 
@@ -253,13 +256,63 @@ export async function createOrder(input: CreateOrderInput) {
       })
     }
 
-    return tx.order.findUnique({
+    const created = await tx.order.findUnique({
       where: { id: order.id },
       include: { orderItems: true, customer: true },
     })
+    return { order: created, createdCustomer }
   },
   { timeout: 30000 }
   )
+
+  const created = result.order
+  if (created) {
+    const mode = testMode ? 'test' : 'live'
+    if (result.createdCustomer && created.customer) {
+      await dispatchMerchantWebhook({
+        merchantId,
+        mode,
+        eventType: 'customer.created',
+        data: {
+          customer_id: created.customer.id,
+          full_name: created.customer.fullName,
+          email: created.customer.email,
+          phone: created.customer.phone,
+        },
+      }).catch(() => {})
+    }
+
+    await dispatchMerchantWebhook({
+      merchantId,
+      mode,
+      eventType: 'order.created',
+      data: {
+        order_id: created.id,
+        order_number: created.orderNumber,
+        order_status: created.orderStatus,
+        payment_status: created.paymentStatus,
+        amount: created.totalAmount.toNumber(),
+        currency: created.currency,
+        source: created.source,
+        merchant_order_reference: created.merchantOrderReference,
+        customer: created.customer ? {
+          id: created.customer.id,
+          name: created.customer.fullName,
+          email: created.customer.email,
+          phone: created.customer.phone,
+        } : null,
+        items: created.orderItems.map(item => ({
+          name: item.productNameSnapshot,
+          sku: item.skuSnapshot,
+          quantity: item.quantityOrdered,
+          unit_price: item.unitPrice.toNumber(),
+          line_total: item.lineTotal.toNumber(),
+        })),
+      },
+    }).catch(() => {})
+  }
+
+  return created
 }
 
 /**

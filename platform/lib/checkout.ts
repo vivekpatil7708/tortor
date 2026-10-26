@@ -5,6 +5,7 @@ import { getProvider } from '@/lib/payments'
 import { resolveItemPrices, computeTotals, verifyAmount } from '@/lib/pricing'
 import { checkCoupon, normalizeCouponCode } from '@/lib/coupons'
 import { publicRefundSummaryForOrder, type PublicRefundSummary } from '@/lib/refund-tracking'
+import { dispatchMerchantWebhook } from '@/lib/webhook-delivery'
 import type { KeyMode, PaymentStatus, OrderSource } from '@prisma/client'
 
 export const TOROPAY_PUBLIC_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://checkout.toropay.co.in'
@@ -460,6 +461,7 @@ export async function updateCheckoutCustomer(input: UpdateCheckoutCustomerInput)
   const phone = (input.phone || '').trim() || null
 
   let customer = order.customer
+  let createdCustomer = false
   // A saved customer is only reused when both email and phone match, so typing
   // someone else's email or phone can't attach this order to their record.
   if (!customerId && email && phone) {
@@ -482,6 +484,7 @@ export async function updateCheckoutCustomer(input: UpdateCheckoutCustomerInput)
       },
     })
     customerId = customer.id
+    createdCustomer = true
   } else if (customer) {
     const updates: { [k: string]: unknown } = {}
     if (email && !customer.email) updates.email = email
@@ -493,6 +496,20 @@ export async function updateCheckoutCustomer(input: UpdateCheckoutCustomerInput)
 
   if (customerId !== order.customerId) {
     await prisma.order.update({ where: { id: order.id }, data: { customerId } })
+  }
+
+  if (createdCustomer && customer) {
+    await dispatchMerchantWebhook({
+      merchantId: payment.merchantId,
+      mode: payment.mode,
+      eventType: 'customer.created',
+      data: {
+        customer_id: customer.id,
+        full_name: customer.fullName,
+        email: customer.email,
+        phone: customer.phone,
+      },
+    }).catch(() => {})
   }
 
   return getCheckoutView(input.checkoutSessionId)

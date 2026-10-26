@@ -13,6 +13,9 @@ vi.mock('@/lib/prisma', () => ({ prisma: db }))
 const auth = vi.hoisted(() => ({ requireSession: vi.fn() }))
 vi.mock('@/lib/auth', () => auth)
 
+const webhooks = vi.hoisted(() => ({ dispatchMerchantWebhook: vi.fn() }))
+vi.mock('@/lib/webhook-delivery', () => webhooks)
+
 import { GET as listCustomers, POST as createCustomer } from '@/app/api/customers/route'
 import { GET as getCustomer, PATCH as updateCustomer, DELETE as deleteCustomer } from '@/app/api/customers/[id]/route'
 import { POST as addAddress, DELETE as deleteAddress } from '@/app/api/customers/[id]/addresses/route'
@@ -37,6 +40,7 @@ beforeEach(() => {
   db.customer.count.mockResolvedValue(1)
   db.order.groupBy.mockResolvedValue([])
   db.order.aggregate.mockResolvedValue({ _sum: { totalAmount: null } })
+  webhooks.dispatchMerchantWebhook.mockResolvedValue([])
 })
 
 afterEach(() => vi.restoreAllMocks())
@@ -132,6 +136,17 @@ describe('creating a customer', () => {
     expect(db.customer.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ merchantId: 'm1', fullName: 'Asha Rao', tags: ['vip', 'repeat'] }),
     }))
+    expect(webhooks.dispatchMerchantWebhook).toHaveBeenCalledWith({
+      merchantId: 'm1',
+      mode: 'live',
+      eventType: 'customer.created',
+      data: {
+        customer_id: 'c9',
+        full_name: 'Asha Rao',
+        email: 'asha@example.com',
+        phone: '9876543210',
+      },
+    })
   })
 
   it('needs a name', async () => {

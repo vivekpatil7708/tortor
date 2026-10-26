@@ -26,6 +26,7 @@ const MERCHANT_WRITE_PREFIXES = [
   '/api/merchant',
   '/api/api-keys',
   '/api/webhook-endpoints',
+  '/api/webhook-deliveries',
   '/api/oauth/tokens',
   '/api/upi',
   '/api/templates',

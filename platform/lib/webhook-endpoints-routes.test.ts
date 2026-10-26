@@ -216,7 +216,32 @@ describe('sending a test event', () => {
     const res = await sendTest(new NextRequest('http://localhost/x', { method: 'POST' }), params('we1'))
     expect(res.status).toBe(200)
     expect((await res.json()).success).toBe(true)
-    expect(delivery.sendTestWebhook).toHaveBeenCalledWith('we1', 'm1')
+    expect(delivery.sendTestWebhook).toHaveBeenCalledWith('we1', 'm1', 'order.created')
+  })
+
+  it('sends the event type chosen in the dashboard', async () => {
+    delivery.sendTestWebhook.mockResolvedValue({ success: true, logId: 'd9' })
+    const res = await sendTest(
+      new NextRequest('http://localhost/x', {
+        method: 'POST',
+        body: JSON.stringify({ event_type: 'payment.confirmed' }),
+      }),
+      params('we1')
+    )
+    expect(res.status).toBe(200)
+    expect(delivery.sendTestWebhook).toHaveBeenCalledWith('we1', 'm1', 'payment.confirmed')
+  })
+
+  it('rejects an unknown event type', async () => {
+    const res = await sendTest(
+      new NextRequest('http://localhost/x', {
+        method: 'POST',
+        body: JSON.stringify({ event_type: 'made.up.event' }),
+      }),
+      params('we1')
+    )
+    expect(res.status).toBe(400)
+    expect(delivery.sendTestWebhook).not.toHaveBeenCalled()
   })
 
   it('reports a 404 when the endpoint is not yours', async () => {

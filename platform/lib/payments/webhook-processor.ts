@@ -614,6 +614,21 @@ async function notifyAfterChange(
         currency: payment.currency,
       },
     }).catch(() => {})
+    // Clearer trigger name for new integrations. The legacy payment.paid event
+    // stays for endpoints already subscribed to it.
+    await dispatchMerchantWebhook({
+      merchantId: order.merchantId,
+      mode: payment.mode,
+      eventType: 'payment.confirmed',
+      data: {
+        order_id: order.id,
+        order_number: order.orderNumber,
+        payment_id: payment.id,
+        payment_status: 'paid',
+        amount: payment.amount.toNumber(),
+        currency: payment.currency,
+      },
+    }).catch(() => {})
     if (orderAdvanced) {
       await dispatchMerchantWebhook({
         merchantId: order.merchantId,
@@ -636,6 +651,19 @@ async function notifyAfterChange(
       merchantId: order.merchantId,
       mode: payment.mode,
       eventType: 'payment.failed',
+      data: {
+        order_id: order.id,
+        order_number: order.orderNumber,
+        payment_id: payment.id,
+        payment_status: 'failed',
+        amount: payment.amount.toNumber(),
+        currency: payment.currency,
+      },
+    }).catch(() => {})
+    await dispatchMerchantWebhook({
+      merchantId: order.merchantId,
+      mode: payment.mode,
+      eventType: 'payment.rejected',
       data: {
         order_id: order.id,
         order_number: order.orderNumber,

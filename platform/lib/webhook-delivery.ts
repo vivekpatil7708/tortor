@@ -4,17 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { postWebhook, UnsafeWebhookUrlError } from '@/lib/safe-fetch'
 import { nextWebhookAttemptAt, retryWindowStart } from '@/lib/webhook-retry'
 import type { KeyMode, WebhookDeliveryStatus } from '@prisma/client'
+import type { WebhookEvent } from './webhook-events'
 
-export const OUTGOING_WEBHOOK_EVENTS = [
-  'order.created',
-  'order.paid',
-  'order.updated',
-  'payment.paid',
-  'payment.failed',
-  'fulfillment.created',
-  'fulfillment.shipped',
-  'fulfillment.delivered',
-] as const
+export { OUTGOING_WEBHOOK_EVENTS } from './webhook-events'
 
 export function generateWebhookEventId(): string {
   return `evt_${nanoid(20)}`
@@ -231,18 +223,91 @@ export async function processDueWebhookRetries({ deadline = Infinity, limit = 25
   return attempted
 }
 
+/** Sample data for the dashboard's "Send test event" action. */
+function testWebhookData(eventType: WebhookEvent): WebhookDispatchData {
+  const sample = {
+    order_id: 'tp_order_sample',
+    order_number: 'TP-2026-0001',
+    payment_status: 'paid',
+    amount: 1499,
+    currency: 'INR',
+    customer_name: 'Asha Rao',
+    customer_phone: '9876543210',
+    customer_email: 'asha@example.com',
+  }
+
+  switch (eventType) {
+    case 'payment.confirmed':
+    case 'payment.rejected':
+      return {
+        transaction_id: 'txn_sample',
+        txn_id: 'TP-TXN-SAMPLE',
+        amount: 1499,
+        status: eventType === 'payment.confirmed' ? 'success' : 'failed',
+        customer_name: 'Asha Rao',
+        customer_phone: '9876543210',
+        payment_app: 'Google Pay',
+        link_title: 'Sample payment',
+      }
+    case 'payment_link.created':
+      return {
+        link_id: 'pl_sample',
+        title: 'Sample payment',
+        slug: 'sample-payment',
+        link_url: 'https://checkout.toropay.co.in/pay/sample-payment',
+        amount: 1499,
+        amount_flexible: false,
+        upi_id: 'sample@upi',
+      }
+    case 'customer.created':
+      return {
+        customer_id: 'cus_sample',
+        full_name: 'Asha Rao',
+        email: 'asha@example.com',
+        phone: '9876543210',
+      }
+    case 'order.updated':
+      return {
+        order_id: sample.order_id,
+        order_number: sample.order_number,
+        status: 'processing',
+        previous_status: 'new',
+      }
+    case 'payment.paid':
+    case 'payment.failed':
+      return {
+        ...sample,
+        payment_id: 'pay_sample',
+        payment_status: eventType === 'payment.paid' ? 'paid' : 'failed',
+      }
+    case 'fulfillment.created':
+      return { fulfillment_id: 'ful_sample', order_id: sample.order_id, status: 'created' }
+    case 'fulfillment.shipped':
+      return { fulfillment_id: 'ful_sample', order_id: sample.order_id, status: 'shipped', tracking_number: 'AWB123456' }
+    case 'fulfillment.delivered':
+      return { fulfillment_id: 'ful_sample', order_id: sample.order_id, status: 'delivered' }
+    case 'order.paid':
+      return { ...sample }
+    case 'order.created':
+    default:
+      return {
+        ...sample,
+        payment_status: 'pending',
+        items: [{ name: 'Sample product', quantity: 1, unit_price: 1499 }],
+      }
+  }
+}
+
 /** Send a sample event to an endpoint from the dashboard webhook settings. */
-export async function sendTestWebhook(endpointId: string, merchantId: string): Promise<{ success: boolean; logId?: string }> {
+export async function sendTestWebhook(
+  endpointId: string,
+  merchantId: string,
+  eventType: WebhookEvent = 'order.created',
+): Promise<{ success: boolean; logId?: string }> {
   const endpoint = await prisma.webhookEndpoint.findFirst({ where: { id: endpointId, merchantId } })
   if (!endpoint) return { success: false }
 
-  const payload = buildPayload('order.created', {
-    order_id: 'tp_order_sample',
-    order_number: 'TP-2026-0001',
-    payment_status: 'pending',
-    amount: 1499,
-    currency: 'INR',
-  })
+  const payload = buildPayload(eventType, testWebhookData(eventType))
   const body = JSON.stringify(payload)
   const signature = signWebhook(body, endpoint.secretEncrypted)
 
@@ -251,7 +316,7 @@ export async function sendTestWebhook(endpointId: string, merchantId: string): P
       endpointId: endpoint.id,
       merchantId,
       eventId: payload.id,
-      eventType: 'order.created',
+      eventType,
       url: endpoint.url,
       payload: body,
       signature,
@@ -264,7 +329,7 @@ export async function sendTestWebhook(endpointId: string, merchantId: string): P
     url: endpoint.url,
     body,
     signature,
-    eventType: 'order.created',
+    eventType,
     failedSoFar: 0,
     retry: false,
   })

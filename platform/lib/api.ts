@@ -77,6 +77,33 @@ export type GoogleSheetsExportResult = {
   spreadsheet_url: string
 }
 
+/** One webhook delivery attempt, with enough detail to debug a receiver. */
+export type WebhookLogRow = {
+  id: string
+  event_id: string
+  event_type: string
+  status: string
+  endpoint_id: string
+  endpoint_url: string
+  endpoint_mode: 'test' | 'live'
+  url: string
+  response_code: number | null
+  response_body: string | null
+  error_message: string | null
+  retry_count: number
+  next_retry_at: string | null
+  delivered_at: string | null
+  created_at: string
+  payload: string
+}
+
+export type WebhookLogsResponse = {
+  logs: WebhookLogRow[]
+  total: number
+  counts: Record<string, number>
+  endpoints: Array<{ id: string; url: string; mode: 'test' | 'live' }>
+}
+
 /** Filters for the orders list. Every field is optional; omitting one means "any". */
 export type OrderQuery = {
   limit?: number
@@ -287,11 +314,30 @@ export const api = {
   retryWebhookDelivery: (id: string, logId: string) =>
     request<{ success: boolean; status: string }>(`/api/webhook-endpoints/${id}/deliveries`, { method: 'POST', body: JSON.stringify({ logId }) }),
 
-  sendTestWebhook: (id: string) =>
-    request<{ success: boolean; log_id: string | null; message: string }>(`/api/webhook-endpoints/${id}/test`, { method: 'POST' }),
+  sendTestWebhook: (id: string, eventType = 'order.created') =>
+    request<{ success: boolean; log_id: string | null; message: string }>(`/api/webhook-endpoints/${id}/test`, {
+      method: 'POST',
+      body: JSON.stringify({ event_type: eventType }),
+    }),
 
   rotateWebhookSecret: (id: string) =>
     request<{ id: string; url: string; secret: string; message: string }>(`/api/webhook-endpoints/${id}/rotate`, { method: 'POST' }),
+
+  getWebhookLogs: (params: { status?: string; eventType?: string; endpointId?: string; limit?: number } = {}) => {
+    const query = new URLSearchParams()
+    if (params.status && params.status !== 'all') query.set('status', params.status)
+    if (params.eventType) query.set('event_type', params.eventType)
+    if (params.endpointId) query.set('endpoint_id', params.endpointId)
+    if (params.limit) query.set('limit', String(params.limit))
+    const qs = query.toString()
+    return request<WebhookLogsResponse>(`/api/webhook-deliveries${qs ? `?${qs}` : ''}`)
+  },
+
+  retryWebhookLog: (logId: string) =>
+    request<{ success: boolean; status: string }>('/api/webhook-deliveries', {
+      method: 'POST',
+      body: JSON.stringify({ logId }),
+    }),
 
   getTransaction: (txnId: string) => request<Record<string, unknown>>(`/api/transactions/${txnId}`),
 
