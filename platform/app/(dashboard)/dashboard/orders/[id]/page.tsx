@@ -15,7 +15,6 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [invoice, setInvoice] = useState<Record<string, unknown> | null>(null)
   const [invoiceLoading, setInvoiceLoading] = useState(false)
 
   const load = useCallback(async () => {
@@ -23,14 +22,6 @@ export default function OrderDetailPage() {
       setLoading(true)
       const data = await api.getOrder(id)
       setOrder(data.order)
-      // Try to load invoice if exists
-      try {
-        const invRes = await fetch(`/api/orders/${id}/invoice`)
-        if (invRes.ok) {
-          const invData = await invRes.json()
-          setInvoice(invData.invoice)
-        }
-      } catch {}
     } catch {
       setError('Order not found')
     } finally {
@@ -47,7 +38,9 @@ export default function OrderDetailPage() {
       const res = await fetch(`/api/orders/${id}/invoice`, { method: 'POST' })
       const data = await res.json()
       if (res.ok) {
-        setInvoice(data.invoice)
+        // Reload order to get updated invoice fields
+        const fresh = await api.getOrder(id)
+        setOrder(fresh.order)
       } else {
         alert(data.error || 'Failed to generate invoice')
       }
@@ -59,8 +52,8 @@ export default function OrderDetailPage() {
   }
 
   function downloadInvoice() {
-    if (!invoice) return
-    window.open(`/api/invoices/${invoice.id}/download`, '_blank')
+    if (!order?.invoice_number) return
+    window.open(`/api/orders/${id}/invoice/download`, '_blank')
   }
 
   if (loading) return (
@@ -99,9 +92,9 @@ export default function OrderDetailPage() {
           <Badge>{humanize(String(order.order_status))}</Badge>
           <Badge>{humanize(String(order.fulfillment_summary_status))}</Badge>
           {order.payment_status === 'paid' && (
-            invoice ? (
+            order.invoice_number ? (
               <Button size="sm" variant="secondary" onClick={downloadInvoice}>
-                View Invoice {String(invoice.invoice_number)}
+                Download Invoice {String(order.invoice_number)}
               </Button>
             ) : (
               <Button size="sm" onClick={generateInvoice} disabled={invoiceLoading}>

@@ -113,6 +113,21 @@ export function stateName(code: string | null | undefined): string | null {
   return GST_STATES.find(s => s.code === code)?.name ?? null
 }
 
+/**
+ * Resolve either a GST state code ("27") or a state name ("Maharashtra") to the
+ * code. Order address snapshots store the name the customer picked, so invoice
+ * tax splits need this to compare the buyer's state with the seller's.
+ */
+export function resolveStateCode(value: string | null | undefined): string | null {
+  if (!value) return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const byCode = GST_STATES.find(s => s.code === trimmed)
+  if (byCode) return byCode.code
+  const normalized = trimmed.toLowerCase()
+  return GST_STATES.find(s => s.name.toLowerCase() === normalized)?.code ?? null
+}
+
 /** How a merchant is registered, which decides the kind of document they may issue. */
 export const TAX_SCHEMES = [
   { value: 'unregistered', label: 'Not registered for GST' },

@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { GST_RATES, GST_STATES, gstinStateCode, isValidGstin, isValidStateCode, isTaxScheme, stateName } from './tax'
+import {
+  GST_RATES,
+  GST_STATES,
+  gstinStateCode,
+  isValidGstin,
+  isValidStateCode,
+  isTaxScheme,
+  resolveStateCode,
+  stateName,
+} from './tax'
 
 describe('GSTIN validation', () => {
   it('accepts the published worked example', () => {
@@ -62,6 +71,15 @@ describe('state codes', () => {
     expect(stateName('99')).toBe('Centre Jurisdiction')
     expect(stateName(null)).toBeNull()
     expect(stateName('25')).toBeNull()
+  })
+
+  it('resolves a code or a state name to the code', () => {
+    expect(resolveStateCode('27')).toBe('27')
+    expect(resolveStateCode('Maharashtra')).toBe('27')
+    expect(resolveStateCode('maharashtra')).toBe('27')
+    expect(resolveStateCode('  Delhi  ')).toBe('07')
+    expect(resolveStateCode('not a state')).toBeNull()
+    expect(resolveStateCode(null)).toBeNull()
   })
 })
 
