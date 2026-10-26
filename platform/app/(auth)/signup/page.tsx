@@ -50,6 +50,14 @@ export default function SignupPage() {
     })
   }
 
+  // Where to go after signing up: ?next=... (a team invitation), onboarding for
+  // a new account, or the dashboard when an existing Google account signs in.
+  function postSignupDestination(isNewUser = true) {
+    const next = new URLSearchParams(window.location.search).get('next')
+    if (next && next.startsWith('/') && !next.startsWith('//')) return next
+    return isNewUser ? '/onboarding' : '/dashboard'
+  }
+
   async function handleGoogleResponse(response: { credential: string }) {
     setError('')
     setGoogleLoading(true)
@@ -57,11 +65,7 @@ export default function SignupPage() {
       const result = await api.google({ credential: response.credential })
       // Small delay to ensure session cookie is fully processed before navigation
       await new Promise(r => setTimeout(r, 100))
-      if (result.isNewUser) {
-        router.push('/onboarding')
-      } else {
-        router.push('/dashboard')
-      }
+      router.push(postSignupDestination(result.isNewUser))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Google sign-up failed')
     } finally {
@@ -80,7 +84,7 @@ export default function SignupPage() {
     setLoading(true)
     try {
       await api.signup({ email, phone, password })
-      router.push('/onboarding')
+      router.push(postSignupDestination())
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Signup failed')
     } finally {

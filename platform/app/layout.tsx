@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-IN">
       <body className="bg-cream text-charcoal antialiased">{children}
         <script dangerouslySetInnerHTML={{
-          __html: `(function(){var p=location.pathname;if(!p.startsWith('/admin')&&!p.startsWith('/dashboard')&&!p.startsWith('/api')){navigator.sendBeacon('/api/analytics/pageview',JSON.stringify({path:p}))}})()`
+          __html: `(function(){var p=location.pathname;if(!p.startsWith('/admin')&&!p.startsWith('/dashboard')&&!p.startsWith('/api')&&!p.startsWith('/accept-invite')){navigator.sendBeacon('/api/analytics/pageview',JSON.stringify({path:p}))}})()`
         }} />
       </body>
     </html>

@@ -3,6 +3,7 @@ import { requireMerchant } from '@/lib/tenant'
 import { prisma } from '@/lib/prisma'
 import { apiError, notFound, publicErrorMessage } from '@/lib/api-response'
 import { generateWebhookSecret } from '@/lib/webhook-delivery'
+import { isOwnerRole } from '@/lib/team-roles'
 
 /**
  * Replace an endpoint's signing secret.
@@ -15,6 +16,7 @@ import { generateWebhookSecret } from '@/lib/webhook-delivery'
 export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireMerchant()
+    if (!isOwnerRole(session.teamRole)) return apiError(403, 'Only the account owner can rotate the signing secret.')
     const { id } = await ctx.params
 
     const endpoint = await prisma.webhookEndpoint.findFirst({

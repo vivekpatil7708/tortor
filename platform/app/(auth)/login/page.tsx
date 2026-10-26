@@ -70,10 +70,13 @@ export default function LoginPage() {
       const result = await api.google({ credential: response.credential })
       // Small delay to ensure session cookie is fully processed before navigation
       await new Promise(r => setTimeout(r, 100))
-      if (result.isNewUser) {
+      const destination = postLoginDestination()
+      // A brand-new Google account normally starts onboarding. If they
+      // arrived from a team invitation, finish accepting that first.
+      if (result.isNewUser && destination === '/dashboard') {
         router.push('/onboarding')
       } else {
-        router.push(postLoginDestination())
+        router.push(destination)
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Google sign-in failed')

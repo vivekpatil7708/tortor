@@ -13,17 +13,70 @@ const IMPERSONATION_WRITES_ALLOWED = new Set([
   '/api/auth/google',
 ])
 
-async function hasValidSession(req: NextRequest) {
+// A viewer is read-only. These prefixes cover merchant dashboard writes; public
+// checkout/payment/webhook routes are deliberately absent so a signed-in viewer
+// can still act as a customer.
+const MERCHANT_WRITE_PREFIXES = [
+  '/api/links',
+  '/api/products',
+  '/api/coupons',
+  '/api/orders',
+  '/api/customers',
+  '/api/settings',
+  '/api/merchant',
+  '/api/api-keys',
+  '/api/webhook-endpoints',
+  '/api/oauth/tokens',
+  '/api/upi',
+  '/api/templates',
+  '/api/messaging',
+  '/api/email',
+  '/api/courier',
+  '/api/delivery',
+  '/api/fulfillments',
+  '/api/transactions',
+  '/api/tax',
+  '/api/team',
+  '/api/invoices',
+  '/api/payments',
+  '/api/integrations',
+  '/api/overview',
+]
+const VIEWER_WRITES_ALLOWED = new Set([
+  // Accepting an invitation changes the member's own access, not merchant data.
+  '/api/team/accept',
+  // Public page-view tracking still runs while a viewer is signed in.
+  '/api/analytics/pageview',
+])
+
+function isMerchantWrite(pathname: string) {
+  if (VIEWER_WRITES_ALLOWED.has(pathname)) return false
+  return MERCHANT_WRITE_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`))
+}
+
+async function readSession(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value
-  if (!token) return false
+  if (!token) return null
   try {
     const secret = process.env.JWT_SECRET
-    if (!secret) return false
-    await jwtVerify(token, new TextEncoder().encode(secret))
-    return true
+    if (!secret) return null
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret))
+    // Other tokens signed with the same secret are not login sessions.
+    if (payload.typ || payload.purpose || typeof payload.sub !== 'string') return null
+    return payload
   } catch {
-    return false
+    return null
   }
+}
+
+function isViewerSession(payload: Awaited<ReturnType<typeof readSession>>) {
+  if (!payload) return false
+  if (payload.role === 'viewer') return true
+  // A merchant-switching token without a valid role is treated as read-only,
+  // matching getSession(). This cannot be minted by the current code, but it
+  // keeps an old or damaged token from getting write access.
+  const switching = typeof payload.mid === 'string' && payload.mid !== payload.sub
+  return switching && payload.role !== 'admin' && payload.role !== 'owner'
 }
 
 const CORS_ALLOWED = (process.env.CORS_ORIGINS ?? '')
@@ -45,6 +98,14 @@ export async function middleware(req: NextRequest) {
     // site can't log a visitor into someone else's account.
     if (pathname.startsWith('/api/auth/') && !SAFE_METHODS.has(req.method) && isCrossSiteRequest(req.headers, req.headers.get('host'))) {
       return NextResponse.json({ error: 'Request blocked' }, { status: 403 })
+    }
+    if (!SAFE_METHODS.has(req.method) && isMerchantWrite(pathname)) {
+      if (isViewerSession(await readSession(req))) {
+        return NextResponse.json(
+          { error: 'You have view-only access to this account. Ask the owner for admin access to make changes.' },
+          { status: 403 }
+        )
+      }
     }
     if (!pathname.startsWith('/api/v1')) return NextResponse.next()
   }
@@ -78,7 +139,7 @@ export async function middleware(req: NextRequest) {
   const isOnboardingPath = pathname.startsWith('/onboarding')
   const isAdminPath = pathname.startsWith('/admin')
 
-  const loggedIn = await hasValidSession(req)
+  const loggedIn = Boolean(await readSession(req))
 
   if ((isDashboardPath || isAdminPath) && !loggedIn) {
     return NextResponse.redirect(new URL('/login', req.url))

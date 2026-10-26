@@ -5,6 +5,7 @@ import { publicErrorMessage } from '@/lib/api-response'
 import { imageValueProblem } from '@/lib/image-input'
 import { supportEmailInput, supportPhoneInput } from '@/lib/support-contact'
 import { gstinStateCode, isValidGstin, isValidStateCode, isTaxScheme } from '@/lib/tax'
+import { isOwnerRole } from '@/lib/team-roles'
 
 export async function GET() {
   const session = await getSession()
@@ -15,6 +16,9 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   try {
     const session = await requireSession()
+    if (!isOwnerRole(session.teamRole)) {
+      return NextResponse.json({ error: 'Only the account owner can change business and tax settings.' }, { status: 403 })
+    }
     const body = await req.json()
 
     // Images are checked only when they change, so an older large logo doesn't

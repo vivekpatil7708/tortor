@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { jwtVerify, importJWK } from 'jose'
 import { prisma } from '@/lib/prisma'
 import { createSession, merchantToJson } from '@/lib/auth'
+import { resolveAccountTeam } from '@/lib/team'
 
 export async function POST(req: Request) {
   try {
@@ -78,7 +79,13 @@ export async function POST(req: Request) {
     }
 
     try {
-      await createSession(merchant.id, merchant.email, { sameSite: 'none' })
+      const team = await resolveAccountTeam(merchant)
+      await createSession(merchant.id, merchant.email, {
+        sameSite: 'none',
+        team: team
+          ? { merchantId: team.merchantId, teamMemberId: team.teamMemberId, role: team.role, name: team.name }
+          : undefined,
+      })
     } catch (e: any) {
       return NextResponse.json({ error: 'Authentication failed' }, { status: 500 })
     }

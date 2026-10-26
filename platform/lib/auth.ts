@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
+import { isTeamRole, type TeamRole } from './team-roles'
 
 const COOKIE_NAME = 'toropay_session'
 const IMPERSONATE_COOKIE = 'toropay_impersonate'
@@ -22,11 +23,31 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash)
 }
 
-export async function createSession(merchantId: string, email: string, options?: { sameSite?: 'lax' | 'none' | 'strict' }) {
+export interface SessionTeamOptions {
+  /** The merchant whose dashboard this login opens. */
+  merchantId: string
+  teamMemberId: string
+  role: TeamRole
+  name?: string | null
+}
+
+export async function createSession(
+  merchantId: string,
+  email: string,
+  options?: { sameSite?: 'lax' | 'none' | 'strict'; team?: SessionTeamOptions }
+) {
   // The login carries the account's session version; raising the version
-  // (password reset, "sign out other devices") ends every older login.
+  // (password reset, "sign out other devices", role change or removal from a
+  // team) ends every older login.
   const account = await prisma.merchant.findUnique({ where: { id: merchantId }, select: { sessionVersion: true } })
-  const token = await new SignJWT({ sub: merchantId, email, sv: account?.sessionVersion ?? 0 })
+  const claims: Record<string, unknown> = { sub: merchantId, email, sv: account?.sessionVersion ?? 0 }
+  if (options?.team) {
+    claims.mid = options.team.merchantId
+    claims.role = options.team.role
+    claims.tmid = options.team.teamMemberId
+    if (options.team.name) claims.tname = options.team.name
+  }
+  const token = await new SignJWT(claims)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
@@ -102,40 +123,9 @@ export async function clearImpersonation() {
   cookieStore.delete(IMPERSONATE_COOKIE)
 }
 
-export async function getSession() {
-  let merchantId: string | null = null
-  // Session version in the login cookie; null for admin "view as merchant".
-  let tokenVersion: number | null = null
-
-  const impToken = (await cookies()).get(IMPERSONATE_COOKIE)?.value
-  if (impToken) {
-    try {
-      const info = await getImpersonationInfo(impToken)
-      if (info) merchantId = info.merchantId
-    } catch {
-      merchantId = null
-    }
-  }
-
-  if (!merchantId) {
-    const token = (await cookies()).get(COOKIE_NAME)?.value
-    if (!token) return null
-    try {
-      const { payload } = await jwtVerify(token, getSecret())
-      // Other tokens signed with the same secret (impersonation, admin code,
-      // email verification) carry a type and never count as a login.
-      if (payload.typ || payload.purpose) return null
-      merchantId = payload.sub as string
-      if (!merchantId) return null
-      // Logins made before this change carry no version and count as 0.
-      tokenVersion = typeof payload.sv === 'number' ? payload.sv : 0
-    } catch {
-      return null
-    }
-  }
-
-  const merchant = await prisma.merchant.findUnique({
-    where: { id: merchantId },
+function findSessionMerchant(id: string) {
+  return prisma.merchant.findUnique({
+    where: { id },
     select: {
       id: true,
       email: true,
@@ -164,12 +154,91 @@ export async function getSession() {
       createdAt: true,
     },
   })
+}
 
-  if (!merchant || merchant.status === 'suspended') return null
+export async function getSession() {
+  let accountId: string | null = null
+  let effectiveMerchantId: string | null = null
+  // Session version in the login cookie; null for admin "view as merchant".
+  let tokenVersion: number | null = null
+  let teamRole: TeamRole = 'owner'
+  let teamMemberId: string | null = null
+  let teamMemberName: string | null = null
+  let impersonationEmail: string | null = null
+
+  const impToken = (await cookies()).get(IMPERSONATE_COOKIE)?.value
+  if (impToken) {
+    try {
+      const info = await getImpersonationInfo(impToken)
+      if (info) {
+        accountId = info.merchantId
+        effectiveMerchantId = info.merchantId
+        impersonationEmail = info.adminEmail
+      }
+    } catch {
+      accountId = null
+    }
+  }
+
+  if (!accountId) {
+    const token = (await cookies()).get(COOKIE_NAME)?.value
+    if (!token) return null
+    try {
+      const { payload } = await jwtVerify(token, getSecret())
+      // Other tokens signed with the same secret (impersonation, admin code,
+      // email verification) carry a type and never count as a login.
+      if (payload.typ || payload.purpose) return null
+      const subject = payload.sub as string | undefined
+      if (!subject) return null
+
+      accountId = subject
+      effectiveMerchantId = typeof payload.mid === 'string' ? payload.mid : subject
+      // Logins made before this change carry no version and count as 0.
+      tokenVersion = typeof payload.sv === 'number' ? payload.sv : 0
+
+      // Missing claims mean an owner login from before team access existed.
+      // A token that switches merchant without a valid role is never trusted
+      // with write access.
+      const switchingMerchant = effectiveMerchantId !== subject
+      teamRole = isTeamRole(payload.role) ? payload.role : switchingMerchant ? 'viewer' : 'owner'
+      teamMemberId = typeof payload.tmid === 'string' ? payload.tmid : null
+      teamMemberName = typeof payload.tname === 'string' ? payload.tname : null
+    } catch {
+      return null
+    }
+  }
+
+  const account = await findSessionMerchant(accountId)
+  if (!account || account.status === 'suspended') return null
   // Signed out everywhere (password reset or "sign out other devices") since this login was made.
-  if (tokenVersion !== null && tokenVersion !== merchant.sessionVersion) return null
+  if (tokenVersion !== null && tokenVersion !== account.sessionVersion) return null
+
+  const effectiveId = effectiveMerchantId ?? accountId
+  let merchant = account
+  if (effectiveId !== accountId) {
+    const target = await findSessionMerchant(effectiveId)
+    if (!target || target.status === 'suspended') return null
+    merchant = target
+  }
+
   const { sessionVersion, ...session } = merchant
-  return session
+  const actorName =
+    (impersonationEmail ? `Admin (${impersonationEmail})` : null) ||
+    teamMemberName?.trim() ||
+    account.name?.trim() ||
+    merchant.businessName?.trim() ||
+    account.email
+
+  return {
+    ...session,
+    accountId: account.id,
+    accountEmail: account.email,
+    accountName: account.name,
+    teamRole,
+    teamMemberId,
+    teamMemberName: teamMemberName?.trim() || actorName,
+    isTeamMember: effectiveId !== accountId,
+  }
 }
 
 export async function requireSession() {

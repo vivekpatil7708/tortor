@@ -40,6 +40,7 @@ export const navGroups: Array<{ title: string; folded?: boolean; items: NavItem[
     items: [
       { label: 'UPI IDs', href: '/dashboard/upi', icon: QrCode },
       { label: 'Branding', href: '/dashboard/branding', icon: Palette },
+      { label: 'Team', href: '/dashboard/settings/team', icon: Users },
       { label: 'Settings', href: '/dashboard/settings', icon: Settings },
     ],
   },

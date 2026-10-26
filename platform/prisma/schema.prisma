@@ -279,6 +279,8 @@ model Merchant {
 
   // Phase 1 merchant operations relations
   merchantUsers      MerchantUser[]
+  teamMembers        TeamMember[] @relation("MerchantTeamMembers")
+  teamMemberships    TeamMember[] @relation("TeamMemberAccount")
   customers          Customer[]
   customerAddresses  CustomerAddress[]
   products           Product[]
@@ -336,6 +338,38 @@ model MerchantUser {
 
   @@unique([merchantId, email])
   @@map("merchant_users")
+}
+
+// A person with access to a merchant's dashboard.
+//
+// Every merchant gets an `owner` row; the owner's `accountId` is the merchant
+// id. Invited admins/viewers are linked to their own Merchant account (which
+// is the login identity) once they accept. `inviteToken` stores a SHA-256
+// hash; the raw token only travels in the invitation email.
+model TeamMember {
+  id              String    @id @default(uuid())
+  merchantId      String    @map("merchant_id")
+  accountId       String?   @map("account_id")
+  email           String
+  name            String?
+  role            String    @default("viewer") // owner / admin / viewer
+  invitedAt       DateTime  @default(now()) @map("invited_at")
+  invitedBy       String?   @map("invited_by")
+  acceptedAt      DateTime? @map("accepted_at")
+  inviteToken     String?   @unique @map("invite_token")
+  inviteExpiresAt DateTime? @map("invite_expires_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  merchant Merchant  @relation("MerchantTeamMembers", fields: [merchantId], references: [id], onDelete: Cascade)
+  account  Merchant? @relation("TeamMemberAccount", fields: [accountId], references: [id], onDelete: SetNull)
+  inviter  TeamMember? @relation("TeamMemberInvites", fields: [invitedBy], references: [id], onDelete: SetNull)
+  invites  TeamMember[] @relation("TeamMemberInvites")
+
+  @@unique([merchantId, email])
+  @@index([accountId])
+  @@index([merchantId, role])
+  @@map("team_members")
 }
 
 // ============================================================

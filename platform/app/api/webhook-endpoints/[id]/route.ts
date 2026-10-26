@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { apiError, notFound, publicErrorMessage } from '@/lib/api-response'
 import { isValidWebhookUrl } from '@/lib/safe-fetch'
 import { OUTGOING_WEBHOOK_EVENTS } from '@/lib/webhook-delivery'
+import { isOwnerRole } from '@/lib/team-roles'
 
 type Body = { url?: string; mode?: string; eventTypes?: unknown; active?: boolean }
 
@@ -19,6 +20,7 @@ function normalizeEventTypes(input: unknown): string[] | null {
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireMerchant()
+    if (!isOwnerRole(session.teamRole)) return apiError(403, 'Only the account owner can manage webhook endpoints.')
     const { id } = await ctx.params
 
     const existing = await prisma.webhookEndpoint.findFirst({ where: { id, merchantId: session.id } })
@@ -61,6 +63,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireMerchant()
+    if (!isOwnerRole(session.teamRole)) return apiError(403, 'Only the account owner can manage webhook endpoints.')
     const { id } = await ctx.params
     const result = await prisma.webhookEndpoint.deleteMany({ where: { id, merchantId: session.id } })
     if (result.count !== 1) return notFound('Webhook endpoint not found')
