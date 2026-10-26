@@ -141,7 +141,7 @@ export default function OrderDetailPage() {
 
         <dl className="mt-4 space-y-1 border-t border-gray-100 pt-4 text-sm">
           <Line label="Subtotal" value={formatMoney(Number(order.subtotal_amount))} />
-          {Number(order.discount_amount) > 0 && <Line label="Discount" value={`− ${formatMoney(Number(order.discount_amount))}`} />}
+          {Number(order.discount_amount) > 0 && <Line label={order.coupon_code ? `Discount (${String(order.coupon_code)})` : 'Discount'} value={`− ${formatMoney(Number(order.discount_amount))}`} />}
           {Number(order.shipping_amount) > 0 && <Line label="Shipping" value={formatMoney(Number(order.shipping_amount))} />}
           {Number(order.tax_amount) > 0 && <Line label="Tax" value={formatMoney(Number(order.tax_amount))} />}
           <Line label="Total" value={formatMoney(Number(order.total_amount))} strong />

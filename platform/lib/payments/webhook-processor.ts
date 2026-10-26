@@ -9,6 +9,7 @@ import { TOROPAY_PUBLIC_URL } from '@/lib/checkout'
 import { completeRefundFromProviderWebhook, extractProviderRefundId } from '@/lib/refunds'
 import { applyInventoryDeductionOnMode } from '@/lib/inventory'
 import { decidePaymentStatusChange } from '@/lib/payment-transitions'
+import { redeemCouponForOrder } from '@/lib/coupons'
 import type { KeyMode, PaymentStatus } from '@prisma/client'
 
 export interface NormalizedProviderEvent {
@@ -289,6 +290,10 @@ async function applyPaymentStatus(input: ApplyStatusInput) {
           })
           orderAdvanced = true
         }
+
+        // Count the coupon use once, exactly when an order first becomes paid.
+        // Abandoned checkouts therefore do not consume a limited coupon.
+        await redeemCouponForOrder(tx, order?.couponId ?? null)
       } else if (status === 'failed') {
         await tx.order.update({
           where: { id: payment.orderId },

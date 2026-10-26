@@ -28,6 +28,8 @@ const createOrderSchema = z.object({
   items: z.array(itemSchema).min(1),
   currency: z.string().length(3).default('INR'),
   discount_amount: z.number().nonnegative().optional().default(0),
+  /** When set, the coupon discount replaces `discount_amount`. */
+  coupon_code: z.string().max(40).optional().nullable(),
   shipping_amount: z.number().nonnegative().optional().default(0),
   tax_amount: z.number().nonnegative().optional().default(0),
   /**
@@ -90,6 +92,7 @@ export async function POST(req: NextRequest) {
       })),
       currency: body.currency,
       discountAmount: body.discount_amount,
+      couponCode: body.coupon_code ?? null,
       shippingAmount: body.shipping_amount,
       taxAmount: body.tax_amount,
       expectedTotal: body.total_amount ?? null,

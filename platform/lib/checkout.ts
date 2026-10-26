@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { createOrder, type OrderItemInput } from '@/lib/orders'
 import { getProvider } from '@/lib/payments'
 import { resolveItemPrices, computeTotals, verifyAmount } from '@/lib/pricing'
+import { checkCoupon, normalizeCouponCode } from '@/lib/coupons'
 import type { KeyMode, PaymentStatus, OrderSource } from '@prisma/client'
 
 export const TOROPAY_PUBLIC_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://checkout.toropay.co.in'
@@ -31,6 +32,8 @@ export interface CreateCheckoutInput {
   items: CheckoutItemInput[]
   currency?: string
   discountAmount?: number
+  /** A coupon code to apply instead of a client-supplied discount. */
+  couponCode?: string | null
   shippingAmount?: number
   taxAmount?: number
   /**
@@ -93,6 +96,7 @@ export async function createCheckout(input: CreateCheckoutInput): Promise<Create
     items,
     currency = 'INR',
     discountAmount = 0,
+    couponCode = null,
     shippingAmount = 0,
     taxAmount = 0,
     shippingAddress = null,
@@ -146,9 +150,31 @@ export async function createCheckout(input: CreateCheckoutInput): Promise<Create
 
   // ---- authoritative pricing: catalogue wins over whatever the client sent --
   const priced = await resolveItemPrices({ merchantId, items })
+
+  // A coupon code wins over any client-supplied discount: the discount is
+  // calculated from the catalogue subtotal, never from the request body.
+  let appliedCouponId: string | null = null
+  let appliedCouponCode: string | null = null
+  let appliedDiscount = discountAmount ?? 0
+  if (couponCode && couponCode.trim()) {
+    const normalized = normalizeCouponCode(couponCode)
+    const coupon = await prisma.coupon.findUnique({
+      where: { merchantId_code: { merchantId, code: normalized } },
+    })
+    if (!coupon) throw new Error('That coupon code is not valid.')
+
+    const subtotal = computeTotals({ items: priced.items }).subtotal
+    const check = checkCoupon(coupon, subtotal)
+    if (!check.ok) throw new Error(check.error)
+
+    appliedCouponId = coupon.id
+    appliedCouponCode = coupon.code
+    appliedDiscount = check.discountAmount
+  }
+
   const totals = computeTotals({
     items: priced.items,
-    discountAmount: discountAmount ?? 0,
+    discountAmount: appliedDiscount,
     shippingAmount: shippingAmount ?? 0,
     taxAmount: taxAmount ?? 0,
   })
@@ -176,6 +202,8 @@ export async function createCheckout(input: CreateCheckoutInput): Promise<Create
     discountAmount: totals.discount,
     shippingAmount: totals.shipping,
     taxAmount: totals.tax,
+    couponId: appliedCouponId,
+    couponCode: appliedCouponCode,
     shippingAddress,
     billingAddress,
     customerNote: null,
@@ -279,6 +307,7 @@ export interface CheckoutView {
     order_number: string
     subtotal_amount: number
     discount_amount: number
+    coupon_code: string | null
     shipping_amount: number
     tax_amount: number
     total_amount: number
@@ -361,6 +390,7 @@ export async function getCheckoutView(checkoutSessionId: string): Promise<Checko
       order_number: o.orderNumber,
       subtotal_amount: o.subtotalAmount.toNumber(),
       discount_amount: o.discountAmount.toNumber(),
+      coupon_code: o.couponCode,
       shipping_amount: o.shippingAmount.toNumber(),
       tax_amount: o.taxAmount.toNumber(),
       total_amount: o.totalAmount.toNumber(),
