@@ -35,6 +35,7 @@ const MERCHANT_WRITE_PREFIXES = [
   '/api/delivery',
   '/api/fulfillments',
   '/api/transactions',
+  '/api/refunds',
   '/api/tax',
   '/api/team',
   '/api/invoices',

@@ -1,7 +1,8 @@
-import { CheckCircle2, Clock, SearchX, ShieldCheck, XCircle } from 'lucide-react'
+import { CheckCircle2, Clock, RotateCcw, SearchX, ShieldCheck, XCircle } from 'lucide-react'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import { payStatusMetadata } from '@/lib/pay-preview'
+import { publicRefundSummaryForTransaction } from '@/lib/refund-tracking'
 import { formatAmount } from '@/lib/utils'
 import CopyButton from '@/components/ui/copy-button'
 
@@ -41,7 +42,7 @@ export default async function SuccessPage(
     ? await prisma.transaction.findUnique({
         where: { txnId: searchParams.txn },
         select: {
-          txnId: true, amount: true, status: true, createdAt: true, confirmedAt: true,
+          id: true, txnId: true, amount: true, status: true, createdAt: true, confirmedAt: true,
           paymentLink: { select: { slug: true, title: true } },
           // Only what the business shows its customers: never its login email or phone.
           merchant: { select: { businessName: true, businessLogoUrl: true, supportEmail: true, supportPhone: true } },
@@ -61,6 +62,7 @@ export default async function SuccessPage(
   const Seller = business || 'The seller'
   const supportEmail = found?.merchant.supportEmail || null
   const supportPhone = found?.merchant.supportPhone || null
+  const refunds = found ? await publicRefundSummaryForTransaction(found.id) : null
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream p-4 text-charcoal">
@@ -107,6 +109,38 @@ export default async function SuccessPage(
               </dd>
             </div>
           </dl>
+        )}
+
+        {refunds && refunds.refunds.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-sm">
+            <div className="flex items-center gap-2 font-semibold text-amber-900">
+              <RotateCcw className="h-4 w-4" aria-hidden />
+              Refund status
+            </div>
+            {refunds.processed_amount > 0 && (
+              <p className="mt-2 flex items-center gap-2 text-green-700">
+                <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+                <span>
+                  {formatAmount(refunds.processed_amount)} refunded
+                  {refunds.pending_amount > 0 ? ' so far' : ''}.
+                </span>
+              </p>
+            )}
+            {refunds.pending_amount > 0 && (
+              <p className="mt-2 flex items-center gap-2 text-amber-700">
+                <Clock className="h-4 w-4 shrink-0" aria-hidden />
+                <span>
+                  {formatAmount(refunds.pending_amount)} refund pending. {Seller} will send it to your UPI account.
+                </span>
+              </p>
+            )}
+            {refunds.processed_amount === 0 && refunds.pending_amount === 0 && (
+              <p className="mt-2 text-amber-700">A refund was recorded for this payment. Contact {seller} for an update.</p>
+            )}
+            <p className="mt-2 text-xs text-amber-800/80">
+              Refunds are sent manually by {seller}, not automatically by ToroPay.
+            </p>
+          </div>
         )}
 
         {state === STATES.failed && (

@@ -206,6 +206,7 @@ enum ReturnRequestStatus {
 enum RefundStatus {
   pending
   initiated
+  processed
   completed
   failed
 }
@@ -859,6 +860,7 @@ model Transaction {
   merchant    Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   paymentLink PaymentLink? @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
   webhookLogs WebhookLog[]
+  refunds     Refund[]
 
   @@index([merchantId, createdAt])
   @@index([merchantId, status])
@@ -1139,8 +1141,11 @@ model ReturnItem {
 model Refund {
   id               String       @id @default(uuid())
   merchantId       String       @map("merchant_id")
-  orderId          String       @map("order_id")
-  paymentId        String       @map("payment_id")
+  // A refund can be recorded against an order, a payment-link transaction, or
+  // both. Manual UPI refunds are tracked here; ToroPay never moves the money.
+  orderId          String?      @map("order_id")
+  paymentId        String?      @map("payment_id")
+  transactionId    String?      @map("transaction_id")
   returnId         String?      @map("return_id")
   refundNumber     String       @map("refund_number")
   amount           Decimal      @db.Decimal(10, 2)
@@ -1155,13 +1160,18 @@ model Refund {
   updatedAt        DateTime     @updatedAt @map("updated_at")
 
   merchant      Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  payment       Payment        @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  order         Order?         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment       Payment?       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  transaction   Transaction?   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   returnRequest ReturnRequest? @relation(fields: [returnId], references: [id], onDelete: SetNull)
 
   @@unique([merchantId, refundNumber])
   @@index([merchantId, status])
   @@index([merchantId, paymentId])
+  @@index([merchantId, transactionId])
+  @@index([merchantId, orderId])
+  @@index([orderId])
+  @@index([transactionId])
   @@map("refunds")
 }
 

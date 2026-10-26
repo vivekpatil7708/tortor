@@ -220,6 +220,36 @@ export const couponListQuerySchema = z.object({
   page_size: z.coerce.number().int().min(1).max(100).optional().default(50),
 })
 
+// ============================================================
+// REFUNDS
+// ============================================================
+
+export const createRefundSchema = z
+  .object({
+    order_id: z.string().trim().min(1).max(64).optional().nullable(),
+    transaction_id: z.string().trim().min(1).max(64).optional().nullable(),
+    amount: z.number().positive('Refund amount must be greater than zero').max(99_999_999.99),
+    reason: z.string().trim().max(500).optional().nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.order_id && !value.transaction_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['transaction_id'],
+        message: 'Choose an order or a transaction to refund',
+      })
+    }
+  })
+
+export const processRefundSchema = z.object({
+  status: z.literal('processed'),
+})
+
+export const refundListQuerySchema = z.object({
+  status: z.enum(['pending', 'processed', 'failed']).optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional(),
+})
+
 export const merchantProfileSchema = z.object({
   business_name: z.string().min(1).max(200),
   support_email: z.string().email().optional().nullable().or(z.literal('')).nullable(),

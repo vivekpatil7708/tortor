@@ -6,6 +6,7 @@ const db = vi.hoisted(() => ({
   paymentLink: { findFirst: vi.fn() },
   transaction: { findFirst: vi.fn(), findUnique: vi.fn(), count: vi.fn() },
   merchant: { findUnique: vi.fn() },
+  refund: { findMany: vi.fn() },
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 vi.mock('next/navigation', () => ({
@@ -45,6 +46,7 @@ beforeEach(() => {
   db.paymentLink.findFirst.mockResolvedValue(link())
   db.merchant.findUnique.mockResolvedValue(merchant())
   db.transaction.findFirst.mockResolvedValue(null)
+  db.refund.findMany.mockResolvedValue([])
   uses(0, 0)
 })
 

@@ -9,13 +9,14 @@ import { triggerMessageAutomations } from '@/lib/messaging/engine'
 export interface RefundDetail {
   id: string
   merchantId: string
-  orderId: string
-  paymentId: string
+  orderId: string | null
+  paymentId: string | null
+  transactionId: string | null
   returnId: string | null
   refundNumber: string
   amount: number
   currency: string
-  status: 'pending' | 'initiated' | 'completed' | 'failed'
+  status: 'pending' | 'initiated' | 'processed' | 'completed' | 'failed'
   providerRefundId: string | null
   failureReason: string | null
   reason: string | null
@@ -129,7 +130,8 @@ export async function initiateRefund(params: { merchantId: string; refundId: str
     include: { payment: true, order: true },
   })
   if (!refund) throw new Error('Refund not found')
-  if (refund.status === 'completed') throw new Error('Refund is already completed')
+  if (!refund.payment) throw new Error('This refund was recorded manually and has no provider payment to refund')
+  if (refund.status === 'completed' || refund.status === 'processed') throw new Error('Refund is already completed')
   if (refund.status === 'initiated') throw new Error('Refund is already initiated (waiting for provider confirmation)')
 
   const adapter = getProvider(refund.payment.provider as 'mock' | 'upi' | 'razorpay' | 'cashfree')

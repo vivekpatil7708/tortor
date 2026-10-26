@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 
 const db = vi.hoisted(() => ({
   transaction: { findMany: vi.fn(), count: vi.fn(), groupBy: vi.fn() },
+  refund: { groupBy: vi.fn() },
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 const auth = vi.hoisted(() => ({ requireSession: vi.fn() }))
@@ -34,6 +35,7 @@ beforeEach(() => {
     return rows.slice(start, start + take)
   })
   db.transaction.count.mockResolvedValue(600)
+  db.refund.groupBy.mockResolvedValue([])
 })
 
 describe('transactions list (B5)', () => {
@@ -179,6 +181,7 @@ describe('dashboard totals (B5)', () => {
       pending_orders: 100,
       gross_payment_volume: 45000,
       refund_amount: 0,
+      net_payment_volume: 45000,
       conversion_rate: 75,
       average_order_value: 100,
       success_rate: 90,
@@ -188,6 +191,29 @@ describe('dashboard totals (B5)', () => {
     })
     expect(db.transaction.groupBy).toHaveBeenCalledWith(expect.objectContaining({ by: ['status'], where: { merchantId: 'm1' } }))
     expect(db.transaction.findMany).not.toHaveBeenCalled()
+  })
+
+  it('deducts refunds marked as processed from net revenue', async () => {
+    db.transaction.groupBy.mockResolvedValue([
+      { status: 'success', _count: { _all: 10 }, _sum: { amount: 10000 } },
+    ])
+    db.transaction.count.mockResolvedValue(0)
+    db.refund.groupBy.mockResolvedValue([
+      { status: 'processed', _sum: { amount: { toNumber: () => 1500 } } },
+      { status: 'completed', _sum: { amount: { toNumber: () => 500 } } },
+      { status: 'pending', _sum: { amount: { toNumber: () => 300 } } },
+    ])
+
+    const body = await (await totals()).json()
+
+    expect(body.refund_amount).toBe(2000)
+    expect(body.net_payment_volume).toBe(8000)
+    expect(db.refund.groupBy).toHaveBeenCalledWith(expect.objectContaining({
+      by: ['status'],
+      where: expect.objectContaining({
+        merchantId: 'm1',
+      }),
+    }))
   })
 
   it('shows zeros for a merchant with no transactions, and no success rate yet', async () => {
