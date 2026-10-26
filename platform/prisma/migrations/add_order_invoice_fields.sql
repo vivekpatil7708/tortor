@@ -5,7 +5,8 @@
 -- list/detail can show "Download Invoice INV-2026-0001" without joining.
 --
 -- Run this on the production database BEFORE deploying the code that reads
--- these columns. Re-runnable: IF NOT EXISTS makes a second run a no-op.
+-- these columns. If the invoices table does not exist yet, run add_invoices.sql
+-- first. Re-runnable: IF NOT EXISTS makes a second run a no-op.
 
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_number TEXT;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_generated_at TIMESTAMP(3);
