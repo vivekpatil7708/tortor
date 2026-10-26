@@ -272,6 +272,58 @@ export const api = {
   deleteCoupon: (id: string) =>
     request<{ ok: boolean }>(`/api/coupons/${id}`, { method: 'DELETE' }),
 
+  // Team access (Settings -> Team)
+  getTeam: () => request<{
+    members: Array<{
+      id: string
+      email: string
+      name: string
+      role: string
+      status: 'accepted' | 'pending' | 'expired'
+      is_you: boolean
+      invited_at: string
+      accepted_at: string | null
+      invite_expires_at: string | null
+    }>
+    me: { role: string; email: string; name: string; team_member_id: string | null; is_team_member: boolean }
+    activity: Array<{
+      id: string
+      action: string
+      entity_type: string | null
+      entity_id: string | null
+      actor_name: string
+      actor_email: string
+      actor_role: string | null
+      created_at: string
+    }>
+  }>('/api/team'),
+
+  inviteTeamMember: (body: { email: string; role: 'admin' | 'viewer' }) =>
+    request<{ member: Record<string, unknown>; email_sent: boolean; warning: string | null }>('/api/team/invite', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateTeamMember: (id: string, role: 'admin' | 'viewer') =>
+    request<{ member: Record<string, unknown> }>(`/api/team/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }),
+
+  removeTeamMember: (id: string) =>
+    request<{ success: boolean }>(`/api/team/${id}`, { method: 'DELETE' }),
+
+  resendTeamInvite: (id: string) =>
+    request<{ member: Record<string, unknown>; email_sent: boolean; warning: string | null }>(`/api/team/${id}/resend`, {
+      method: 'POST',
+    }),
+
+  acceptTeamInvite: (token: string) =>
+    request<{ success: boolean; merchant: { id: string; business_name: string }; role: string }>('/api/team/accept', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+
   getProduct: <T extends Record<string, unknown> = Record<string, unknown>>(id: string) =>
     request<{ product: T }>(`/api/products/${id}`),
 

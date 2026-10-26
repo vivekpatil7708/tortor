@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { createApiKey } from '@/lib/api-key'
 import { apiError, publicErrorMessage } from '@/lib/api-response'
 import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
+import { isOwnerRole } from '@/lib/team-roles'
 
 /** List API keys for the merchant (secret hashes never leak). */
 export async function GET() {
@@ -38,6 +39,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await requireMerchant()
+    if (!isOwnerRole(session.teamRole)) return apiError(403, 'Only the account owner can create API keys.')
     if (!session.emailVerifiedAt) return apiError(403, EMAIL_NOT_VERIFIED)
     const body = (await req.json().catch(() => ({}))) as { name?: string; mode?: string; scope?: string }
 

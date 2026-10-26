@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { clearImpersonation, createSession, merchantToJson, verifyPassword } from '@/lib/auth'
 import { publicErrorMessage } from '@/lib/api-response'
 import { clientIp, isRateLimited, recordAttempt } from '@/lib/rate-limit'
+import { resolveAccountTeam } from '@/lib/team'
 
 const MAX_LOGIN_ATTEMPTS = 5
 const LOCK_DURATION_MIN = 15
@@ -80,18 +81,37 @@ export async function POST(req: NextRequest) {
       data: { loginAttempts: 0, lockedUntil: null },
     })
 
+    // A team member logs in with their own account but lands on the merchant
+    // they were invited to. The session cookie carries that context.
+    const team = await resolveAccountTeam(merchant)
+
     await prisma.auditLog.create({
       data: {
-        merchantId: merchant.id,
+        merchantId: team?.merchantId ?? merchant.id,
         email: merchant.email,
         action: 'login',
         ipAddress: clientIp(req),
         userAgent: req.headers.get('user-agent'),
+        metadata: team
+          ? {
+              actor: {
+                team_member_id: team.teamMemberId,
+                name: team.name,
+                email: team.email,
+                role: team.role,
+              },
+            }
+          : undefined,
       },
     })
 
     await clearImpersonation()
-    await createSession(merchant.id, merchant.email, { sameSite: 'none' })
+    await createSession(merchant.id, merchant.email, {
+      sameSite: 'none',
+      team: team
+        ? { merchantId: team.merchantId, teamMemberId: team.teamMemberId, role: team.role, name: team.name }
+        : undefined,
+    })
     return NextResponse.json({ success: true, merchant: merchantToJson(merchant) })
   } catch (err: unknown) {
     return NextResponse.json({ error: publicErrorMessage(err, 'Login failed') }, { status: 500 })

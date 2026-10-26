@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth'
-import { handleError } from '@/lib/api-response'
+import { apiError, handleError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { maskSecret, serializeSettings } from '@/lib/serializers'
+import { isOwnerRole } from '@/lib/team-roles'
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -22,6 +23,7 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const session = await requireSession()
+    if (!isOwnerRole(session.teamRole)) return apiError(403, 'Only the account owner can change account settings.')
     const body = await req.json()
 
     // Payment alerts are emailed here (Settings → Notifications), so it must be a real address.

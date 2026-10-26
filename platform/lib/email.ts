@@ -163,3 +163,54 @@ export function renderResetEmail({ resetLink, businessName }: { resetLink: strin
 </body>
 </html>`
 }
+
+export function renderTeamInviteEmail({
+  businessName,
+  inviterName,
+  roleLabel,
+  inviteUrl,
+}: {
+  businessName: string
+  inviterName: string
+  roleLabel: string
+  inviteUrl: string
+}): string {
+  const business = escapeHtml(businessName || 'their business')
+  const inviter = escapeHtml(inviterName || 'The owner')
+  const role = escapeHtml(roleLabel)
+  const url = escapeHtml(inviteUrl)
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f5f0eb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
+    <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;border:1px solid rgba(255,255,255,0.6);padding:40px;">
+      <tr><td style="text-align:center;padding-bottom:8px;">
+        <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;"><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#7bb86c;">Pay</span></a>
+      </td></tr>
+      <tr><td style="padding-bottom:20px;text-align:center;">
+        <h1 style="font-size:20px;font-weight:700;color:#2c2c2c;margin:0;">You're invited to ${business}</h1>
+      </td></tr>
+      <tr><td style="padding-bottom:16px;color:#6b7280;font-size:14px;line-height:1.6;">
+        ${inviter} invited you to help run <strong style="color:#2c2c2c;">${business}</strong> on ToroPay as a <strong style="color:#2c2c2c;">${role}</strong>.
+      </td></tr>
+      <tr><td style="padding-bottom:24px;color:#6b7280;font-size:14px;line-height:1.6;">
+        Accept the invitation to open the business dashboard with your own ToroPay login. This link expires in 7 days.
+      </td></tr>
+      <tr><td style="padding:8px 0 28px;text-align:center;">
+        <a href="${url}" style="display:inline-block;padding:14px 32px;background:#2c2c2c;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;">Accept invitation</a>
+      </td></tr>
+      <tr><td style="padding-bottom:16px;color:#9ca3af;font-size:12px;line-height:1.5;word-break:break-all;">
+        If the button does not work, open this link:<br /><a href="${url}" style="color:#7bb86c;">${url}</a>
+      </td></tr>
+      <tr><td style="padding-bottom:16px;color:#9ca3af;font-size:12px;line-height:1.5;">
+        If you weren't expecting this invitation, you can ignore this email.
+      </td></tr>
+      <tr><td style="border-top:1px solid #e5e7eb;padding-top:16px;color:#9ca3af;font-size:12px;text-align:center;">
+        ToroPay — Built for Indian businesses
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body>
+</html>`
+}

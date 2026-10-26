@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireMerchant } from '@/lib/tenant'
 import { revokeConnectedApp } from '@/lib/oauth'
 import { apiError, notFound, publicErrorMessage } from '@/lib/api-response'
+import { isOwnerRole } from '@/lib/team-roles'
 
 /**
  * DELETE /api/oauth/tokens/{id} — disconnect an app: revokes the access token
@@ -11,6 +12,7 @@ import { apiError, notFound, publicErrorMessage } from '@/lib/api-response'
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireMerchant()
+    if (!isOwnerRole(session.teamRole)) return apiError(403, 'Only the account owner can disconnect connected apps.')
     const ok = await revokeConnectedApp((await ctx.params).id, session.id)
     if (!ok) return notFound('Connected app not found')
     return NextResponse.json({ success: true })

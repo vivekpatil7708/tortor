@@ -3,6 +3,7 @@ import { requireMerchant } from '@/lib/tenant'
 import { prisma } from '@/lib/prisma'
 import { revokeApiKey, rotateApiKey } from '@/lib/api-key'
 import { apiError, notFound, publicErrorMessage } from '@/lib/api-response'
+import { isOwnerRole } from '@/lib/team-roles'
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -28,6 +29,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireMerchant()
+    if (!isOwnerRole(session.teamRole)) return apiError(403, 'Only the account owner can change API keys.')
     const body = (await req.json().catch(() => ({}))) as { action?: string }
 
     if (body.action === 'revoke') {
@@ -52,6 +54,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireMerchant()
+    if (!isOwnerRole(session.teamRole)) return apiError(403, 'Only the account owner can delete API keys.')
     const ok = await revokeApiKey((await ctx.params).id, session.id)
     if (!ok) return notFound('API key not found')
     return NextResponse.json({ success: true })

@@ -5,6 +5,7 @@ import { publicErrorMessage } from '@/lib/api-response'
 import { sendVerificationEmail } from '@/lib/email-verification'
 import { passwordProblem } from '@/lib/password-policy'
 import { isRateLimited, recordAttempt } from '@/lib/rate-limit'
+import { resolveAccountTeam } from '@/lib/team'
 
 // Limits how fast one network can try sign-ups, so it can't check many emails
 // or phone numbers for existing accounts.
@@ -63,6 +64,10 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // Every merchant gets an owner row so they appear on the team page and
+    // their actions have an author.
+    const team = await resolveAccountTeam(merchant)
+
     await prisma.auditLog.create({
       data: {
         merchantId: merchant.id,
@@ -70,13 +75,28 @@ export async function POST(req: NextRequest) {
         action: 'signup',
         ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
         userAgent: req.headers.get('user-agent'),
+        metadata: team
+          ? {
+              actor: {
+                team_member_id: team.teamMemberId,
+                name: team.name,
+                email: team.email,
+                role: team.role,
+              },
+            }
+          : undefined,
       },
     })
 
     // The account can't take payments until the owner proves the email is theirs.
     const verificationSent = await sendVerificationEmail(merchant)
 
-    await createSession(merchant.id, merchant.email, { sameSite: 'none' })
+    await createSession(merchant.id, merchant.email, {
+      sameSite: 'none',
+      team: team
+        ? { merchantId: team.merchantId, teamMemberId: team.teamMemberId, role: team.role, name: team.name }
+        : undefined,
+    })
     return NextResponse.json({ success: true, merchant: merchantToJson(merchant), email_verification_sent: verificationSent })
   } catch (err: unknown) {
     return NextResponse.json({ error: publicErrorMessage(err, 'Signup failed') }, { status: 500 })

@@ -5,6 +5,7 @@ import { apiError, publicErrorMessage } from '@/lib/api-response'
 import { isValidWebhookUrl } from '@/lib/safe-fetch'
 import { OUTGOING_WEBHOOK_EVENTS, generateWebhookSecret } from '@/lib/webhook-delivery'
 import { EMAIL_NOT_VERIFIED } from '@/lib/email-verification'
+import { isOwnerRole } from '@/lib/team-roles'
 
 type Body = { url?: string; mode?: string; eventTypes?: unknown; active?: boolean }
 
@@ -55,6 +56,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await requireMerchant()
+    if (!isOwnerRole(session.teamRole)) return apiError(403, 'Only the account owner can manage webhook endpoints.')
     if (!session.emailVerifiedAt) return apiError(403, EMAIL_NOT_VERIFIED)
 
     const body = (await req.json().catch(() => ({}))) as Body
