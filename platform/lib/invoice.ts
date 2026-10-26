@@ -1,6 +1,6 @@
 import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from 'pdf-lib'
 import { prisma } from '@/lib/prisma'
-import { isValidStateCode, stateName } from '@/lib/tax'
+import { isValidStateCode, resolveStateCode, stateName } from '@/lib/tax'
 import { INVOICE_PREFIX, invoiceYear, nextInvoiceNumber } from '@/lib/invoice-number'
 
 // Invoice numbers are sequential per merchant and reset on 1 January:
@@ -66,6 +66,11 @@ interface InvoiceData {
   items: InvoiceLineItem[]
 }
 
+function hasAddressContent(addr: AddressSnapshot): boolean {
+  if (!addr) return false
+  return Object.values(addr).some(value => typeof value === 'string' && value.trim() !== '')
+}
+
 function formatAddress(addr: AddressSnapshot): string | null {
   if (!addr) return null
   const parts = [
@@ -84,7 +89,13 @@ function formatAddress(addr: AddressSnapshot): string | null {
 
 function buildBuyerState(snapshot: AddressSnapshot) {
   const state = typeof snapshot?.state === 'string' ? snapshot.state : null
-  const stateCode = state && isValidStateCode(state) ? state : null
+  const explicitCode =
+    typeof snapshot?.state_code === 'string'
+      ? snapshot.state_code
+      : typeof snapshot?.stateCode === 'string'
+        ? snapshot.stateCode
+        : null
+  const stateCode = explicitCode && isValidStateCode(explicitCode) ? explicitCode : resolveStateCode(state)
   return { state, stateCode }
 }
 
@@ -146,11 +157,10 @@ export async function createInvoiceForOrder(orderId: string, merchantId: string)
   const merchant = order.merchant
   const shippingAddr = order.shippingAddressSnapshot as AddressSnapshot
   const billingAddr = order.billingAddressSnapshot as AddressSnapshot
-  const buyerAddr = billingAddr || shippingAddr
+  const buyerAddr = hasAddressContent(billingAddr) ? billingAddr : shippingAddr
   const buyer = buildBuyerState(buyerAddr)
 
-  const sellerStateCode =
-    merchant.stateCode && isValidStateCode(merchant.stateCode) ? merchant.stateCode : null
+  const sellerStateCode = resolveStateCode(merchant.stateCode)
   const isInterState = Boolean(
     sellerStateCode && buyer.stateCode && sellerStateCode !== buyer.stateCode
   )
@@ -216,9 +226,25 @@ export async function createInvoiceForOrder(orderId: string, merchantId: string)
       ])
       return invoice
     } catch (err) {
-      // Two concurrent requests can pick the same sequence number; retry with
-      // the next one instead of failing the request.
-      if (isUniqueViolation(err) && attempt < MAX_NUMBER_ATTEMPTS) continue
+      if (isUniqueViolation(err)) {
+        // Another request may have created this order's invoice while we were
+        // allocating a number. Return that invoice instead of trying to create
+        // a duplicate for the same order.
+        const raced = await prisma.invoice.findUnique({ where: { orderId } })
+        if (raced) {
+          if (raced.merchantId !== merchantId) throw new Error('Invoice not found')
+          await syncOrderInvoiceFields(orderId, raced.invoiceNumber, raced.invoiceDate)
+          return raced
+        }
+      }
+      // Two concurrent requests for different orders can pick the same
+      // sequence number; retry with the next one instead of failing. The small
+      // backoff also gives a same-order competitor time to commit, so the
+      // findUnique above can see its invoice.
+      if (isUniqueViolation(err) && attempt < MAX_NUMBER_ATTEMPTS) {
+        await new Promise(resolve => setTimeout(resolve, 25 * attempt))
+        continue
+      }
       throw err
     }
   }

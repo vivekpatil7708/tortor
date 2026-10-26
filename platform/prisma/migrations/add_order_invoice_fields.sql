@@ -7,7 +7,7 @@
 -- Run this on the production database BEFORE deploying the code that reads
 -- these columns. Re-runnable: IF NOT EXISTS makes a second run a no-op.
 
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(32);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_number TEXT;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS invoice_generated_at TIMESTAMP(3);
 
 -- Invoice numbers are unique per merchant, not globally: every merchant's
