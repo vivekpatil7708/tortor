@@ -250,6 +250,33 @@ export const refundListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).optional(),
 })
 
+// ============================================================
+// GOOGLE SHEETS EXPORT
+// ============================================================
+
+export const googleSheetsSettingsSchema = z
+  .object({
+    spreadsheet: z.string().trim().min(1).max(500).optional(),
+    sheet_name: z.string().trim().min(1).max(100).optional(),
+    auto_export: z.boolean().optional(),
+  })
+  .refine(
+    value => value.spreadsheet !== undefined || value.auto_export !== undefined,
+    { message: 'Choose a spreadsheet or an option to save' },
+  )
+
+export const googleSheetsCreateSpreadsheetSchema = z.object({
+  title: z.string().trim().min(1).max(100).optional(),
+})
+
+export const googleSheetsExportSchema = z.object({
+  status: z.enum(['initiated', 'pending', 'success', 'failed']).optional(),
+  from: z.string().max(10).optional(),
+  to: z.string().max(10).optional(),
+  link: z.string().max(64).optional(),
+  q: z.string().max(64).optional(),
+})
+
 export const merchantProfileSchema = z.object({
   business_name: z.string().min(1).max(200),
   support_email: z.string().email().optional().nullable().or(z.literal('')).nullable(),

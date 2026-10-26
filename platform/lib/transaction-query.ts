@@ -28,15 +28,11 @@ export function transactionSearchWhere(q: string): Prisma.TransactionWhereInput 
 
 export type TransactionListQuery = { limit: number; cursor?: string; filters: Prisma.TransactionWhereInput }
 
-/** The parsed list query, or the problem with it. */
-export function readTransactionQuery(params: URLSearchParams): TransactionListQuery | { error: string } {
-  const rawLimit = params.get('limit')
-  const limit = rawLimit === null ? DEFAULT_LIMIT : Number(rawLimit)
-  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) return { error: `limit must be 1 to ${MAX_LIMIT}` }
-
-  const cursor = params.get('cursor') || undefined
-  if (cursor && !ID.test(cursor)) return { error: 'Invalid cursor' }
-
+/**
+ * The filters from a transaction list query. Kept separate from the pagination
+ * rules so exports can reuse exactly the same status, date and search handling.
+ */
+export function readTransactionFilters(params: URLSearchParams): Prisma.TransactionWhereInput | { error: string } {
   const filters: Prisma.TransactionWhereInput = {}
   const status = params.get('status')
   if (status) {
@@ -62,5 +58,19 @@ export function readTransactionQuery(params: URLSearchParams): TransactionListQu
     if (q.length > MAX_SEARCH) return { error: `Search must be ${MAX_SEARCH} characters or fewer` }
     Object.assign(filters, transactionSearchWhere(q))
   }
+  return filters
+}
+
+/** The parsed list query, or the problem with it. */
+export function readTransactionQuery(params: URLSearchParams): TransactionListQuery | { error: string } {
+  const rawLimit = params.get('limit')
+  const limit = rawLimit === null ? DEFAULT_LIMIT : Number(rawLimit)
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIMIT) return { error: `limit must be 1 to ${MAX_LIMIT}` }
+
+  const cursor = params.get('cursor') || undefined
+  if (cursor && !ID.test(cursor)) return { error: 'Invalid cursor' }
+
+  const filters = readTransactionFilters(params)
+  if ('error' in filters) return filters
   return { limit, cursor, filters }
 }

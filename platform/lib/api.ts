@@ -43,6 +43,40 @@ export type TransactionQuery = TransactionFilters & { limit?: number; cursor?: s
 /** One page of transactions, newest first. `total` is counted on the first page only. */
 export type TransactionPage = { transactions: Record<string, unknown>[]; next_cursor: string | null; total: number | null }
 
+/** Settings -> Google Sheets. Tokens are never part of this response. */
+export type GoogleSheetsConnection = {
+  id: string
+  google_email: string | null
+  spreadsheet_id: string | null
+  spreadsheet_name: string | null
+  spreadsheet_url: string | null
+  sheet_name: string
+  auto_export: boolean
+  connected_at: string
+  last_exported_at: string | null
+  last_error: string | null
+}
+
+export type GoogleSheetsStatus = {
+  available: boolean
+  configured: boolean
+  can_manage: boolean
+  can_export: boolean
+  connected: boolean
+  connection: GoogleSheetsConnection | null
+  setup_required: boolean
+}
+
+export type GoogleSheetsExportResult = {
+  exported: number
+  skipped: number
+  matched: number
+  truncated: boolean
+  spreadsheet_name: string | null
+  sheet_name: string
+  spreadsheet_url: string
+}
+
 /** Filters for the orders list. Every field is optional; omitting one means "any". */
 export type OrderQuery = {
   limit?: number
@@ -196,6 +230,30 @@ export const api = {
 
   saveSettings: (body: Record<string, unknown>) =>
     request<{ settings: Record<string, unknown> }>('/api/settings', { method: 'PUT', body: JSON.stringify(body) }),
+
+  // Settings -> Google Sheets (owner connects; everyone can see the status).
+  getGoogleSheets: () => request<GoogleSheetsStatus>('/api/integrations/google-sheets'),
+
+  saveGoogleSheets: (body: { spreadsheet?: string; sheet_name?: string; auto_export?: boolean }) =>
+    request<{ connection: GoogleSheetsConnection }>('/api/integrations/google-sheets', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  createGoogleSheetsSpreadsheet: (body: { title?: string } = {}) =>
+    request<{ connection: GoogleSheetsConnection }>('/api/integrations/google-sheets/spreadsheet', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  disconnectGoogleSheets: () =>
+    request<{ success: boolean }>('/api/integrations/google-sheets', { method: 'DELETE' }),
+
+  exportTransactionsToSheets: (filters: TransactionFilters) =>
+    request<GoogleSheetsExportResult>('/api/integrations/google-sheets/export', {
+      method: 'POST',
+      body: JSON.stringify(filters),
+    }),
 
   getTemplates: () => request<Record<string, unknown>[]>('/api/templates'),
 

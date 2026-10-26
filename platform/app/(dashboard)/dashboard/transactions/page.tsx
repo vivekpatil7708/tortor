@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Search } from 'lucide-react'
-import { fetchAllTransactions } from '@/lib/api'
+import { api, fetchAllTransactions } from '@/lib/api'
 import { useTransactionPages } from '@/lib/use-transaction-pages'
 import { exportToCSV } from '@/lib/export-csv'
 import { STATUS_FILTERS } from '@/lib/payment-status'
@@ -38,6 +39,9 @@ export default function TransactionsPage() {
   const { rows: txns, total, loading, error: loadError, hasMore, loadMore, reload, replaceRow, removeRow } = useTransactionPages(filters)
   const [exporting, setExporting] = useState('')
   const [exportError, setExportError] = useState('')
+  const [sheetsExporting, setSheetsExporting] = useState(false)
+  const [sheetsError, setSheetsError] = useState('')
+  const [sheetsNotice, setSheetsNotice] = useState<{ text: string; url: string } | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [sendTxn, setSendTxn] = useState<Record<string, any> | null>(null)
   const statusAction = useStatusAction(transaction => {
@@ -94,7 +98,7 @@ export default function TransactionsPage() {
   }
 
   async function handleExport() {
-    if (exporting) return
+    if (exporting || sheetsExporting) return
     setExportError('')
     setExporting('Preparing…')
     try {
@@ -106,6 +110,30 @@ export default function TransactionsPage() {
       setExportError(err instanceof Error ? err.message : 'Could not export')
     } finally {
       setExporting('')
+    }
+  }
+
+  async function handleSheetsExport() {
+    if (sheetsExporting || exporting) return
+    setSheetsError('')
+    setSheetsNotice(null)
+    setSheetsExporting(true)
+    try {
+      const result = await api.exportTransactionsToSheets(filters)
+      if (result.matched === 0) {
+        setSheetsNotice({ text: 'No matching transactions to export.', url: result.spreadsheet_url })
+      } else {
+        const parts = [
+          `Added ${result.exported} row${result.exported === 1 ? '' : 's'} to ${result.spreadsheet_name || 'Google Sheets'}.`,
+        ]
+        if (result.skipped) parts.push(`${result.skipped} already there.`)
+        if (result.truncated) parts.push('Only the newest 5,000 matching transactions were exported.')
+        setSheetsNotice({ text: parts.join(' '), url: result.spreadsheet_url })
+      }
+    } catch (err) {
+      setSheetsError(err instanceof Error ? err.message : 'Could not export to Google Sheets')
+    } finally {
+      setSheetsExporting(false)
     }
   }
 
@@ -136,12 +164,32 @@ export default function TransactionsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
           <p className="text-sm text-gray-500">All payment transactions made through your links.</p>
         </div>
-        <button onClick={handleExport} disabled={!total || !!exporting}
-          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-charcoal transition-colors hover:bg-gray-50 disabled:opacity-40">
-          {exporting || 'Export to Excel'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={handleExport} disabled={!total || !!exporting || sheetsExporting}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-charcoal transition-colors hover:bg-gray-50 disabled:opacity-40">
+            {exporting || 'Export to Excel'}
+          </button>
+          <button onClick={handleSheetsExport} disabled={!total || sheetsExporting || !!exporting}
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-charcoal transition-colors hover:bg-gray-50 disabled:opacity-40">
+            {sheetsExporting ? 'Exporting…' : 'Export to Sheets'}
+          </button>
+        </div>
       </div>
       {exportError && <p className="mb-4 text-sm text-red-500">Export failed: {exportError}</p>}
+      {sheetsError && (
+        <p role="alert" className="mb-4 text-sm text-red-500">
+          Export to Sheets failed: {sheetsError}{' '}
+          <Link href="/dashboard/settings?tab=sheets" className="font-semibold underline">Open Google Sheets settings</Link>
+        </p>
+      )}
+      {sheetsNotice && (
+        <p role="status" className="mb-4 text-sm text-green-700">
+          {sheetsNotice.text}{' '}
+          <a href={sheetsNotice.url} target="_blank" rel="noreferrer" className="font-semibold underline">
+            Open spreadsheet
+          </a>
+        </p>
+      )}
 
       <div className="relative mb-3 w-full sm:max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" aria-hidden />
