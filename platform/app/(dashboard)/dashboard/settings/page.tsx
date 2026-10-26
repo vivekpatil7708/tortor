@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { LoadError } from '@/components/ui/load-error'
 import { ConnectedApps } from '@/components/dashboard/connected-apps'
+import { GoogleSheetsSettings } from '@/components/dashboard/google-sheets-settings'
 import { GST_STATES, TAX_OPEN_QUESTIONS, TAX_SCHEMES, stateName } from '@/lib/tax'
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
   { id: 'tax', label: 'Tax' },
   { id: 'notifications', label: 'Notifications' },
   { id: 'security', label: 'Security' },
+  { id: 'sheets', label: 'Google Sheets' },
   { id: 'apps', label: 'Connected apps' },
 ] as const
 type Tab = (typeof TABS)[number]['id']
@@ -310,6 +312,8 @@ export default function SettingsPage() {
           </Button>
         </div>
       )}
+
+      {tab === 'sheets' && <GoogleSheetsSettings />}
 
       {tab === 'apps' && <ConnectedApps />}
 

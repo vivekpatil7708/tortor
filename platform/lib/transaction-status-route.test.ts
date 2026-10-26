@@ -10,12 +10,14 @@ const db = vi.hoisted(() => ({
 const notifyPaymentStatus = vi.hoisted(() => vi.fn())
 const logAudit = vi.hoisted(() => vi.fn())
 const queuePaidClaimAlert = vi.hoisted(() => vi.fn())
+const queueTransactionSheetExport = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 vi.mock('@/lib/auth', () => ({ requireSession: vi.fn(async () => ({ id: 'merchant-1' })) }))
 vi.mock('@/lib/webhooks', () => ({ notifyPaymentStatus }))
 vi.mock('@/lib/audit', () => ({ logAudit }))
 vi.mock('@/lib/payment-alerts', () => ({ queuePaidClaimAlert }))
+vi.mock('@/lib/google-sheets/service', () => ({ queueTransactionSheetExport }))
 
 import { PATCH } from '@/app/api/transactions/[txnId]/route'
 
@@ -55,6 +57,7 @@ describe('PATCH /api/transactions/[txnId]', () => {
     }))
     expect(notifyPaymentStatus).toHaveBeenCalledTimes(1)
     expect(notifyPaymentStatus).toHaveBeenCalledWith('t1', 'success')
+    expect(queueTransactionSheetExport).toHaveBeenCalledWith('merchant-1', 't1')
   })
 
   it('a repeat confirm changes nothing and sends no webhook', async () => {
@@ -65,6 +68,7 @@ describe('PATCH /api/transactions/[txnId]', () => {
     expect(res.status).toBe(200)
     expect(db.transaction.updateMany).not.toHaveBeenCalled()
     expect(notifyPaymentStatus).not.toHaveBeenCalled()
+    expect(queueTransactionSheetExport).not.toHaveBeenCalled()
   })
 
   it('undo within 30 minutes marks it failed, clears settlement and is audited', async () => {

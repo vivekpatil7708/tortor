@@ -10,6 +10,7 @@ import { completeRefundFromProviderWebhook, extractProviderRefundId } from '@/li
 import { applyInventoryDeductionOnMode } from '@/lib/inventory'
 import { decidePaymentStatusChange } from '@/lib/payment-transitions'
 import { redeemCouponForOrder } from '@/lib/coupons'
+import { queuePaymentSheetExport } from '@/lib/google-sheets/service'
 import type { KeyMode, PaymentStatus } from '@prisma/client'
 
 export interface NormalizedProviderEvent {
@@ -533,6 +534,10 @@ async function runPostApplyHooks(params: {
 }) {
   try {
     if (params.status === 'paid') {
+      // Settings -> Google Sheets: append the settled order payment after the
+      // response. The queue catches everything, so Google cannot fail a webhook.
+      queuePaymentSheetExport(params.merchantId, params.paymentId)
+
       if (params.orderId) {
         await applyInventoryDeductionOnMode({
           merchantId: params.merchantId,

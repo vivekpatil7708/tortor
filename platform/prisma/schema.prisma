@@ -321,6 +321,10 @@ model Merchant {
   oauthAuthCodes    OAuthAuthCode[]
   oauthAccessTokens OAuthAccessToken[]
 
+  // Google Sheets transaction export
+  googleSheetsConnection GoogleSheetsConnection?
+  googleSheetsExports    GoogleSheetsExport[]
+
   @@map("merchants")
 }
 
@@ -1681,4 +1685,51 @@ model Invoice {
   @@unique([merchantId, invoiceNumber])
   @@index([merchantId, invoiceDate])
   @@map("invoices")
+}
+
+// ============================================================
+// GOOGLE SHEETS TRANSACTION EXPORT
+// ============================================================
+
+// One Google account connection per merchant. OAuth tokens are encrypted at
+// rest with the same envelope used for courier credentials; they are never
+// returned by an API or written to a log.
+model GoogleSheetsConnection {
+  id                    String    @id @default(uuid())
+  merchantId            String    @unique @map("merchant_id")
+  googleEmail           String?   @map("google_email")
+  accessTokenEncrypted  String    @map("access_token_encrypted")
+  refreshTokenEncrypted String?   @map("refresh_token_encrypted")
+  tokenExpiresAt        DateTime  @map("token_expires_at")
+  scopes                String    @default("[]")
+  spreadsheetId         String?   @map("spreadsheet_id")
+  spreadsheetName       String?   @map("spreadsheet_name")
+  sheetName             String    @default("Transactions") @map("sheet_name")
+  autoExport            Boolean   @default(true) @map("auto_export")
+  lastExportedAt        DateTime? @map("last_exported_at")
+  lastError             String?   @map("last_error")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("google_sheets_connections")
+}
+
+// A payment is appended to a given spreadsheet at most once. The unique key
+// spans the spreadsheet, so changing to a different spreadsheet can export the
+// history again, while retries and duplicate webhooks stay no-ops.
+model GoogleSheetsExport {
+  id            String   @id @default(uuid())
+  merchantId    String   @map("merchant_id")
+  spreadsheetId String   @map("spreadsheet_id")
+  sourceType    String   @map("source_type") // transaction | order_payment
+  sourceId      String   @map("source_id")
+  exportedAt    DateTime @default(now()) @map("exported_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([spreadsheetId, sourceType, sourceId])
+  @@index([merchantId, exportedAt])
+  @@map("google_sheets_exports")
 }

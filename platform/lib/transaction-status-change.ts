@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { logAudit } from '@/lib/audit'
 import { decideLinkPaymentChange, type LinkPaymentStatus } from '@/lib/payment-transitions'
 import { queuePaidClaimAlert } from '@/lib/payment-alerts'
+import { queueTransactionSheetExport } from '@/lib/google-sheets/service'
 import { notifyPaymentStatus } from '@/lib/webhooks'
 import type { Transaction } from '@prisma/client'
 
@@ -89,6 +90,12 @@ export async function changeTransactionStatus(params: {
       entityId: txn.id,
       metadata: { txn_id: txn.txnId, amount: txn.amount, confirmed_at: txn.confirmedAt?.toISOString() ?? null },
     })
+  }
+
+  // Settings -> Google Sheets: add newly confirmed payments after the response.
+  // The queue never throws, so a Google outage cannot fail the confirmation.
+  if (statusChanges && to === 'success') {
+    queueTransactionSheetExport(updated.merchantId, updated.id)
   }
 
   if (statusChanges && to) {
