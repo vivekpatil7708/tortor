@@ -10,10 +10,10 @@ export const metadata: Metadata = {
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession()
 
-  if (!session || !isAdminEmail(session.email) || !session.emailVerifiedAt) {
+  if (!session || !isAdminEmail(session.accountEmail) || !session.accountEmailVerifiedAt) {
     redirect('/dashboard')
   }
-  if (!(await hasAdminSecondFactor(session.id))) {
+  if (!(await hasAdminSecondFactor(session.accountId))) {
     redirect('/admin-verify')
   }
 

@@ -11,8 +11,8 @@ function getSecret() {
 }
 
 export function isAdminEmail(email: string): boolean {
-  const adminEmail = process.env.ADMIN_EMAIL
-  return Boolean(adminEmail) && email === adminEmail
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
+  return Boolean(adminEmail) && email.trim().toLowerCase() === adminEmail
 }
 
 /** True when this browser passed the authenticator-code check for this account. */
@@ -52,7 +52,14 @@ export async function grantAdminSecondFactor(merchantId: string) {
 export async function requireAdmin() {
   const session = await getSession()
   if (!session) throw new Error('Unauthorized')
-  if (!isAdminEmail(session.email) || !session.emailVerifiedAt || !(await hasAdminSecondFactor(session.id))) {
+  // Use the logged-in account, not the merchant currently being viewed. An
+  // admin can be inside "view as merchant" mode, where session.email is the
+  // merchant's email and session.id is the merchant's id.
+  if (
+    !isAdminEmail(session.accountEmail) ||
+    !session.accountEmailVerifiedAt ||
+    !(await hasAdminSecondFactor(session.accountId))
+  ) {
     throw new Error('Forbidden')
   }
   return session

@@ -233,6 +233,7 @@ export async function getSession() {
     ...session,
     accountId: account.id,
     accountEmail: account.email,
+    accountEmailVerifiedAt: account.emailVerifiedAt,
     accountName: account.name,
     teamRole,
     teamMemberId,
