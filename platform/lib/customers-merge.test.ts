@@ -10,6 +10,9 @@ const db = vi.hoisted(() => ({
   messageLog: { updateMany: vi.fn() },
   returnRequest: { updateMany: vi.fn() },
   followUpTask: { updateMany: vi.fn() },
+  subscription: { updateMany: vi.fn() },
+  subscriptionPayment: { updateMany: vi.fn() },
+  loyaltyPoint: { updateMany: vi.fn() },
   $transaction: vi.fn(),
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
@@ -52,9 +55,16 @@ describe('merging customers', () => {
     })
   })
 
-  it('moves messages, returns and follow-ups too', async () => {
+  it('moves messages, returns, follow-ups, subscriptions and loyalty points too', async () => {
     await mergeCustomers(request({ targetId: 'keep', sourceIds: ['dup1'] }))
-    for (const model of [db.messageLog, db.returnRequest, db.followUpTask]) {
+    for (const model of [
+      db.messageLog,
+      db.returnRequest,
+      db.followUpTask,
+      db.subscription,
+      db.subscriptionPayment,
+      db.loyaltyPoint,
+    ]) {
       expect(model.updateMany).toHaveBeenCalledWith({
         where: { customerId: { in: ['dup1'] }, merchantId: 'm1' },
         data: { customerId: 'keep' },

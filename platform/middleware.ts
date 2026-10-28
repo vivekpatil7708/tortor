@@ -22,6 +22,8 @@ const MERCHANT_WRITE_PREFIXES = [
   '/api/coupons',
   '/api/orders',
   '/api/customers',
+  '/api/subscriptions',
+  '/api/loyalty',
   '/api/settings',
   '/api/merchant',
   '/api/api-keys',
@@ -53,6 +55,9 @@ const VIEWER_WRITES_ALLOWED = new Set([
 
 function isMerchantWrite(pathname: string) {
   if (VIEWER_WRITES_ALLOWED.has(pathname)) return false
+  // The customer cancellation page uses a capability token, not a merchant
+  // session. A signed-in viewer must still be able to open their own link.
+  if (pathname.startsWith('/api/subscriptions/cancel/')) return false
   return MERCHANT_WRITE_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`))
 }
 

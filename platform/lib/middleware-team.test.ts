@@ -45,4 +45,22 @@ describe('viewer write restrictions', () => {
     const res = await middleware(request('/api/team/accept', token))
     expect(res.status).not.toBe(403)
   })
+
+  it('blocks a viewer from changing subscriptions', async () => {
+    const token = await viewerToken()
+    const res = await middleware(request('/api/subscriptions/s1', token, 'PATCH'))
+    expect(res.status).toBe(403)
+  })
+
+  it('blocks a viewer from changing loyalty points', async () => {
+    const token = await viewerToken()
+    const res = await middleware(request('/api/loyalty', token, 'PUT'))
+    expect(res.status).toBe(403)
+  })
+
+  it('still lets a viewer cancel through a customer capability link', async () => {
+    const token = await viewerToken()
+    const res = await middleware(request('/api/subscriptions/cancel/token1234567890', token, 'POST'))
+    expect(res.status).not.toBe(403)
+  })
 })

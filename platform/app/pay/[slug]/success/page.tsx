@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, RotateCcw, SearchX, ShieldCheck, XCircle } from 'lucide-react'
+import { CheckCircle2, Clock, Gift, RotateCcw, SearchX, ShieldCheck, XCircle } from 'lucide-react'
 import type { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import { payStatusMetadata } from '@/lib/pay-preview'
@@ -42,7 +42,7 @@ export default async function SuccessPage(
     ? await prisma.transaction.findUnique({
         where: { txnId: searchParams.txn },
         select: {
-          id: true, txnId: true, amount: true, status: true, createdAt: true, confirmedAt: true,
+          id: true, merchantId: true, txnId: true, amount: true, status: true, createdAt: true, confirmedAt: true,
           paymentLink: { select: { slug: true, title: true } },
           // Only what the business shows its customers: never its login email or phone.
           merchant: { select: { businessName: true, businessLogoUrl: true, supportEmail: true, supportPhone: true } },
@@ -63,6 +63,18 @@ export default async function SuccessPage(
   const supportEmail = found?.merchant.supportEmail || null
   const supportPhone = found?.merchant.supportPhone || null
   const refunds = found ? await publicRefundSummaryForTransaction(found.id) : null
+  const loyalty = found?.status === 'success'
+    ? await prisma.loyaltyPoint.findFirst({
+        where: { merchantId: found.merchantId, transactionId: found.id },
+        select: { points: true, customerId: true },
+      })
+    : null
+  const loyaltyBalance = loyalty
+    ? (await prisma.loyaltyPoint.aggregate({
+        where: { merchantId: found!.merchantId, customerId: loyalty.customerId },
+        _sum: { points: true },
+      }))._sum.points ?? 0
+    : null
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream p-4 text-charcoal">
@@ -140,6 +152,24 @@ export default async function SuccessPage(
             <p className="mt-2 text-xs text-amber-800/80">
               Refunds are sent manually by {seller}, not automatically by ToroPay.
             </p>
+          </div>
+        )}
+
+        {loyalty && loyalty.points > 0 && (
+          <div className="mt-4 rounded-2xl border border-green-200 bg-green-50/70 p-4 text-sm">
+            <div className="flex items-center gap-2 font-semibold text-green-900">
+              <Gift className="h-4 w-4" aria-hidden />
+              Loyalty points
+            </div>
+            <p className="mt-2 text-green-800">
+              You earned <strong>{loyalty.points.toLocaleString('en-IN')}</strong>
+              {' '}point{loyalty.points === 1 ? '' : 's'} on this payment.
+            </p>
+            {loyaltyBalance !== null && (
+              <p className="mt-1 text-xs text-green-700">
+                Your total with {seller}: <strong>{loyaltyBalance.toLocaleString('en-IN')}</strong> points.
+              </p>
+            )}
           </div>
         )}
 

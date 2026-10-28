@@ -255,6 +255,8 @@ model Merchant {
   address         String? @map("address")
   defaultCurrency String  @default("INR") @map("default_currency")
   timezone        String  @default("Asia/Kolkata") @map("timezone")
+  // Loyalty points awarded per rupee spent, e.g. 0.1 = 1 point per ₹10.
+  loyaltyPointsPerRupee Float @default(0) @map("loyalty_points_per_rupee")
 
   // Tax details, collected so invoices can be issued. Nothing here is used to
   // calculate tax yet - see lib/tax.ts for what is still undecided.
@@ -284,6 +286,9 @@ model Merchant {
   teamMemberships    TeamMember[] @relation("TeamMemberAccount")
   customers          Customer[]
   customerAddresses  CustomerAddress[]
+  subscriptions      Subscription[]
+  subscriptionPayments SubscriptionPayment[]
+  loyaltyPoints      LoyaltyPoint[]
   products           Product[]
   orders             Order[]
   fulfillments       Fulfillment[]
@@ -405,6 +410,9 @@ model Customer {
   followUpTasks  FollowUpTask[]
   messageLogs    MessageLog[]
   returnRequests ReturnRequest[]
+  subscriptions  Subscription[]
+  subscriptionPayments SubscriptionPayment[]
+  loyaltyPoints  LoyaltyPoint[]
 
   @@index([merchantId, fullName])
   @@index([merchantId, phone])
@@ -434,6 +442,90 @@ model CustomerAddress {
 
   @@index([merchantId, customerId])
   @@map("customer_addresses")
+}
+
+// ============================================================
+// SUBSCRIPTIONS
+// ============================================================
+
+model Subscription {
+  id              String    @id @default(uuid())
+  merchantId      String    @map("merchant_id")
+  customerId      String    @map("customer_id")
+  planName        String    @map("plan_name")
+  amount          Float
+  // weekly | monthly | yearly
+  frequency       String
+  nextBillingDate DateTime  @map("next_billing_date")
+  // active | paused | cancelled
+  status          String    @default("active")
+  cancelToken     String    @unique @map("cancel_token")
+  lastReminderAt  DateTime? @map("last_reminder_at")
+  lastBilledAt    DateTime? @map("last_billed_at")
+  cancelledAt     DateTime? @map("cancelled_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  merchant Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  payments SubscriptionPayment[]
+
+  @@index([merchantId, status, nextBillingDate])
+  @@index([customerId])
+  @@map("subscriptions")
+}
+
+model SubscriptionPayment {
+  id             String    @id @default(uuid())
+  subscriptionId String    @map("subscription_id")
+  merchantId     String    @map("merchant_id")
+  customerId     String    @map("customer_id")
+  amount         Float
+  // pending | paid | failed | cancelled
+  status         String    @default("pending")
+  billingDate    DateTime  @map("billing_date")
+  paymentLinkId  String?   @unique @map("payment_link_id")
+  transactionId  String?   @unique @map("transaction_id")
+  failureReason  String?   @map("failure_reason")
+  paidAt         DateTime? @map("paid_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  merchant     Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  paymentLink  PaymentLink? @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
+  transaction  Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@unique([subscriptionId, billingDate])
+  @@index([merchantId, status])
+  @@index([customerId, createdAt])
+  @@map("subscription_payments")
+}
+
+// ============================================================
+// LOYALTY
+// ============================================================
+
+model LoyaltyPoint {
+  id            String   @id @default(uuid())
+  merchantId    String   @map("merchant_id")
+  customerId    String   @map("customer_id")
+  // Positive for earned points, negative for a deduction or redemption.
+  points        Int
+  reason        String
+  // Set for the automatic award on a confirmed payment, so it cannot be
+  // awarded twice (or survive an undone confirmation).
+  transactionId String?  @unique @map("transaction_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  merchant    Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([merchantId, createdAt])
+  @@index([customerId, createdAt])
+  @@map("loyalty_points")
 }
 
 // ============================================================
@@ -817,8 +909,9 @@ model PaymentLink {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  merchant     Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  merchant             Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  transactions         Transaction[]
+  subscriptionPayments SubscriptionPayment[]
 
   @@map("payment_links")
 }
@@ -861,10 +954,12 @@ model Transaction {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  merchant    Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  paymentLink PaymentLink? @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
-  webhookLogs WebhookLog[]
-  refunds     Refund[]
+  merchant             Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  paymentLink          PaymentLink?          @relation(fields: [paymentLinkId], references: [id], onDelete: SetNull)
+  webhookLogs          WebhookLog[]
+  refunds              Refund[]
+  subscriptionPayments SubscriptionPayment[]
+  loyaltyPoints        LoyaltyPoint[]
 
   @@index([merchantId, createdAt])
   @@index([merchantId, status])

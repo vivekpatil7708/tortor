@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, Globe, Code2, Truck, Package, LogOut, Menu, Plus, X, ChevronDown, Webhook, Users, ShoppingCart, Tag, RotateCcw, ScrollText
+  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, Globe, Code2, Truck, Package, LogOut, Menu, Plus, X, ChevronDown, Webhook, Users, ShoppingCart, Tag, RotateCcw, Repeat, Gift, ScrollText
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -20,6 +20,7 @@ export const navGroups: Array<{ title: string; folded?: boolean; items: NavItem[
       { label: 'Payment Links', href: '/dashboard/links', icon: Link2 },
       { label: 'Transactions', href: '/dashboard/transactions', icon: Banknote },
       { label: 'Refunds', href: '/dashboard/refunds', icon: RotateCcw },
+      { label: 'Subscriptions', href: '/dashboard/subscriptions', icon: Repeat },
       { label: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },
       { label: 'Products', href: '/dashboard/products', icon: Package },
       { label: 'Coupons', href: '/dashboard/coupons', icon: Tag },
@@ -30,6 +31,7 @@ export const navGroups: Array<{ title: string; folded?: boolean; items: NavItem[
     items: [
       { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
       { label: 'Customers', href: '/dashboard/customers', icon: Users },
+      { label: 'Loyalty', href: '/dashboard/loyalty', icon: Gift },
       { label: 'Messaging', href: '/dashboard/settings/messaging', icon: MessageSquare },
       { label: 'Templates', href: '/dashboard/templates', icon: FileStack },
       { label: 'Delivery', href: '/dashboard/delivery', icon: Truck },

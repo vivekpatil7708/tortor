@@ -266,6 +266,7 @@ export function merchantToJson(m: {
   stateCode?: string | null
   taxScheme?: string | null
   taxLegalName?: string | null
+  loyaltyPointsPerRupee?: number
   status: string
   onboardingComplete: boolean
   emailVerifiedAt?: Date | null
@@ -292,6 +293,7 @@ export function merchantToJson(m: {
     state_code: m.stateCode ?? null,
     tax_scheme: m.taxScheme ?? 'unregistered',
     tax_legal_name: m.taxLegalName ?? null,
+    loyalty_points_per_rupee: m.loyaltyPointsPerRupee ?? 0,
     status: m.status,
     onboarding_complete: m.onboardingComplete,
     email_verified: Boolean(m.emailVerifiedAt),

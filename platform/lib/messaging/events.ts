@@ -83,6 +83,16 @@ export const MESSAGE_EVENTS: Record<string, MessageEventDefinition> = {
     category: 'transactional',
     description: 'Sent when a refund is completed by the payment provider.',
   },
+  subscription_payment_due: {
+    label: 'Subscription payment due',
+    category: 'transactional',
+    description: 'Sent with a payment link when a subscription reaches its billing date.',
+  },
+  subscription_renewal_reminder: {
+    label: 'Subscription renewal reminder',
+    category: 'transactional',
+    description: 'Sent a few days before a subscription renews.',
+  },
   manual_message: {
     label: 'Manual merchant message',
     category: 'transactional',
@@ -117,6 +127,9 @@ export const SUPPORTED_MESSAGE_VARIABLES = [
   'support_email',
   'payment_link',
   'feedback_form_link',
+  'plan_name',
+  'next_billing_date',
+  'cancel_link',
 ] as const
 
 export type MessageContext = Record<string, string>
@@ -148,6 +161,8 @@ const EMAIL_SUBJECT: Record<string, string> = {
   return_received: 'Return received - {{order_number}}',
   refund_initiated: 'Refund initiated - {{order_number}}',
   refund_completed: 'Refund completed - {{order_number}}',
+  subscription_payment_due: 'Payment due for {{plan_name}} - {{business_name}}',
+  subscription_renewal_reminder: 'Upcoming payment for {{plan_name}} - {{business_name}}',
   manual_message: 'Message from {{business_name}}',
   customer_follow_up: 'Hello from {{business_name}}',
   repeat_customer_offer: 'A special offer for you, {{customer_name}}',
@@ -290,6 +305,31 @@ Your refund of {{currency}} {{amount}} for order {{order_number}} is complete.
 Thanks for your patience.
 
 — {{business_name}}`,
+  subscription_payment_due: `Hi {{customer_name}},
+
+Your {{plan_name}} subscription with {{business_name}} is due.
+
+Amount: {{currency}} {{amount}}
+Billing date: {{next_billing_date}}
+
+Pay securely here: {{payment_link}}
+
+If you no longer want this subscription, you can cancel it here: {{cancel_link}}
+
+For help, contact {{support_email}} or {{support_phone}}.
+
+— {{business_name}}`,
+  subscription_renewal_reminder: `Hi {{customer_name}},
+
+A reminder that your {{plan_name}} subscription with {{business_name}} renews on {{next_billing_date}}.
+
+Amount: {{currency}} {{amount}}
+
+We'll send you a payment link on the billing date. If you no longer want this subscription, you can cancel it here: {{cancel_link}}
+
+For help, contact {{support_email}} or {{support_phone}}.
+
+— {{business_name}}`,
   manual_message: `Hi {{customer_name}},
 
 {{custom_note}}
@@ -352,6 +392,9 @@ export function buildMessageContext(base: MessageContext, overrides: Partial<Mes
     support_email: '',
     payment_link: '',
     feedback_form_link: '',
+    plan_name: '-',
+    next_billing_date: '-',
+    cancel_link: '',
     custom_note: '',
     ...(base || {}),
     ...(overrides || {}),

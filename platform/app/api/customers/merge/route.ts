@@ -9,9 +9,10 @@ const MAX_MERGE = 50
  * Fold one or more duplicate customers into a single surviving record.
  *
  * Nothing is deleted that holds history: the duplicates' orders, addresses,
- * messages, returns and follow-up tasks are re-pointed at the target first,
- * then the emptied duplicate rows are removed. Everything is scoped to the
- * signed-in merchant and the whole move runs in one transaction.
+ * messages, returns, follow-up tasks, subscriptions and loyalty points are
+ * re-pointed at the target first, then the emptied duplicate rows are removed.
+ * Everything is scoped to the signed-in merchant and the whole move runs in
+ * one transaction.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -52,6 +53,9 @@ export async function POST(req: NextRequest) {
         tx.messageLog.updateMany({ where: { customerId: { in: ids }, merchantId: session.id }, data: { customerId: targetId } }),
         tx.returnRequest.updateMany({ where: { customerId: { in: ids }, merchantId: session.id }, data: { customerId: targetId } }),
         tx.followUpTask.updateMany({ where: { customerId: { in: ids }, merchantId: session.id }, data: { customerId: targetId } }),
+        tx.subscription.updateMany({ where: { customerId: { in: ids }, merchantId: session.id }, data: { customerId: targetId } }),
+        tx.subscriptionPayment.updateMany({ where: { customerId: { in: ids }, merchantId: session.id }, data: { customerId: targetId } }),
+        tx.loyaltyPoint.updateMany({ where: { customerId: { in: ids }, merchantId: session.id }, data: { customerId: targetId } }),
       ]
       await Promise.all(moves)
 

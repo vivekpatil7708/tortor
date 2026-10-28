@@ -4,6 +4,7 @@
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "crons": [
-    { "path": "/api/cron/webhook-retries", "schedule": "0 3 * * *" }
+    { "path": "/api/cron/webhook-retries", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/subscriptions", "schedule": "30 3 * * *" }
   ]
 }

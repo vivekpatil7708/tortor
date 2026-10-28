@@ -104,6 +104,70 @@ export type WebhookLogsResponse = {
   endpoints: Array<{ id: string; url: string; mode: 'test' | 'live' }>
 }
 
+export type SubscriptionPaymentRow = {
+  id: string
+  amount: number
+  status: string
+  billing_date: string
+  payment_link_id: string | null
+  payment_link: { slug: string; title: string; url: string } | null
+  transaction_id: string | null
+  transaction: { txn_id: string; status: string } | null
+  failure_reason: string | null
+  paid_at: string | null
+  created_at: string
+}
+
+export type SubscriptionRow = {
+  id: string
+  plan_name: string
+  amount: number
+  frequency: string
+  next_billing_date: string
+  status: string
+  last_reminder_at: string | null
+  last_billed_at: string | null
+  cancelled_at: string | null
+  created_at: string
+  updated_at: string
+  customer: {
+    id: string
+    full_name: string
+    phone: string | null
+    email: string | null
+  }
+  payments?: SubscriptionPaymentRow[]
+}
+
+export type LoyaltyCustomerRow = {
+  id: string
+  full_name: string
+  phone: string | null
+  email: string | null
+  balance: number
+}
+
+export type LoyaltyEntryRow = {
+  id: string
+  points: number
+  reason: string
+  transaction_id: string | null
+  created_at: string
+  customer: {
+    id: string
+    full_name: string
+    phone: string | null
+    email: string | null
+  } | null
+}
+
+export type LoyaltyData = {
+  settings: { points_per_rupee: number }
+  totals: { balance: number; awarded: number; deducted: number }
+  customers: LoyaltyCustomerRow[]
+  entries: LoyaltyEntryRow[]
+}
+
 /** Filters for the orders list. Every field is optional; omitting one means "any". */
 export type OrderQuery = {
   limit?: number
@@ -504,6 +568,56 @@ export const api = {
 
   deleteAddress: (customerId: string, addressId: string) =>
     request<{ success: boolean }>(`/api/customers/${customerId}/addresses?addressId=${encodeURIComponent(addressId)}`, { method: 'DELETE' }),
+
+  getSubscriptions: (opts?: { status?: string; customer_id?: string; q?: string }) => {
+    const qs = new URLSearchParams()
+    if (opts?.status) qs.set('status', opts.status)
+    if (opts?.customer_id) qs.set('customer_id', opts.customer_id)
+    if (opts?.q) qs.set('q', opts.q)
+    const suffix = qs.toString()
+    return request<{ subscriptions: SubscriptionRow[]; total: number }>(`/api/subscriptions${suffix ? `?${suffix}` : ''}`)
+  },
+
+  getSubscription: (id: string) =>
+    request<{ subscription: SubscriptionRow }>(`/api/subscriptions/${id}`),
+
+  createSubscription: (body: {
+    customer_id: string
+    plan_name: string
+    amount: number
+    frequency: string
+    next_billing_date: string
+  }) =>
+    request<{ subscription: SubscriptionRow }>('/api/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateSubscription: (id: string, body: Record<string, unknown>) =>
+    request<{ subscription: SubscriptionRow | null }>(`/api/subscriptions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  cancelSubscriptionByToken: (token: string) =>
+    request<{ success: boolean; already_cancelled: boolean; subscription: { plan_name: string; status: string } }>(
+      `/api/subscriptions/cancel/${encodeURIComponent(token)}`,
+      { method: 'POST' },
+    ),
+
+  getLoyalty: () => request<LoyaltyData>('/api/loyalty'),
+
+  saveLoyaltyRate: (pointsPerRupee: number) =>
+    request<{ settings: { points_per_rupee: number } }>('/api/loyalty', {
+      method: 'PUT',
+      body: JSON.stringify({ points_per_rupee: pointsPerRupee }),
+    }),
+
+  adjustLoyaltyPoints: (body: { customer_id: string; points: number; reason: string }) =>
+    request<{ entry: LoyaltyEntryRow; balance: number }>('/api/loyalty', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 
   createOrder: <T extends Record<string, unknown> = Record<string, unknown>>(body: Record<string, unknown>) =>
     request<{ order: T }>('/api/orders', { method: 'POST', body: JSON.stringify(body) }),

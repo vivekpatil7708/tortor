@@ -4,6 +4,8 @@ import { decideLinkPaymentChange, type LinkPaymentStatus } from '@/lib/payment-t
 import { queuePaidClaimAlert } from '@/lib/payment-alerts'
 import { queueTransactionSheetExport } from '@/lib/google-sheets/service'
 import { notifyPaymentStatus } from '@/lib/webhooks'
+import { syncSubscriptionPaymentFromTransaction } from '@/lib/subscription-payments'
+import { awardLoyaltyPointsForTransaction, reverseLoyaltyPointsForTransaction } from '@/lib/loyalty'
 import type { Transaction } from '@prisma/client'
 
 // Applying a payment-link transaction's status change, shared by the dashboard
@@ -99,6 +101,21 @@ export async function changeTransactionStatus(params: {
   }
 
   if (statusChanges && to) {
+    // A subscription payment is identified by its one-time link. This is
+    // best-effort: the payment itself has already been confirmed.
+    await syncSubscriptionPaymentFromTransaction(updated, to).catch(err => {
+      console.error('Could not update the subscription payment:', err)
+    })
+    if (to === 'success') {
+      await awardLoyaltyPointsForTransaction(updated).catch(err => {
+        console.error('Could not award loyalty points:', err)
+      })
+    }
+    if (isUndo) {
+      await reverseLoyaltyPointsForTransaction(updated.id).catch(err => {
+        console.error('Could not reverse loyalty points:', err)
+      })
+    }
     await notifyPaymentStatus(updated.id, to)
   }
 

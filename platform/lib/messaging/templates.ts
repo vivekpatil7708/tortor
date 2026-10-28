@@ -61,6 +61,9 @@ export function sampleMessageContext(overrides: Partial<MessageContext> = {}): M
     support_email: 'support@mystore.com',
     payment_link: 'https://checkout.toropay.co.in/checkout/cs_sample',
     feedback_form_link: 'https://www.toropay.co.in/feedback',
+    plan_name: 'Monthly care plan',
+    next_billing_date: '3 Nov 2026',
+    cancel_link: 'https://www.toropay.co.in/subscriptions/cancel/sample-token',
     custom_note: 'We hope you love your order!',
     ...overrides,
   }
@@ -77,6 +80,8 @@ const EMAIL_ONLY_EVENTS = [
   'return_received',
   'refund_initiated',
   'refund_completed',
+  'subscription_payment_due',
+  'subscription_renewal_reminder',
   'manual_message',
   'customer_follow_up',
   'repeat_customer_offer',

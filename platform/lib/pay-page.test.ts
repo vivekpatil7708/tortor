@@ -7,6 +7,7 @@ const db = vi.hoisted(() => ({
   transaction: { findFirst: vi.fn(), findUnique: vi.fn(), count: vi.fn() },
   merchant: { findUnique: vi.fn() },
   refund: { findMany: vi.fn() },
+  loyaltyPoint: { findFirst: vi.fn(), aggregate: vi.fn() },
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 vi.mock('next/navigation', () => ({
@@ -47,6 +48,8 @@ beforeEach(() => {
   db.merchant.findUnique.mockResolvedValue(merchant())
   db.transaction.findFirst.mockResolvedValue(null)
   db.refund.findMany.mockResolvedValue([])
+  db.loyaltyPoint.findFirst.mockResolvedValue(null)
+  db.loyaltyPoint.aggregate.mockResolvedValue({ _sum: { points: 0 } })
   uses(0, 0)
 })
 
@@ -173,6 +176,8 @@ describe('a link that cannot take payments (B10)', () => {
 describe('status page (B2, U11)', () => {
   const stored = (status: string, overrides: Record<string, unknown> = {}) => ({
     ...started(status),
+    id: 't1',
+    merchantId: 'm1',
     createdAt: new Date('2026-10-07T10:15:00Z'),
     confirmedAt: status === 'success' ? new Date('2026-10-07T10:20:00Z') : null,
     paymentLink: { slug: 'abc123', title: 'Order #12' },
@@ -233,7 +238,31 @@ describe('status page (B2, U11)', () => {
     expect(select.merchant.select).toEqual({ businessName: true, businessLogoUrl: true, supportEmail: true, supportPhone: true })
   })
 
-  it("shows nothing about a payment from another link, or one that doesn't exist", async () => {
+  it('shows the points earned and the customer balance after a confirmed payment', async () => {
+    db.loyaltyPoint.findFirst.mockResolvedValue({ points: 49, customerId: 'c1' })
+    db.loyaltyPoint.aggregate.mockResolvedValue({ _sum: { points: 120 } })
+
+    const html = await show('success')
+
+    expect(html).toContain('Loyalty points')
+    expect(html).toContain('You earned')
+    expect(html).toContain('49')
+    expect(html).toContain('Your total with Asha Crafts')
+    expect(html).toContain('120')
+    expect(db.loyaltyPoint.findFirst).toHaveBeenCalledWith({
+      where: { merchantId: 'm1', transactionId: 't1' },
+      select: { points: true, customerId: true },
+    })
+  })
+
+  it('shows no points card while a payment is still waiting', async () => {
+    db.loyaltyPoint.findFirst.mockResolvedValue({ points: 49, customerId: 'c1' })
+    const html = await show('pending')
+    expect(html).not.toContain('Loyalty points')
+    expect(db.loyaltyPoint.findFirst).not.toHaveBeenCalled()
+  })
+
+  it('shows nothing about a payment from another link, or one that doesn\'t exist', async () => {
     const other = await show('success', { paymentLink: { slug: 'other1', title: 'Other' } })
     expect(other).toContain('Payment not found')
     expect(other).not.toContain('TXN1')
