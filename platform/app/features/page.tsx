@@ -132,7 +132,7 @@ const GROUPS: Array<{
       },
       {
         name: 'Delhivery courier tracking',
-        body: 'The provider contract exists, but Delhivery is a placeholder in this release. Use Shiprocket, which routes Delhivery shipments.',
+        body: 'The provider contract exists, but Delhivery is a placeholder in this release. Use Shiprocket for live tracking.',
         status: 'early',
       },
       {
