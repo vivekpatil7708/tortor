@@ -719,7 +719,7 @@ export const BLOG_POSTS: BlogPost[] = [
   <li><strong>AMC:</strong> Rs. 0 \u2014 no annual maintenance charge.</li>
   <li><strong>Setup fee:</strong> Rs. 0 \u2014 no onboarding charge.</li>
   <li><strong>Platform fee:</strong> Rs. 0 \u2014 dashboards, links, QR codes, and reporting are included.</li>
-  <li><strong>Settlement:</strong> instant \u2014 money goes directly to your own UPI ID; ToroPay never holds funds.</li>
+  <li><strong>Settlement:</strong> direct \u2014 money goes directly to your own UPI ID; ToroPay never holds funds.</li>
   <li><strong>No website needed:</strong> hosted payment pages work out of the box.</li>
 </ul>
 <p>The trade-off is scope: ToroPay is a domestic UPI tool. It does not process cards, international payments, EMI mandates, 80G receipts, FIRC, or regulated BBPS rails. For an institution collecting UPI domestically, that trade-off removes almost the entire fee stack.</p>
