@@ -190,7 +190,7 @@ export const BLOG_POSTS: BlogPost[] = [
   <li>Add a customer note (optional) — e.g. "Thank you for your order!"</li>
   <li>Click <strong>"Create Link"</strong></li>
 </ol>
-<p>Copy the generated URL and share it with your customer. When they pay, you'll see the transaction in your dashboard instantly.</p>
+<p>Copy the generated URL and share it with your customer. When they pay, you'll see the transaction in your dashboard as soon as it is recorded.</p>
 
 <h2>Step 4: Build Your Storefront</h2>
 <p>Your storefront is a public page that shows all your payment links in one place — like a mini website for your business.</p>
@@ -344,8 +344,8 @@ export const BLOG_POSTS: BlogPost[] = [
   {
     slug: 'free-payment-links-india',
     title: 'How to Create Free Payment Links in India',
-    excerpt: 'Accept payments instantly with zero transaction fees. A practical guide to creating and sharing UPI payment links.',
-    description: 'Learn how to create and share free UPI payment links in India with no transaction fees. Accept payments instantly with ToroPay payment links, QR codes, and reusable payment links.',
+    excerpt: 'Accept UPI payments directly with no ToroPay transaction fee. A practical guide to creating and sharing UPI payment links.',
+    description: 'Learn how to create and share free UPI payment links in India with no ToroPay transaction fee. Accept UPI payments directly with ToroPay payment links, QR codes, and reusable payment links.',
     author: AUTHORS['vivek-patil'],
     publishedAt: '2026-02-10',
     updatedAt: '2026-07-21',
@@ -441,7 +441,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <p>Riya runs a salon in Mumbai. She shares a ToroPay payment link after every appointment. Her customers pay via UPI, and the money goes directly to her bank.</p>
 
 <h3>Freelance Designer</h3>
-<p>Arjun sends branded ToroPay payment links with his invoices. His clients pay instantly, and he doesn't lose 2% to gateway fees.</p>
+<p>Arjun sends branded ToroPay payment links with his invoices. His clients pay by UPI, and he doesn't lose 2% to gateway fees.</p>
 
 <h3>Local Restaurant</h3>
 <p>A restaurant in Bangalore uses ToroPay QR codes at every table. Diners scan, pay, and leave — no waiting for the bill.</p>
@@ -533,7 +533,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <h2>Use Cases</h2>
 
 <h3>Freelancers</h3>
-<p>Send a payment link with your project invoice. The client pays instantly — no bank transfers, no delays.</p>
+<p>Send a payment link with your project invoice. The client pays by UPI — no bank transfers, no delays.</p>
 
 <h3>Online Tutors</h3>
 <p>Create a payment link for each batch. Share it in your class group. Parents pay directly.</p>
@@ -578,7 +578,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <ul>
 <li>Your business name and contact information</li>
 <li>A brief description of what they're paying for</li>
-<li>"Secure UPI Payment" badge</li>
+<li>"UPI Payment" badge</li>
 <li>Your support email or phone</li>
 </ul>
 
@@ -691,7 +691,7 @@ export const BLOG_POSTS: BlogPost[] = [
 
 <h2>Schools and colleges</h2>
 <p>Schools deal with defined fee cycles \u2014 tuition, transport, hostel, and exam fees \u2014 and a huge number of small payments each term. The hidden cost is reconciliation: matching hundreds of parent payments to student accounts eats finance-team hours every single term.</p>
-<p>Practical levers: create a separate payment link or QR per purpose (tuition, hostel, bus), so money arrives pre-labelled and matching is trivial. ToroPay lets you generate a unique link for each category with no charge, and every payment shows instantly in the dashboard with the customer's name and note. Schools collecting over UPI avoid both MDR and the reconciliation overhead of traditional virtual-account tools.</p>
+<p>Practical levers: create a separate payment link or QR per purpose (tuition, hostel, bus), so money arrives pre-labelled and matching is trivial. ToroPay lets you generate a unique link for each category with no charge, and every payment shows up in the dashboard as soon as it is recorded with the customer's name and note. Schools collecting over UPI avoid both MDR and the reconciliation overhead of traditional virtual-account tools.</p>
 
 <h2>EdTech companies</h2>
 <p>EdTech economics are driven by course fees, subscriptions, and high-ticket conversion. Two costs dominate: failed payments on expensive courses, and refund handling.</p>
@@ -803,7 +803,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <p>Run the numbers. At Rs. 2 lakh monthly GMV, a gateway reporting an 85% success rate versus one reporting 93% is an 8 percentage point gap \u2014 about Rs. 16,000 a month in recovered revenue. Compare that with the Rs. 500 a month an MDR negotiation at the same volume is worth, and the success rate gap is worth over thirty times more. Treat success rate as a core revenue metric when comparing gateways, not a technical footnote in the documentation.</p>
 
 <h2>UPI on Shopify: free at the bank, not always free for you</h2>
-<p>The government\u2019s Zero MDR policy covers standard bank-to-bank UPI and RuPay debit transactions: at the network level, no interchange is charged. But \u201cZero MDR\u201d does not mean \u201czero cost to the merchant\u201d on every gateway. Many gateways still layer on a platform or technology fee to fund dashboards, reconciliation, and secure infrastructure \u2014 which is why the 2% standard rate often appears on UPI transactions even though the bank-level MDR is zero.</p>
+<p>The government\u2019s Zero MDR policy covers standard bank-to-bank UPI and RuPay debit transactions: at the network level, no interchange is charged. But \u201cZero MDR\u201d does not mean \u201czero cost to the merchant\u201d on every gateway. Many gateways still layer on a platform or technology fee to fund dashboards, reconciliation, and reliable infrastructure \u2014 which is why the 2% standard rate often appears on UPI transactions even though the bank-level MDR is zero.</p>
 <p>There is also a real exception: when a customer pays using a RuPay credit card linked to a UPI app, the Zero MDR policy does not apply. That transaction carries a separate fee, typically in the 1% to 2% range plus GST. If you market UPI to customers as your low-cost method, factor the RuPay-credit-on-UPI case in separately.</p>
 
 <h2>How the right choice changes with store size</h2>
@@ -816,7 +816,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <p>ToroPay generates free UPI payment links and QR codes with hosted payment pages. Money moves directly from the customer\u2019s bank to your own UPI ID, with no merchant account, no settlement cycle, and no platform holding funds. There is no TDR, no AMC, no setup fee, and no platform fee. And because the payment never touches Shopify\u2019s checkout, no Shopify third-party surcharge applies to it either.</p>
 <p>Concretely, Indian Shopify merchants use ToroPay for the transactions that naturally happen off the cart:</p>
 <ul>
-  <li><strong>COD-to-UPI conversion</strong> \u2014 a doorstep QR that turns a cash-on-delivery order into an instant UPI collection and kills the RTO risk.</li>
+  <li><strong>COD-to-UPI conversion</strong> \u2014 a doorstep QR that turns a cash-on-delivery order into a UPI collection and reduces the RTO risk.</li>
   <li><strong>WhatsApp and DM orders</strong> \u2014 send a payment link instead of a payment link request dance.</li>
   <li><strong>Follow-up on abandoned carts</strong> \u2014 a personalised link in a reminder message often recovers orders that would otherwise never retry.</li>
   <li><strong>Bulk, offline, and wholesale sales</strong> \u2014 invoices, events, and B2B collections that never go near the storefront.</li>

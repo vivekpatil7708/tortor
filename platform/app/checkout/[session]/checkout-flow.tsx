@@ -407,7 +407,7 @@ export default function CheckoutFlow({ view }: Props) {
               </button>
             </>
           )}
-          <p className="mt-4 text-center text-xs opacity-50">Secured by ToroPay</p>
+          <p className="mt-4 text-center text-xs opacity-50">Powered by ToroPay</p>
         </div>
       </div>
     )

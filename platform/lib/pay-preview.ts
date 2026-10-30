@@ -18,7 +18,7 @@ const BASE_URL = 'https://www.toropay.co.in'
  * JavaScript. Identical for every visitor, so it carries nothing about an order.
  */
 const CARD_IMAGE = `${BASE_URL}/og-card.png`
-const CARD_IMAGE_ALT = 'ToroPay — pay securely over UPI'
+const CARD_IMAGE_ALT = 'ToroPay — pay by UPI'
 
 /**
  * Metadata for the two customer-facing pages behind one payment link:
@@ -40,9 +40,9 @@ const CARD_IMAGE_ALT = 'ToroPay — pay securely over UPI'
  */
 function payPageMetadata(path: string): Metadata {
   const url = `${BASE_URL}${path}`
-  const title = 'ToroPay — Secure UPI Payment'
+  const title = 'ToroPay — UPI Payment'
   const description =
-    'Pay securely to this business over UPI through ToroPay. Payments go directly to the seller’s own UPI ID, and ToroPay never holds your money.'
+    'Pay to this business over UPI through ToroPay. Payments go directly to the seller’s own UPI ID, and ToroPay never holds your money.'
   return {
     // Keeps transactional pages out of search, matching app/pay/layout.tsx.
     robots: { index: false, follow: false },
