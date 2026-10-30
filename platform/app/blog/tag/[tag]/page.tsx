@@ -45,7 +45,7 @@ export default async function TagPage(props: Props) {
 
       <main className="mx-auto max-w-6xl px-6">
         <section className="pt-16 pb-10 sm:pt-20 sm:pb-12">
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-gray-600">
             <Link href="/blog" className="font-medium text-primary-600 transition-colors hover:text-primary-700">Blog</Link>
             <span>·</span>
             <span>Tagged</span>
@@ -60,7 +60,7 @@ export default async function TagPage(props: Props) {
 
         <section className="pb-16">
           {posts.length === 0 ? (
-            <p className="py-12 text-center text-gray-400">No articles with this tag yet.</p>
+            <p className="py-12 text-center text-gray-600">No articles with this tag yet.</p>
           ) : (
             <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
               {posts.map(post => (

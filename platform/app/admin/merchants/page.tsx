@@ -102,7 +102,7 @@ export default function AdminMerchants() {
           <input type="text" placeholder="Search merchants..." value={search} onChange={e => setSearch(e.target.value)}
             className="w-64 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-gray-400" />
           <button onClick={() => router.push('/admin/messaging')}
-            className="rounded-xl bg-[#7bb86c] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90">
+            className="rounded-xl bg-primary-500 px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90">
             Send Email to Merchants
           </button>
           <button onClick={handleExport} disabled={merchants.length === 0}

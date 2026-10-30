@@ -128,14 +128,14 @@ function hexColor(value: string | undefined, fallback: string): string {
 
 /** ToroPay wordmark — bold "Toro" + green "Pay" so the brand stands out. */
 const TOROPAY_WORDMARK = (extraStyle = '') =>
-  `<span style="font-weight:800;color:#2c2c2c;font-size:16px;letter-spacing:0.02em;${extraStyle}">Toro<span style="color:#7bb86c;">Pay</span></span>`
+  `<span style="font-weight:800;color:#0a0a0a;font-size:16px;letter-spacing:0.02em;${extraStyle}">Toro<span style="color:#2563eb;">Pay</span></span>`
 
 /** Branded HTML shell: ToroPay wordmark + the merchant's name/logo/colors. */
 export function renderHtml(body: string, branding: EmailBranding): string {
   const safeBody = escapeHtml(body)
   const businessName = escapeHtml(branding.businessName || 'ToroPay business')
-  const primary = hexColor(branding.brandColorPrimary, '#7bb86c')
-  const secondary = hexColor(branding.brandColorSecondary, '#2c2c2c')
+  const primary = hexColor(branding.brandColorPrimary, '#2563eb')
+  const secondary = hexColor(branding.brandColorSecondary, '#0a0a0a')
   const fontFamily = SAFE_FONT.test(branding.brandFont || '') ? branding.brandFont! : 'Inter'
 
   const logo = branding.logoUrl && /^https?:\/\//.test(branding.logoUrl)

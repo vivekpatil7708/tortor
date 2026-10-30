@@ -9,14 +9,17 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream to-beige">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <Link href="/" className="text-2xl font-extrabold tracking-tight">
-          Toro<span className="text-primary-500">Pay</span>
-        </Link>
+    <div className="min-h-screen bg-paper">
+      <header className="border-b border-graphite bg-ink">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+          <Link href="/" className="text-2xl font-extrabold tracking-tight text-white">
+            Toro<span className="text-sunlit-clay">Pay</span>
+          </Link>
+          <Link href="/" className="text-sm font-medium text-gray-400 hover:text-white">Back to home</Link>
+        </div>
       </header>
-      <div className="mx-auto max-w-3xl px-6 pb-24">
-        <h1 className="mb-8 text-3xl font-bold tracking-tight">Privacy Policy</h1>
+      <div className="mx-auto max-w-3xl px-6 py-12 pb-24">
+        <h1 className="mb-8 text-3xl font-bold tracking-tight text-ink">Privacy Policy</h1>
         <div className="space-y-6 text-sm leading-relaxed text-gray-600">
           <p><strong>Last updated:</strong> October 2026</p>
 

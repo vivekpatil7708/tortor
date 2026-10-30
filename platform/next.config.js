@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // The floating dev badge sits over the bottom-left navigation during review.
+  devIndicators: false,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },

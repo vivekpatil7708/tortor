@@ -78,7 +78,7 @@ export default function DonateWidget({ initialAmount }: { initialAmount?: number
           <button key={amt} onClick={() => handleAmountClick(amt)}
             className={`min-w-[5rem] rounded-xl px-6 py-3 text-sm font-semibold transition-all ${
               selectedAmount === amt
-                ? 'bg-primary-500 text-white shadow-lg'
+                ? 'bg-sunlit-clay text-black-forest shadow-lg'
                 : 'bg-charcoal text-white hover:opacity-90'
             }`}>
             {'\u20B9'}{amt}

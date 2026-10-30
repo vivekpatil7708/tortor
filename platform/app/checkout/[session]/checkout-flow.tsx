@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { buttonRadius } from '@/lib/utils'
+import { buttonRadius, readableTextColor } from '@/lib/utils'
 import { UPI_APPS } from '@/lib/constants'
 import { buildAppDeepLink, buildUpiIntentUrl, buildUpiPayUrl } from '@/lib/upi'
 import OrderSummary from '@/components/checkout/order-summary'
@@ -82,8 +82,9 @@ export default function CheckoutFlow({ view }: Props) {
   const [couponBusy, setCouponBusy] = useState(false)
   const [couponError, setCouponError] = useState('')
 
-  const primaryColor = merchant.brand_color_primary || '#7bb86c'
-  const secondaryColor = merchant.brand_color_secondary || '#2c2c2c'
+  const primaryColor = merchant.brand_color_primary || '#2563eb'
+  const secondaryColor = merchant.brand_color_secondary || '#050b1a'
+  const primaryTextColor = readableTextColor(primaryColor)
   const btnRadius = buttonRadius(merchant.button_style || 'rounded')
   const isDark = merchant.page_theme === 'dark'
   const bg = merchant.bg_image_url ? 'bg-cover bg-center bg-no-repeat' : isDark ? 'bg-gray-900 text-white' : 'bg-cream text-charcoal'
@@ -291,7 +292,7 @@ export default function CheckoutFlow({ view }: Props) {
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-500/90 text-2xl">✓</div>
             <h1 className="text-xl font-bold" style={{ color: secondaryColor }}>Payment confirmed</h1>
             <p className="mt-2 text-sm opacity-70">Your payment for order {order.order_number} was successful.</p>
-            <button onClick={goToSuccess} className={`mt-6 w-full py-3 font-bold text-white ${btnRadius}`} style={{ backgroundColor: primaryColor }}>
+            <button onClick={goToSuccess} className={`mt-6 w-full py-3 font-bold ${btnRadius}`} style={{ backgroundColor: primaryColor, color: primaryTextColor }}>
               View receipt
             </button>
           </div>
@@ -324,8 +325,8 @@ export default function CheckoutFlow({ view }: Props) {
             <div className="mb-6 rounded-xl bg-amber-50 p-4 text-center text-sm text-amber-800">
               Payment marked as sent. Waiting for merchant confirmation.
               <button onClick={upiMarkedSent} disabled={busy}
-                className={`mt-3 w-full py-2.5 text-sm font-bold text-white ${btnRadius} disabled:opacity-60`}
-                style={{ backgroundColor: primaryColor }}>
+                className={`mt-3 w-full py-2.5 text-sm font-bold ${btnRadius} disabled:opacity-60`}
+                style={{ backgroundColor: primaryColor, color: primaryTextColor }}>
                 {busy ? 'Checking…' : 'I&apos;ve completed payment'}
               </button>
             </div>
@@ -337,8 +338,8 @@ export default function CheckoutFlow({ view }: Props) {
               <p className="mb-4 text-center text-sm opacity-70">Scan with any UPI app or tap below</p>
 
               <button onClick={() => openUpi()}
-                className={`mb-3 w-full py-3.5 text-base font-bold text-white ${btnRadius}`}
-                style={{ backgroundColor: primaryColor }}>
+                className={`mb-3 w-full py-3.5 text-base font-bold ${btnRadius}`}
+                style={{ backgroundColor: primaryColor, color: primaryTextColor }}>
                 Pay with UPI — {formatAmount(payable)}
               </button>
 
@@ -397,8 +398,8 @@ export default function CheckoutFlow({ view }: Props) {
                 This is a simulated gateway for the {payment.provider} provider.
               </p>
               <button onClick={simulatePay} disabled={busy}
-                className={`w-full py-3.5 text-base font-bold text-white ${btnRadius} disabled:opacity-60`}
-                style={{ backgroundColor: primaryColor }}>
+                className={`w-full py-3.5 text-base font-bold ${btnRadius} disabled:opacity-60`}
+                style={{ backgroundColor: primaryColor, color: primaryTextColor }}>
                 {busy ? 'Processing…' : `Pay ${formatAmount(payable)}`}
               </button>
               <button onClick={goToCancel} className={`mt-2 w-full py-2.5 text-sm font-semibold opacity-60 transition-opacity hover:opacity-90`}>
@@ -460,8 +461,8 @@ export default function CheckoutFlow({ view }: Props) {
                   className={`min-w-0 flex-1 rounded-xl border px-4 py-2.5 text-sm uppercase outline-none backdrop-blur-md transition-all focus:ring-2 focus:ring-white/30 ${inputBg}`}
                 />
                 <button type="button" onClick={applyCoupon} disabled={couponBusy || !couponInput.trim()}
-                  className={`shrink-0 px-4 py-2.5 text-sm font-bold text-white ${btnRadius} disabled:opacity-50`}
-                  style={{ backgroundColor: primaryColor }}>
+                  className={`shrink-0 px-4 py-2.5 text-sm font-bold ${btnRadius} disabled:opacity-50`}
+                  style={{ backgroundColor: primaryColor, color: primaryTextColor }}>
                   {couponBusy ? 'Applying…' : 'Apply'}
                 </button>
               </div>
@@ -491,8 +492,8 @@ export default function CheckoutFlow({ view }: Props) {
         {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
 
         <button onClick={beginPayment} disabled={busy}
-          className={`mt-6 w-full py-3.5 text-base font-bold text-white ${btnRadius} disabled:opacity-60`}
-          style={{ backgroundColor: primaryColor }}>
+          className={`mt-6 w-full py-3.5 text-base font-bold ${btnRadius} disabled:opacity-60`}
+          style={{ backgroundColor: primaryColor, color: primaryTextColor }}>
           {busy ? 'Preparing payment…' : `Continue to Pay ${formatAmount(totals.total)}`}
         </button>
 

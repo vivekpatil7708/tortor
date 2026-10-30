@@ -85,7 +85,7 @@ export default async function BlogPostPage(props: Props) {
   const contentHtml = addHeadingIds(post.content)
 
   return (
-    <div className="min-h-screen bg-[#faf8f5]">
+    <div className="min-h-screen bg-paper">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <ReadingProgress />
       <BlogNavbar />
@@ -101,10 +101,10 @@ export default async function BlogPostPage(props: Props) {
               >
                 {post.category}
               </Link>
-              <span className="text-gray-300">·</span>
-              <time dateTime={post.publishedAt} className="text-gray-400">{formattedDate}</time>
-              <span className="text-gray-300">·</span>
-              <span className="text-gray-400">{post.readTime}</span>
+              <span className="text-gray-500">·</span>
+              <time dateTime={post.publishedAt} className="text-gray-600">{formattedDate}</time>
+              <span className="text-gray-500">·</span>
+              <span className="text-gray-600">{post.readTime}</span>
             </div>
 
             <h1 className="mt-6 font-serif text-4xl font-bold leading-[1.15] tracking-tight text-gray-900 sm:text-5xl lg:text-[3.25rem]">
@@ -175,7 +175,7 @@ export default async function BlogPostPage(props: Props) {
               {/* Share */}
               <div className="mt-10 flex items-center justify-between border-t border-gray-200 pt-6">
                 <ShareButtons title={post.title} slug={post.slug} />
-                <Link href="/blog" className="text-sm font-medium text-gray-400 transition-colors hover:text-gray-900">
+                <Link href="/blog" className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900">
                   All articles →
                 </Link>
               </div>

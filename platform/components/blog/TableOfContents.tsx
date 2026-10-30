@@ -47,7 +47,7 @@ export default function TableOfContents({ content }: { content: string }) {
 
   return (
     <nav>
-      <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-400">
+      <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-600">
         On this page
       </p>
       <ul className="space-y-1">
@@ -60,12 +60,12 @@ export default function TableOfContents({ content }: { content: string }) {
               } ${
                 activeId === h.id
                   ? 'font-medium text-primary-600'
-                  : 'text-gray-400 hover:text-gray-700'
+                  : 'text-gray-600 hover:text-gray-700'
               }`}
             >
               <span
                 className={`mt-1.5 block h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${
-                  activeId === h.id ? 'bg-primary-500' : 'bg-gray-300'
+                  activeId === h.id ? 'bg-sunlit-clay' : 'bg-gray-300'
                 }`}
               />
               <span>{h.text}</span>

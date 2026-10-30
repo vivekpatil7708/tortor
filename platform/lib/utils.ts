@@ -52,3 +52,14 @@ export function buttonRadius(style: string) {
   if (style === 'square') return 'rounded-lg'
   return 'rounded-xl'
 }
+
+/** Pick ink or white for text on a merchant's brand colour. */
+export function readableTextColor(hex: string): '#0a0a0a' | '#ffffff' {
+  const value = hex.replace('#', '')
+  const full = value.length === 3 ? value.split('').map(c => c + c).join('') : value
+  if (!/^[0-9a-f]{6}$/i.test(full)) return '#ffffff'
+  const r = parseInt(full.slice(0, 2), 16)
+  const g = parseInt(full.slice(2, 4), 16)
+  const b = parseInt(full.slice(4, 6), 16)
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? '#0a0a0a' : '#ffffff'
+}

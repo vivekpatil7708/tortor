@@ -22,7 +22,7 @@ export default function SearchPageContent() {
 
       {query && (
         <div className="mt-8">
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-600">
             {results.length === 0
               ? `No results for "${query}"`
               : `${results.length} result${results.length !== 1 ? 's' : ''} for "${query}"`

@@ -22,7 +22,7 @@ export default function ArticleCard({ post, large = false }: { post: BlogPost; l
               sizes="(max-width: 768px) 100vw, 700px"
             />
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-gray-600">
             <span className="font-medium text-primary-600">
               {post.category}
             </span>
@@ -64,7 +64,7 @@ export default function ArticleCard({ post, large = false }: { post: BlogPost; l
             sizes="(max-width: 768px) 100vw, 400px"
           />
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-400">
+        <div className="flex items-center gap-2 text-xs text-gray-600">
           <span className="font-medium text-primary-600">
             {post.category}
           </span>
@@ -75,7 +75,7 @@ export default function ArticleCard({ post, large = false }: { post: BlogPost; l
           {post.title}
         </h3>
         <p className="mt-1.5 text-sm leading-relaxed text-gray-500 line-clamp-2">{post.excerpt}</p>
-        <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
+        <div className="mt-3 flex items-center gap-2 text-xs text-gray-600">
           <span className="font-medium text-gray-600">{post.author.name}</span>
           <span>·</span>
           <span>{post.readTime}</span>

@@ -21,8 +21,8 @@ export default function FeaturedArticle({ post }: { post: BlogPost }) {
         />
       </div>
       <div className="p-8 sm:p-10">
-        <div className="flex items-center gap-2 text-xs text-gray-400">
-          <span className="rounded-full bg-primary-50 px-3 py-0.5 font-semibold text-primary-600">Featured</span>
+        <div className="flex items-center gap-2 text-xs text-gray-600">
+          <span className="rounded-full bg-sunlit-clay px-3 py-0.5 font-semibold text-black-forest">Featured</span>
           <span>·</span>
           <Link href={`/blog/category/${post.category.toLowerCase()}`} className="font-medium text-primary-600 transition-colors hover:text-primary-700">
             {post.category}
@@ -48,7 +48,7 @@ export default function FeaturedArticle({ post }: { post: BlogPost }) {
             <Link href={`/blog/author/${post.author.slug}`} className="font-medium text-gray-900 transition-colors hover:text-primary-600">
               {post.author.name}
             </Link>
-            <p className="text-xs text-gray-400">{post.author.role}</p>
+            <p className="text-xs text-gray-600">{post.author.role}</p>
           </div>
         </div>
       </div>

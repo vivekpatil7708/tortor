@@ -136,7 +136,7 @@ export function AdminCampaignDetail({ id }: { id: string }) {
               type="button"
               onClick={send}
               disabled={working}
-              className="rounded-xl bg-[#7bb86c] px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              className="rounded-xl bg-primary-500 px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
             >
               {working ? 'Sending...' : campaign.status === 'sending' ? 'Continue sending' : 'Send now'}
             </button>

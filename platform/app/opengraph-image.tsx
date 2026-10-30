@@ -6,7 +6,7 @@ import { ImageResponse } from 'next/og'
 // fonts inline and is the recommended runtime for OG image generation.
 export const runtime = 'edge'
 
-export const alt = 'ToroPay — free UPI payment links, QR codes, and hosted checkout for Indian businesses'
+export const alt = 'ToroPay — free UPI payment links for Indian businesses'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -22,18 +22,34 @@ export default function Image() {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          background: 'linear-gradient(160deg, #fdf8f0 0%, #f5ede3 100%)',
+          background: '#0a0a0a',
           padding: '72px 80px',
+          position: 'relative',
         }}
       >
+        <div
+          style={{
+            position: 'absolute',
+            right: -120,
+            top: -150,
+            width: 480,
+            height: 480,
+            borderRadius: '50%',
+            background: '#60a5fa',
+            opacity: 0.12,
+            filter: 'blur(80px)',
+            display: 'flex',
+          }}
+        />
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
           <div
             style={{
               width: 72,
               height: 72,
               borderRadius: 20,
-              background: '#7bb86c',
-              color: '#ffffff',
+              background: '#60a5fa',
+              color: '#0a0a0a',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -43,8 +59,8 @@ export default function Image() {
           >
             T
           </div>
-          <div style={{ display: 'flex', fontSize: 44, fontWeight: 800, letterSpacing: '-0.03em', color: '#2c2c2c' }}>
-            Toro<span style={{ color: '#7bb86c' }}>Pay</span>
+          <div style={{ display: 'flex', fontSize: 44, fontWeight: 800, letterSpacing: '-0.03em', color: '#ffffff' }}>
+            Toro<span style={{ color: '#60a5fa' }}>Pay</span>
           </div>
         </div>
 
@@ -55,20 +71,20 @@ export default function Image() {
               fontWeight: 800,
               lineHeight: 1.1,
               letterSpacing: '-0.03em',
-              color: '#2c2c2c',
+              color: '#ffffff',
               maxWidth: 1000,
             }}
           >
-            Free UPI payment links for Indian businesses
+            Free UPI payment links. No payment gateway needed.
           </div>
-          <div style={{ fontSize: 30, color: '#6b6763', maxWidth: 940 }}>
-            Branded payment links, QR codes &amp; hosted checkout — paid directly to your own UPI ID.
+          <div style={{ fontSize: 30, color: '#d4d4d4', maxWidth: 940 }}>
+            Share a link or QR code and get paid directly to your own UPI ID. Free forever, with no transaction fees.
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 26, color: '#8a8580' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 26, color: '#8a8a8a' }}>
           <span>www.toropay.co.in</span>
-          <span>No transaction fees · No website needed</span>
+          <span>No card details · No gateway · No transaction fees</span>
         </div>
       </div>
     ),

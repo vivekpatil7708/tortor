@@ -56,7 +56,7 @@ export function AcceptInviteForm({
         <div className="flex flex-col gap-2 sm:flex-row">
           <Link
             href={`/login?next=${nextQuery}`}
-            className="inline-flex flex-1 items-center justify-center rounded-xl bg-charcoal px-5 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+            className="inline-flex flex-1 items-center justify-center rounded-xl btn-blue-gradient px-5 py-2.5 text-sm font-semibold text-white transition-all active:scale-95"
           >
             Log in
           </Link>
@@ -91,7 +91,7 @@ export function AcceptInviteForm({
         You will join <strong className="text-charcoal">{businessName}</strong> as a{' '}
         <strong className="text-charcoal">{roleLabel}</strong> using your own login.
       </p>
-      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       <Button onClick={accept} disabled={loading} className="w-full">
         {loading ? 'Accepting…' : 'Accept invitation'}
       </Button>

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
 
 const styles: Record<string, string> = {
-  green: 'bg-green-50 text-green-700 ring-green-200',
+  green: 'bg-sunlit-clay/30 text-black-forest ring-sunlit-clay/60',
   yellow: 'bg-amber-50 text-amber-700 ring-amber-200',
   blue: 'bg-blue-50 text-blue-700 ring-blue-200',
   red: 'bg-red-50 text-red-700 ring-red-200',

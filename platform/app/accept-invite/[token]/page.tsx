@@ -35,13 +35,13 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
   const roleLabel = invite && isTeamRole(invite.role) ? TEAM_ROLE_LABELS[invite.role] : 'team member'
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-cream px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-white/80 bg-white/70 p-8 shadow-sm backdrop-blur-md">
+    <main className="auth-shell flex min-h-screen items-center justify-center bg-blue-hero px-4 py-12">
+      <div className="w-full max-w-md rounded-2xl border border-white/60 bg-white/95 p-8 shadow-2xl shadow-black/20 backdrop-blur-2xl">
         <div className="mb-6 text-center">
           <div className="text-2xl font-extrabold tracking-tight">Toro<span className="text-primary-500">Pay</span></div>
           <h1 className="mt-3 text-xl font-bold tracking-tight">Join {businessName}</h1>
           {!problem && (
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-600">
               You have been invited as a <span className="font-semibold text-charcoal">{roleLabel}</span>.
             </p>
           )}
@@ -54,7 +54,7 @@ export default async function AcceptInvitePage({ params }: { params: Promise<{ t
               <Link href="/login" className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 text-center text-sm font-semibold text-charcoal hover:bg-gray-50">
                 Go to login
               </Link>
-              <Link href="/dashboard" className="flex-1 rounded-xl bg-charcoal px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-90">
+              <Link href="/dashboard" className="flex-1 rounded-xl btn-blue-gradient px-4 py-3 text-center text-sm font-semibold text-white">
                 Dashboard
               </Link>
             </div>

@@ -104,7 +104,7 @@ export function AudienceBuilder({
             checked={value.onboardingComplete ?? false}
             disabled={disabled}
             onChange={e => set({ onboardingComplete: e.target.checked || undefined })}
-            className="h-4 w-4 accent-[#7bb86c]"
+            className="h-4 w-4 accent-primary-500"
           />
           Finished onboarding
         </label>
@@ -114,7 +114,7 @@ export function AudienceBuilder({
             checked={value.emailVerified ?? false}
             disabled={disabled}
             onChange={e => set({ emailVerified: e.target.checked || undefined })}
-            className="h-4 w-4 accent-[#7bb86c]"
+            className="h-4 w-4 accent-primary-500"
           />
           Verified email address
         </label>
@@ -232,7 +232,7 @@ function MerchantPicker({
                 type="checkbox"
                 checked={selectedSet.has(m.id)}
                 onChange={() => toggle(m)}
-                className="h-4 w-4 accent-[#7bb86c]"
+                className="h-4 w-4 accent-primary-500"
               />
               <span className="flex-1">
                 <span className="block text-xs font-medium text-gray-700">{m.business_name || m.email}</span>

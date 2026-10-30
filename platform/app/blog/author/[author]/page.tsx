@@ -42,7 +42,7 @@ export default async function AuthorPage(props: Props) {
 
       <main className="mx-auto max-w-6xl px-6">
         <section className="pt-16 pb-10 sm:pt-20 sm:pb-12">
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-gray-600">
             <Link href="/blog" className="font-medium text-primary-600 transition-colors hover:text-primary-700">Blog</Link>
             <span>·</span>
             <span>Authors</span>
@@ -63,7 +63,7 @@ export default async function AuthorPage(props: Props) {
         </section>
 
         <section className="border-t border-gray-100 py-10">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-600">
             Articles by {author.name}
             <span className="ml-2 text-gray-300">({posts.length})</span>
           </h2>
@@ -73,7 +73,7 @@ export default async function AuthorPage(props: Props) {
             ))}
           </div>
           {posts.length === 0 && (
-            <p className="py-12 text-center text-gray-400">No articles yet.</p>
+            <p className="py-12 text-center text-gray-600">No articles yet.</p>
           )}
         </section>
 

@@ -32,20 +32,22 @@ function htmlPage(body: string, status = 200, head = '') {
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-         font-family: Inter, system-ui, -apple-system, sans-serif; background: #f6f5f0; color: #2c2c2c; padding: 24px; }
-  .card { width: 100%; max-width: 440px; background: #fff; border: 1px solid rgba(0,0,0,.08);
+         font-family: Inter, system-ui, -apple-system, sans-serif;
+         background: radial-gradient(circle at 50% 0%, rgba(59,130,246,.28), transparent 45%), linear-gradient(145deg, #071426, #050b1a 55%, #0a1f4a);
+         color: #071022; padding: 24px; }
+  .card { width: 100%; max-width: 440px; background: #fff; border: 1px solid rgba(255,255,255,.08);
           border-radius: 16px; padding: 32px; box-shadow: 0 8px 30px rgba(0,0,0,.06); }
-  .logo { font-size: 20px; font-weight: 700; color: #7bb86c; margin: 0 0 16px; }
+  .logo { font-size: 20px; font-weight: 700; color: #2563eb; margin: 0 0 16px; }
   h1 { font-size: 18px; margin: 0 0 8px; }
   p { font-size: 14px; line-height: 1.5; color: #555; margin: 0 0 12px; }
   ul { margin: 0 0 20px; padding-left: 18px; font-size: 14px; line-height: 1.6; color: #444; }
   .merchant { font-size: 13px; color: #888; margin-bottom: 20px; }
-  .merchant a { color: #5f9a52; }
+  .merchant a { color: #2563eb; }
   .actions { display: flex; gap: 10px; }
   button { flex: 1; padding: 12px 16px; font-size: 15px; font-weight: 600; border-radius: 10px;
            border: 1px solid transparent; cursor: pointer; }
-  .approve { background: #7bb86c; color: #fff; }
-  .approve:hover { background: #6aa75c; }
+  .approve { background: linear-gradient(135deg, #2563eb, #1d4ed8 55%, #1e3a8a); color: #ffffff; }
+  .approve:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af 55%, #172554); }
   .deny { background: #fff; color: #555; border-color: #ddd; }
   .deny:hover { background: #f5f5f5; }
   .error { color: #b3413a; }

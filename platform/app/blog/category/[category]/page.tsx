@@ -39,7 +39,7 @@ export default async function CategoryPage(props: Props) {
   const allCategories = getBlogCategories()
 
   return (
-    <div className="min-h-screen bg-[#faf8f5]">
+    <div className="min-h-screen bg-paper">
       <BlogNavbar />
 
       <main className="mx-auto max-w-6xl px-6">
@@ -82,7 +82,7 @@ export default async function CategoryPage(props: Props) {
         {/* Articles */}
         <section className="pb-16">
           {posts.length === 0 ? (
-            <p className="py-16 text-center text-gray-400">No articles in this category yet.</p>
+            <p className="py-16 text-center text-gray-600">No articles in this category yet.</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {posts.map(post => (

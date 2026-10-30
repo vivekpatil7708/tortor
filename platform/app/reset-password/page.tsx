@@ -57,11 +57,11 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cream to-beige px-4">
+      <div className="auth-shell flex min-h-screen items-center justify-center bg-blue-hero px-4">
         <div className="w-full max-w-sm text-center">
-          <div className="rounded-3xl border border-white/60 bg-white/40 p-8 backdrop-blur-xl">
-            <h1 className="text-lg font-bold text-red-500">Invalid reset link</h1>
-            <p className="mt-2 text-sm text-gray-500">This link is missing or invalid.</p>
+          <div className="rounded-3xl border border-white/60 bg-white/95 p-8 shadow-2xl shadow-black/20 backdrop-blur-2xl">
+            <h1 className="text-lg font-bold text-red-600">Invalid reset link</h1>
+            <p className="mt-2 text-sm text-gray-600">This link is missing or invalid.</p>
             <Link href="/forgot-password" className="mt-4 inline-block text-sm text-primary-500 underline">Request a new link</Link>
           </div>
         </div>
@@ -70,9 +70,9 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cream to-beige px-4">
+    <div className="auth-shell flex min-h-screen items-center justify-center bg-blue-hero px-4">
       <div className="w-full max-w-sm">
-        <div className="rounded-3xl border border-white/60 bg-white/40 p-8 backdrop-blur-xl">
+        <div className="rounded-3xl border border-white/60 bg-white/95 p-8 shadow-2xl shadow-black/20 backdrop-blur-2xl">
           <div className="mb-6 text-center">
             <Link href="/" className="text-xl font-extrabold tracking-tight">
               Toro<span className="text-primary-500">Pay</span>
@@ -82,22 +82,22 @@ function ResetPasswordForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="password" className="mb-1 block text-xs font-semibold text-gray-500">New password</label>
+              <label htmlFor="password" className="mb-1 block text-xs font-semibold text-gray-600">New password</label>
               <input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8}
-                className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
-              <p className="mt-1 text-xs text-gray-400">{PASSWORD_RULE_TEXT}</p>
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-primary-500" />
+              <p className="mt-1 text-xs text-gray-600">{PASSWORD_RULE_TEXT}</p>
             </div>
             <div>
-              <label htmlFor="confirm-password" className="mb-1 block text-xs font-semibold text-gray-500">Confirm password</label>
+              <label htmlFor="confirm-password" className="mb-1 block text-xs font-semibold text-gray-600">Confirm password</label>
               <input id="confirm-password" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required
-                className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm outline-none focus:border-primary-500" />
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-primary-500" />
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            {message && <p className="text-sm text-green-600">{message}</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            {message && <p className="text-sm text-green-700">{message}</p>}
 
             <button type="submit" disabled={loading}
-              className="w-full rounded-xl bg-charcoal py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
+              className="w-full rounded-xl btn-blue-gradient py-3 text-sm font-semibold text-white disabled:opacity-50">
               {loading ? 'Resetting...' : 'Reset password'}
             </button>
           </form>
@@ -110,8 +110,8 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cream to-beige px-4">
-        <div className="text-sm text-gray-500">Loading...</div>
+      <div className="auth-shell flex min-h-screen items-center justify-center bg-blue-hero px-4">
+        <div className="text-sm text-gray-300">Loading...</div>
       </div>
     }>
       <ResetPasswordForm />

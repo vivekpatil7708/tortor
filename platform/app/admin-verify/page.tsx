@@ -34,15 +34,15 @@ export default function AdminVerifyPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cream to-beige px-4">
+    <div className="auth-shell flex min-h-screen items-center justify-center bg-blue-hero px-4">
       <div className="w-full max-w-sm">
-        <div className="rounded-3xl border border-white/60 bg-white/40 p-8 backdrop-blur-xl">
+        <div className="rounded-3xl border border-white/60 bg-white/95 p-8 shadow-2xl shadow-black/20 backdrop-blur-2xl">
           <div className="mb-6 text-center">
             <span className="text-xl font-extrabold tracking-tight">
               Toro<span className="text-primary-500">Pay</span>
             </span>
             <h1 className="mt-4 text-lg font-bold">Admin verification</h1>
-            <p className="mt-1 text-sm text-gray-500">Enter the 6-digit code from your authenticator app</p>
+            <p className="mt-1 text-sm text-gray-600">Enter the 6-digit code from your authenticator app</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -53,19 +53,19 @@ export default function AdminVerifyPage() {
               autoComplete="one-time-code"
               placeholder="123456"
               required
-              className="w-full rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-center font-mono text-lg tracking-widest outline-none focus:border-primary-500"
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-center font-mono text-lg tracking-widest outline-none focus:border-primary-500"
             />
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
 
             <button type="submit" disabled={loading || code.length !== 6}
-              className="w-full rounded-xl bg-charcoal py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
+              className="w-full rounded-xl btn-blue-gradient py-3 text-sm font-semibold text-white disabled:opacity-50">
               {loading ? 'Checking...' : 'Verify'}
             </button>
           </form>
 
           <div className="mt-4 text-center">
-            <Link href="/dashboard" className="text-sm text-gray-500 hover:text-charcoal">Back to dashboard</Link>
+            <Link href="/dashboard" className="text-sm text-gray-600 hover:text-charcoal">Back to dashboard</Link>
           </div>
         </div>
       </div>

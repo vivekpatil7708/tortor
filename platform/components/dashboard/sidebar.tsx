@@ -1,57 +1,77 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { activeNavHref } from '@/lib/nav'
 import {
-  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack, HeartHandshake, MessageSquare, Globe, Code2, Truck, Package, LogOut, Menu, Plus, X, ChevronDown, Webhook, Users, ShoppingCart, Tag, RotateCcw, Repeat, Gift, ScrollText
+  LayoutDashboard, Link2, Banknote, QrCode, Palette, Settings, BarChart3, FileStack,
+  HeartHandshake, MessageSquare, Globe, Code2, Truck, Package, LogOut, Menu, Plus, X,
+  ChevronDown, Webhook, Users, ShoppingCart, Tag, RotateCcw, Repeat, Gift, ScrollText,
 } from 'lucide-react'
 import { api } from '@/lib/api'
+import { MobileNav } from './mobile-nav'
 
 type NavItem = { label: string; href: string; icon: typeof LayoutDashboard }
+type NavGroup = { id: string; title: string; icon: typeof LayoutDashboard; items: NavItem[] }
 
-// Daily jobs first; developer tools folded away (U16).
-export const navGroups: Array<{ title: string; folded?: boolean; items: NavItem[] }> = [
+// Five destinations, each collapsed until needed. The dashboard stays calm;
+// developers and one-off setup live under Settings instead of the main path.
+export const navGroups: NavGroup[] = [
   {
-    title: 'Get paid',
+    id: 'home',
+    title: 'Home',
+    icon: LayoutDashboard,
     items: [
       { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-      { label: 'Payment Links', href: '/dashboard/links', icon: Link2 },
-      { label: 'Transactions', href: '/dashboard/transactions', icon: Banknote },
-      { label: 'Refunds', href: '/dashboard/refunds', icon: RotateCcw },
-      { label: 'Subscriptions', href: '/dashboard/subscriptions', icon: Repeat },
-      { label: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },
-      { label: 'Products', href: '/dashboard/products', icon: Package },
-      { label: 'Coupons', href: '/dashboard/coupons', icon: Tag },
+      { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
     ],
   },
   {
-    title: 'Business',
+    id: 'payments',
+    title: 'Payments',
+    icon: Banknote,
     items: [
-      { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-      { label: 'Customers', href: '/dashboard/customers', icon: Users },
-      { label: 'Loyalty', href: '/dashboard/loyalty', icon: Gift },
-      { label: 'Messaging', href: '/dashboard/settings/messaging', icon: MessageSquare },
-      { label: 'Templates', href: '/dashboard/templates', icon: FileStack },
+      { label: 'Payment Links', href: '/dashboard/links', icon: Link2 },
+      { label: 'Transactions', href: '/dashboard/transactions', icon: Banknote },
+      { label: 'Orders', href: '/dashboard/orders', icon: ShoppingCart },
+      { label: 'Refunds', href: '/dashboard/refunds', icon: RotateCcw },
+      { label: 'Subscriptions', href: '/dashboard/subscriptions', icon: Repeat },
+    ],
+  },
+  {
+    id: 'sell',
+    title: 'Sell',
+    icon: Package,
+    items: [
+      { label: 'Products', href: '/dashboard/products', icon: Package },
+      { label: 'Coupons', href: '/dashboard/coupons', icon: Tag },
       { label: 'Delivery', href: '/dashboard/delivery', icon: Truck },
       { label: 'Couriers', href: '/dashboard/couriers', icon: Package },
     ],
   },
   {
-    title: 'Setup',
+    id: 'customers',
+    title: 'Customers',
+    icon: Users,
     items: [
-      { label: 'UPI IDs', href: '/dashboard/upi', icon: QrCode },
-      { label: 'Branding', href: '/dashboard/branding', icon: Palette },
-      { label: 'Team', href: '/dashboard/settings/team', icon: Users },
-      { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+      { label: 'Customers', href: '/dashboard/customers', icon: Users },
+      { label: 'Loyalty', href: '/dashboard/loyalty', icon: Gift },
     ],
   },
   {
-    title: 'Developers',
-    folded: true,
+    id: 'settings',
+    title: 'Settings',
+    icon: Settings,
     items: [
-      { label: 'Website Integration', href: '/dashboard/website', icon: Globe },
+      { label: 'Business profile', href: '/dashboard/settings', icon: Settings },
+      { label: 'UPI IDs', href: '/dashboard/upi', icon: QrCode },
+      { label: 'Branding', href: '/dashboard/branding', icon: Palette },
+      { label: 'Team', href: '/dashboard/settings/team', icon: Users },
+      { label: 'Messaging', href: '/dashboard/settings/messaging', icon: MessageSquare },
+      { label: 'Templates', href: '/dashboard/templates', icon: FileStack },
+      { label: 'Website integration', href: '/dashboard/website', icon: Globe },
       { label: 'API keys & webhooks', href: '/dashboard/developers', icon: Code2 },
       { label: 'Webhooks', href: '/dashboard/webhooks', icon: Webhook },
       { label: 'Webhook logs', href: '/dashboard/developers/webhook-logs', icon: ScrollText },
@@ -61,74 +81,108 @@ export const navGroups: Array<{ title: string; folded?: boolean; items: NavItem[
 
 const supportItem: NavItem = { label: 'Support ToroPay', href: '/dashboard/support', icon: HeartHandshake }
 
-/**
- * The menu item for the current page: the longest matching address, so Messaging
- * (/dashboard/settings/messaging) doesn't also light up Settings.
- */
-export function activeNavHref(pathname: string, hrefs: string[]): string | null {
-  const matches = hrefs.filter(href => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`)))
-  return matches.sort((a, b) => b.length - a.length)[0] ?? null
-}
+export { activeNavHref }
 
 const allHrefs = [...navGroups.flatMap(g => g.items), supportItem].map(i => i.href)
 
 export function Sidebar() {
   const [open, setOpen] = useState(false)
-  const [developersOpen, setDevelopersOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const activeHref = activeNavHref(pathname, allHrefs)
+  const activeGroupId = navGroups.find(g => g.items.some(i => i.href === activeHref))?.id ?? 'home'
+  const [openGroups, setOpenGroups] = useState<string[]>([activeGroupId])
+
+  // Follow the page: whatever section you land in opens, without closing the others.
+  useEffect(() => {
+    setOpenGroups(prev => (prev.includes(activeGroupId) ? prev : [...prev, activeGroupId]))
+  }, [activeGroupId])
 
   async function handleLogout() {
     await api.logout()
     router.push('/login')
   }
 
-  const navLink = ({ label, href, icon: Icon }: NavItem) => (
-    <Link key={href} href={href} onClick={() => setOpen(false)} aria-current={href === activeHref ? 'page' : undefined}
-      className={cn(
-        'flex items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium transition-colors',
-        href === activeHref ? 'bg-charcoal text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-charcoal'
-      )}>
-      <Icon className="h-4 w-4 shrink-0" /> {label}
-    </Link>
-  )
+  function toggleGroup(id: string) {
+    setOpenGroups(prev => (prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]))
+  }
+
+  const navLink = ({ label, href, icon: Icon }: NavItem) => {
+    const active = href === activeHref
+    return (
+      <Link
+        key={href}
+        href={href}
+        onClick={() => setOpen(false)}
+        aria-current={active ? 'page' : undefined}
+        className={cn(
+          'group flex items-center gap-3 rounded-xl border-l-2 px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sunlit-clay/40',
+          active ? 'border-sunlit-clay bg-white/10 text-white shadow-sm' : 'border-transparent text-gray-400 hover:bg-white/5 hover:text-white'
+        )}
+      >
+        <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-sunlit-clay' : 'text-gray-500 group-hover:text-sunlit-clay')} aria-hidden />
+        <span className="truncate">{label}</span>
+      </Link>
+    )
+  }
 
   const nav = (
     <>
-      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
-        <Link href="/dashboard" className="text-xl font-extrabold tracking-tight" onClick={() => setOpen(false)}>
-          Toro<span className="text-primary-500">Pay</span>
+      <div className="flex items-center justify-between px-5 pb-2 pt-5">
+        <Link href="/dashboard" className="text-xl font-extrabold tracking-tight text-white" onClick={() => setOpen(false)}>
+          Toro<span className="text-sunlit-clay">Pay</span>
         </Link>
-        <button onClick={() => setOpen(false)} className="lg:hidden" aria-label="Close menu">
-          <X className="h-5 w-5 text-gray-500" />
+        <button onClick={() => setOpen(false)} className="rounded-lg p-1 text-gray-400 hover:bg-white/10 hover:text-white lg:hidden" aria-label="Close menu">
+          <X className="h-5 w-5" />
         </button>
       </div>
-      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4" aria-label="Dashboard">
+
+      <Link
+        href="/dashboard/links/new"
+        onClick={() => setOpen(false)}
+        className="mx-3 mb-3 inline-flex items-center justify-center gap-2 rounded-xl btn-blue-gradient px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors"
+      >
+        <Plus className="h-4 w-4" aria-hidden /> Create payment link
+      </Link>
+
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2" aria-label="Main">
         {navGroups.map(group => {
-          // A folded group opens when asked, or when you're on one of its pages.
-          const shown = !group.folded || developersOpen || group.items.some(i => i.href === activeHref)
+          const Icon = group.icon
+          const isOpen = openGroups.includes(group.id)
+          const hasActive = group.items.some(i => i.href === activeHref)
           return (
-            <div key={group.title}>
-              {group.folded ? (
-                <button type="button" onClick={() => setDevelopersOpen(o => !o)} aria-expanded={shown}
-                  className="flex w-full items-center justify-between px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 hover:text-charcoal">
-                  {group.title}
-                  <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', shown && 'rotate-180')} aria-hidden />
-                </button>
-              ) : (
-                <p className="px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">{group.title}</p>
+            <div key={group.id}>
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.id)}
+                aria-expanded={isOpen}
+                aria-controls={`nav-group-${group.id}`}
+                className={cn(
+                  'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sunlit-clay/40',
+                  hasActive ? 'text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                )}
+              >
+                <Icon className={cn('h-4 w-4 shrink-0', hasActive ? 'text-sunlit-clay' : 'text-gray-500')} aria-hidden />
+                <span className="flex-1 text-left">{group.title}</span>
+                <ChevronDown className={cn('h-4 w-4 text-gray-500 transition-transform', isOpen && 'rotate-180')} aria-hidden />
+              </button>
+              {isOpen && (
+                <div id={`nav-group-${group.id}`} className="mt-0.5 space-y-0.5 pb-1 pl-3">
+                  {group.items.map(navLink)}
+                </div>
               )}
-              {shown && <div className="space-y-0.5">{group.items.map(navLink)}</div>}
             </div>
           )
         })}
       </nav>
-      <div className="space-y-0.5 border-t border-gray-100 p-3">
+
+      <div className="space-y-0.5 border-t border-white/10 p-3">
         {navLink(supportItem)}
-        <button onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-charcoal">
-          <LogOut className="h-4 w-4 shrink-0" /> Log out
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+        >
+          <LogOut className="h-4 w-4 shrink-0 text-gray-500" aria-hidden /> Log out
         </button>
       </div>
     </>
@@ -136,27 +190,27 @@ export function Sidebar() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} aria-label="Open menu"
-        className="fixed left-4 top-4 z-40 rounded-xl border border-gray-200 bg-white p-2.5 shadow-md lg:hidden print:hidden">
-        <Menu className="h-5 w-5 text-charcoal" />
-      </button>
-
-      {/* Phones: the most common job, one tap away on every page. */}
-      {!open && pathname !== '/dashboard/links/new' && (
-        <Link href="/dashboard/links/new"
-          className="fixed right-4 top-4 z-40 inline-flex items-center gap-1 rounded-xl bg-charcoal px-3 py-2.5 text-xs font-semibold text-white shadow-md lg:hidden print:hidden">
-          <Plus className="h-4 w-4" aria-hidden /> New link
-        </Link>
-      )}
+      <MobileNav activeHref={activeHref} onMenu={() => setOpen(true)} />
 
       {open && (
-        <div className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setOpen(false)} aria-hidden />
       )}
 
-      <aside className={cn(
-        'fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-white/80 backdrop-blur-md transition-transform duration-300 lg:relative lg:translate-x-0 lg:border-r lg:border-gray-200 print:hidden',
-        open ? 'translate-x-0' : '-translate-x-full'
-      )}>
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex w-64 flex-col overflow-hidden border-r border-white/10 bg-blue-hero text-white transition-transform duration-300 lg:relative lg:z-auto lg:translate-x-0 print:hidden',
+          open ? 'translate-x-0' : '-translate-x-full'
+        )}
+        aria-label="Dashboard navigation"
+      >
+        <div
+          className="pointer-events-none absolute -bottom-44 -right-32 h-80 w-80 rounded-full border-[2rem] border-sunlit-clay/10"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -left-24 top-1/3 h-56 w-56 rounded-full bg-sunlit-clay/[0.04] blur-3xl"
+          aria-hidden
+        />
         {nav}
       </aside>
     </>

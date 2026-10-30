@@ -27,10 +27,10 @@ export function renderOrderConfirmationEmail({
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
     <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;border:1px solid rgba(255,255,255,0.6);padding:40px;">
       <tr><td style="text-align:center;padding-bottom:16px;">
-        <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;">          <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#7bb86c;">Pay</span>        </a>
+        <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;">          <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#0a0a0a;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2563eb;">Pay</span>        </a>
       </td></tr>
       <tr><td style="padding-bottom:24px;">
-        <h1 style="font-size:18px;font-weight:700;color:#2c2c2c;margin:0;">${subject}</h1>
+        <h1 style="font-size:18px;font-weight:700;color:#0a0a0a;margin:0;">${subject}</h1>
       </td></tr>
       ${bodyParagraphs.map((p: string) => `<tr><td style="padding-bottom:12px;color:#4b5563;font-size:14px;line-height:1.7;">${p}</td></tr>`).join('')}
       <tr><td style="border-top:1px solid #e5e7eb;padding-top:16px;color:#9ca3af;font-size:12px;text-align:center;">
@@ -53,7 +53,7 @@ export function renderBroadcastEmail({
   ctaUrl,
   ctaLabel = 'Share Your Feedback',
   trackingPixelUrl,
-  accentColor = '#7bb86c',
+  accentColor = '#2563eb',
 }: {
   subject: string
   body: string
@@ -79,11 +79,11 @@ export function renderBroadcastEmail({
     <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;border:1px solid rgba(255,255,255,0.6);padding:40px;">
       <tr><td style="text-align:center;padding-bottom:16px;">
         <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;">
-          <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:${accentColor};">Pay</span>
+          <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#0a0a0a;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:${accentColor};">Pay</span>
         </a>
       </td></tr>
       <tr><td style="padding-bottom:24px;">
-        <h1 style="font-size:18px;font-weight:700;color:#2c2c2c;margin:0;">${subject}</h1>
+        <h1 style="font-size:18px;font-weight:700;color:#0a0a0a;margin:0;">${subject}</h1>
       </td></tr>
       ${formattedBody.map((p: string) => `<tr><td style="padding-bottom:12px;color:#4b5563;font-size:14px;line-height:1.7;">${linkify(p)}</td></tr>`).join('')}
       <tr><td style="padding:20px 0 24px;text-align:center;">
@@ -107,16 +107,16 @@ export function renderVerifyEmail({ verifyLink }: { verifyLink: string }): strin
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
     <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;border:1px solid rgba(255,255,255,0.6);padding:40px;">
       <tr><td style="text-align:center;padding-bottom:8px;">
-        <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;"><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#7bb86c;">Pay</span></a>
+        <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;"><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#0a0a0a;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2563eb;">Pay</span></a>
       </td></tr>
       <tr><td style="padding-bottom:24px;text-align:center;">
-        <h1 style="font-size:20px;font-weight:700;color:#2c2c2c;margin:0;">Verify your email</h1>
+        <h1 style="font-size:20px;font-weight:700;color:#0a0a0a;margin:0;">Verify your email</h1>
       </td></tr>
       <tr><td style="padding-bottom:16px;color:#6b7280;font-size:14px;line-height:1.6;">
         Confirm this is your email address to start taking payments with ToroPay. This link expires in 48 hours.
       </td></tr>
       <tr><td style="padding:16px 0 24px;text-align:center;">
-        <a href="${escapeHtml(verifyLink)}" style="display:inline-block;padding:14px 32px;background:#2c2c2c;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;">Verify email</a>
+        <a href="${escapeHtml(verifyLink)}" style="display:inline-block;padding:14px 32px;background:#0a0a0a;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;">Verify email</a>
       </td></tr>
       <tr><td style="padding-bottom:16px;color:#9ca3af;font-size:12px;line-height:1.5;">
         If you didn't create a ToroPay account, you can ignore this email.
@@ -138,10 +138,10 @@ export function renderResetEmail({ resetLink, businessName }: { resetLink: strin
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
     <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;border:1px solid rgba(255,255,255,0.6);padding:40px;">
       <tr><td style="text-align:center;padding-bottom:8px;">
-        <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;">          <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#7bb86c;">Pay</span>        </a>
+        <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;">          <span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#0a0a0a;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2563eb;">Pay</span>        </a>
       </td></tr>
       <tr><td style="padding-bottom:24px;text-align:center;">
-        <h1 style="font-size:20px;font-weight:700;color:#2c2c2c;margin:0;">Reset your password</h1>
+        <h1 style="font-size:20px;font-weight:700;color:#0a0a0a;margin:0;">Reset your password</h1>
       </td></tr>
       <tr><td style="padding-bottom:16px;color:#6b7280;font-size:14px;line-height:1.6;">
         Hi${businessName ? ` ${escapeHtml(businessName)}` : ''},
@@ -150,7 +150,7 @@ export function renderResetEmail({ resetLink, businessName }: { resetLink: strin
         We received a request to reset your ToroPay account password. Click the button below to set a new password. This link expires in 1 hour.
       </td></tr>
       <tr><td style="padding:16px 0 24px;text-align:center;">
-        <a href="${resetLink}" style="display:inline-block;padding:14px 32px;background:#2c2c2c;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;">Reset password</a>
+        <a href="${resetLink}" style="display:inline-block;padding:14px 32px;background:#0a0a0a;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;">Reset password</a>
       </td></tr>
       <tr><td style="padding-bottom:16px;color:#9ca3af;font-size:12px;line-height:1.5;">
         If you didn't request this, you can safely ignore this email. Your password won't change unless you click the link above.
@@ -186,22 +186,22 @@ export function renderTeamInviteEmail({
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 16px;">
     <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;border:1px solid rgba(255,255,255,0.6);padding:40px;">
       <tr><td style="text-align:center;padding-bottom:8px;">
-        <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;"><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2c2c2c;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#7bb86c;">Pay</span></a>
+        <a href="https://www.toropay.co.in" style="text-decoration:none;display:inline-block;"><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#0a0a0a;">Toro</span><span style="font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#2563eb;">Pay</span></a>
       </td></tr>
       <tr><td style="padding-bottom:20px;text-align:center;">
-        <h1 style="font-size:20px;font-weight:700;color:#2c2c2c;margin:0;">You're invited to ${business}</h1>
+        <h1 style="font-size:20px;font-weight:700;color:#0a0a0a;margin:0;">You're invited to ${business}</h1>
       </td></tr>
       <tr><td style="padding-bottom:16px;color:#6b7280;font-size:14px;line-height:1.6;">
-        ${inviter} invited you to help run <strong style="color:#2c2c2c;">${business}</strong> on ToroPay as a <strong style="color:#2c2c2c;">${role}</strong>.
+        ${inviter} invited you to help run <strong style="color:#0a0a0a;">${business}</strong> on ToroPay as a <strong style="color:#0a0a0a;">${role}</strong>.
       </td></tr>
       <tr><td style="padding-bottom:24px;color:#6b7280;font-size:14px;line-height:1.6;">
         Accept the invitation to open the business dashboard with your own ToroPay login. This link expires in 7 days.
       </td></tr>
       <tr><td style="padding:8px 0 28px;text-align:center;">
-        <a href="${url}" style="display:inline-block;padding:14px 32px;background:#2c2c2c;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;">Accept invitation</a>
+        <a href="${url}" style="display:inline-block;padding:14px 32px;background:#0a0a0a;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:12px;">Accept invitation</a>
       </td></tr>
       <tr><td style="padding-bottom:16px;color:#9ca3af;font-size:12px;line-height:1.5;word-break:break-all;">
-        If the button does not work, open this link:<br /><a href="${url}" style="color:#7bb86c;">${url}</a>
+        If the button does not work, open this link:<br /><a href="${url}" style="color:#2563eb;">${url}</a>
       </td></tr>
       <tr><td style="padding-bottom:16px;color:#9ca3af;font-size:12px;line-height:1.5;">
         If you weren't expecting this invitation, you can ignore this email.

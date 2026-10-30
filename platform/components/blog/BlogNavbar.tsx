@@ -7,34 +7,34 @@ export default function BlogNavbar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200/60 bg-[#faf8f5]/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-white/10 glass-blue text-white shadow-[0_1px_0_0_rgba(96,165,250,0.12)]">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link href="/blog" className="flex items-center gap-2.5">
-          <span className="font-serif text-xl font-bold tracking-tight text-gray-900">
-            Toro<span className="text-primary-500">Pay</span>
+          <span className="font-serif text-xl font-bold tracking-tight text-white">
+            Toro<span className="text-sunlit-clay">Pay</span>
           </span>
-          <span className="hidden text-sm font-medium text-gray-300 sm:inline">/</span>
+          <span className="hidden text-sm font-medium text-gray-600 sm:inline">/</span>
           <span className="hidden text-sm font-medium text-gray-400 sm:inline">Blog</span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          <Link href="/blog" className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900">All Articles</Link>
-          <Link href="/blog/category/tutorials" className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900">Tutorials</Link>
-          <Link href="/blog/category/comparisons" className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900">Comparisons</Link>
-          <Link href="/blog/category/guides" className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900">Guides</Link>
-          <Link href="/blog/search" className="text-sm font-medium text-gray-400 transition-colors hover:text-gray-900">
+          <Link href="/blog" className="text-sm font-medium text-gray-300 transition-colors hover:text-white">All Articles</Link>
+          <Link href="/blog/category/tutorials" className="text-sm font-medium text-gray-300 transition-colors hover:text-white">Tutorials</Link>
+          <Link href="/blog/category/comparisons" className="text-sm font-medium text-gray-300 transition-colors hover:text-white">Comparisons</Link>
+          <Link href="/blog/category/guides" className="text-sm font-medium text-gray-300 transition-colors hover:text-white">Guides</Link>
+          <Link href="/blog/search" aria-label="Search articles" className="text-sm font-medium text-gray-400 transition-colors hover:text-white">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
           </Link>
-          <Link href="/" className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-gray-800 hover:shadow-sm">
+          <Link href="/" className="rounded-lg btn-blue-gradient px-4 py-2 text-sm font-medium text-white transition-all hover:shadow-sm">
             Get Started
           </Link>
         </nav>
 
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition-colors hover:bg-gray-200/60 md:hidden"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-gray-300 transition-colors hover:bg-white/10 md:hidden"
           aria-label="Toggle menu"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -47,14 +47,14 @@ export default function BlogNavbar() {
       </div>
 
       {menuOpen && (
-        <div className="border-t border-gray-200/60 bg-[#faf8f5] px-6 py-4 md:hidden">
+        <div className="border-t border-graphite bg-ink px-6 py-4 md:hidden">
           <nav className="flex flex-col gap-3">
-            <Link href="/blog" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-600">All Articles</Link>
-            <Link href="/blog/category/tutorials" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-600">Tutorials</Link>
-            <Link href="/blog/category/comparisons" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-600">Comparisons</Link>
-            <Link href="/blog/category/guides" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-600">Guides</Link>
-            <Link href="/blog/search" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-600">Search</Link>
-            <Link href="/" onClick={() => setMenuOpen(false)} className="mt-2 rounded-lg bg-gray-900 px-4 py-2.5 text-center text-sm font-medium text-white">Get Started</Link>
+            <Link href="/blog" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-300">All Articles</Link>
+            <Link href="/blog/category/tutorials" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-300">Tutorials</Link>
+            <Link href="/blog/category/comparisons" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-300">Comparisons</Link>
+            <Link href="/blog/category/guides" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-300">Guides</Link>
+            <Link href="/blog/search" onClick={() => setMenuOpen(false)} className="text-sm font-medium text-gray-300">Search</Link>
+            <Link href="/" onClick={() => setMenuOpen(false)} className="mt-2 rounded-lg btn-blue-gradient px-4 py-2.5 text-center text-sm font-medium text-white">Get Started</Link>
           </nav>
         </div>
       )}

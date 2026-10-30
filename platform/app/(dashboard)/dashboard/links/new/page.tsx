@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { amountRangeHint } from '@/lib/checkout-form'
@@ -9,8 +10,9 @@ import { expiryMoment, limitsProblem, rangeProblem } from '@/lib/link-limits'
 import { imageFileProblem } from '@/lib/image-input'
 import { LoadError } from '@/components/ui/load-error'
 import { Button } from '@/components/ui/button'
-import { Zap, ShoppingBag, ChevronDown, ArrowRight } from 'lucide-react'
+import { Zap, ShoppingBag, ChevronDown, ArrowLeft, ArrowRight, ShieldCheck, Wallet } from 'lucide-react'
 import { formatMoney } from '@/lib/ui-format'
+import { readableTextColor } from '@/lib/utils'
 
 interface CustomField {
   name: string
@@ -276,14 +278,26 @@ export default function NewLinkPage() {
     }
   }
 
-  const primaryColor = (merchant?.brand_color_primary as string) || '#7bb86c'
-  const secondaryColor = (merchant?.brand_color_secondary as string) || '#2c2c2c'
+  const primaryColor = (merchant?.brand_color_primary as string) || '#2563eb'
+  const secondaryColor = (merchant?.brand_color_secondary as string) || '#050b1a'
+  const primaryTextColor = readableTextColor(primaryColor)
   const btnRadius = merchant?.button_style === 'pill' ? 'rounded-full' : merchant?.button_style === 'square' ? 'rounded-lg' : 'rounded-xl'
   const buttonText = form.button_text || 'Continue to Pay'
+  const singleUpi = upisLoaded && upis.length === 1 ? upis[0] : null
+  const previewIsDark = merchant?.page_theme === 'dark'
+  const previewBgImage = (merchant?.bg_image_url as string) || ''
+  const previewPageStyle = previewBgImage
+    ? { backgroundImage: `url(${previewBgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { backgroundColor: previewIsDark ? '#050b1a' : '#f4f7fe' }
+  const previewCard = previewIsDark
+    ? 'border-white/10 bg-gray-900/95 text-white'
+    : 'border-white bg-white/95 text-charcoal'
+  const previewMuted = previewIsDark ? 'text-white/70' : 'text-gray-500'
+  const previewHeadingColor = previewIsDark ? '#ffffff' : secondaryColor
 
   function previewAmount() {
     if (mode === 'sell') {
-      if (!sell.unit_price) return { main: '₹___', sub: 'Enter unit price' }
+      if (!sell.unit_price) return { main: '₹ —', sub: 'Enter unit price' }
       if (sell.customer_updates_qty) {
         const qty = Math.min(Math.max(1, previewQty), Math.max(1, quantity))
         const total = unitPrice * qty
@@ -299,10 +313,10 @@ export default function NewLinkPage() {
     }
     if (form.amount_flexible) {
       const range = rangeError ? '' : amountRangeHint(Number(form.min_amount) || null, Number(form.max_amount) || null)
-      return { main: '₹___', sub: range ? `Customer enters the amount · ${range}` : 'Customer enters the amount' }
+      return { main: '₹ —', sub: range ? `Customer enters the amount · ${range}` : 'Customer enters the amount' }
     }
     const amt = Number(form.amount) || 0
-    return { main: amt > 0 ? `₹${amt.toLocaleString('en-IN')}` : '₹___', sub: amt > 0 ? '' : 'Enter an amount' }
+    return { main: amt > 0 ? `₹${amt.toLocaleString('en-IN')}` : '₹ —', sub: amt > 0 ? '' : 'Enter an amount' }
   }
 
   const preview = previewAmount()
@@ -310,47 +324,78 @@ export default function NewLinkPage() {
   const effectiveQty = Math.min(Math.max(1, previewQty), Math.max(1, quantity))
   const createLabel = saving ? 'Creating...' : (mode === 'sell' ? 'Create & Share Link' : 'Create Payment Link')
   const choiceClass = (on: boolean) =>
-    `rounded-lg px-3 py-2 text-sm font-semibold transition-all ${on ? 'bg-charcoal text-white shadow-sm' : 'text-gray-600 hover:text-charcoal'}`
+    `rounded-lg px-2 py-2 text-center text-[13px] font-semibold leading-tight transition-all sm:text-sm ${on ? 'bg-primary-600 text-white shadow-sm' : 'text-gray-600 hover:text-charcoal'}`
 
   return (
     <div className="mx-auto max-w-xl pb-28 md:pb-0 lg:max-w-5xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Create Payment Link</h1>
-        <p className="text-sm text-gray-500">Done in under a minute. Pick a mode and fill the basics.</p>
+        <Link href="/dashboard/links" className="mb-3 inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 transition-colors hover:text-charcoal">
+          <ArrowLeft className="h-4 w-4" aria-hidden /> Payment links
+        </Link>
+        <h1 className="text-2xl font-bold tracking-tight">Create a payment link</h1>
+        <p className="mt-1 max-w-xl text-sm text-gray-500">
+          Three details and it&apos;s ready to share. Money goes directly to your UPI ID.
+        </p>
       </div>
 
       {/* The form, with its live preview beside it on wide screens and below it on phones (U23). */}
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8">
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-white/80 bg-white/60 p-1.5 backdrop-blur-sm">
+      <form id="new-link-form" onSubmit={handleSubmit}>
+        <div className="mb-2 grid grid-cols-2 gap-2 rounded-2xl border border-primary-100/80 bg-white/70 p-1.5 backdrop-blur-sm">
           <button type="button" onClick={() => setMode('quick')} aria-pressed={mode === 'quick'}
-            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${mode === 'quick' ? 'bg-charcoal text-white shadow-md' : 'text-gray-500 hover:text-charcoal'}`}>
-            <Zap className="h-4 w-4" /> Quick Link
+            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${mode === 'quick' ? 'bg-primary-600 text-white shadow-md' : 'text-gray-500 hover:text-charcoal'}`}>
+            <Zap className="h-4 w-4" aria-hidden /> Quick Link
           </button>
           <button type="button" onClick={() => setMode('sell')} aria-pressed={mode === 'sell'}
-            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${mode === 'sell' ? 'bg-charcoal text-white shadow-md' : 'text-gray-500 hover:text-charcoal'}`}>
-            <ShoppingBag className="h-4 w-4" /> Sell Items
+            className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${mode === 'sell' ? 'bg-primary-600 text-white shadow-md' : 'text-gray-500 hover:text-charcoal'}`}>
+            <ShoppingBag className="h-4 w-4" aria-hidden /> Sell Items
           </button>
         </div>
+        <p className="mb-4 px-1 text-xs leading-relaxed text-gray-500">
+          {mode === 'quick'
+            ? 'One payment amount. Best for invoices, bookings, advances and donations.'
+            : 'Charge a unit price and quantity. Add optional items under More options for a multi-item order.'}
+        </p>
 
-        <div className="space-y-5 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
+        <div className="space-y-5 rounded-2xl border border-primary-100/80 bg-white/70 p-6 shadow-[0_20px_60px_-45px_rgba(37,99,235,0.5)] backdrop-blur-sm">
           <div>
-            <label htmlFor="link-title" className="mb-1.5 block text-sm font-semibold text-gray-700">Title <span className="text-red-400">*</span></label>
+            <label htmlFor="link-title" className="mb-1.5 block text-sm font-semibold text-gray-700">Payment title <span className="text-red-600">*</span></label>
             <input id="link-title" value={form.title} onChange={e => { setForm({ ...form, title: e.target.value }); setTouched({ ...touched, title: true }) }}
-              placeholder={mode === 'sell' ? 'e.g. Premium Tiffin Pack' : 'e.g. Website Design Fee'}
+              placeholder={mode === 'sell' ? 'e.g. Premium tiffin pack' : 'e.g. Website design fee'}
               className={inputClass} />
             {touched.title && titleError() && <p className="mt-1.5 text-xs text-red-600">{titleError()}</p>}
-            {!touched.title && <p className="mt-1.5 text-xs text-gray-500">Shown to your customer at checkout.</p>}
+            {!touched.title && <p className="mt-1.5 text-xs text-gray-500">This is what your customer sees on the payment page.</p>}
           </div>
 
           <div>
-            <label htmlFor="link-upi" className="mb-1.5 block text-sm font-semibold text-gray-700">UPI ID <span className="text-red-400">*</span></label>
-            {upis.length > 0 && (
-              <select id="link-upi" value={form.upi_id} onChange={e => { setForm({ ...form, upi_id: e.target.value }); setTouched({ ...touched, upi_id: true }) }}
+            <div className="mb-1.5 flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-gray-700">UPI ID <span className="text-red-600">*</span></p>
+              {upis.length > 1 && <span className="text-xs text-gray-500">Where the money lands</span>}
+            </div>
+            {upis.length > 1 && (
+              <select id="link-upi" aria-label="UPI ID" value={form.upi_id} onChange={e => { setForm({ ...form, upi_id: e.target.value }); setTouched({ ...touched, upi_id: true }) }}
                 className={`${inputClass} ${!form.upi_id ? 'text-gray-500' : ''}`}>
                 <option value="">Select UPI ID</option>
                 {upis.map(u => <option key={u.id as string} value={u.vpa as string}>{u.vpa as string}</option>)}
               </select>
+            )}
+            {singleUpi && (
+              <div className="flex items-center gap-3 rounded-xl border border-primary-100 bg-primary-50/50 px-4 py-3.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary-500/15 bg-primary-50 text-primary-700">
+                  <Wallet className="h-4 w-4" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="break-all font-mono text-sm font-semibold text-charcoal">{String(singleUpi.vpa)}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">Paid directly to you.</p>
+                </div>
+                <span className="hidden shrink-0 rounded-full bg-primary-50 px-2.5 py-1 text-[11px] font-semibold text-primary-700 sm:inline">Primary</span>
+              </div>
+            )}
+            {!upisLoaded && !upisFailed && (
+              <div className="flex h-[52px] items-center rounded-xl border border-gray-200 bg-gray-100 px-4">
+                <span className="sr-only">Loading UPI IDs…</span>
+                <span className="h-3 w-40 animate-pulse rounded bg-gray-200" aria-hidden />
+              </div>
             )}
             {upisFailed && <LoadError what="your UPI IDs" onRetry={loadUpis} className="mt-2" />}
             {upisLoaded && upis.length === 0 && (
@@ -358,7 +403,7 @@ export default function NewLinkPage() {
               <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4">
                 <p className="text-sm text-amber-900">Add the UPI ID you want customers to pay into.</p>
                 <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                  <input id="link-upi" value={newVpa} onChange={e => setNewVpa(e.target.value)} placeholder="yourname@okaxis"
+                  <input id="link-upi" aria-label="New UPI ID" value={newVpa} onChange={e => setNewVpa(e.target.value)} placeholder="yourname@okaxis"
                     autoCapitalize="none" autoCorrect="off" spellCheck={false}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addUpiHere() } }}
                     className={inputClass} />
@@ -368,18 +413,18 @@ export default function NewLinkPage() {
               </div>
             )}
             {touched.upi_id && upiError() && <p className="mt-1.5 text-xs text-red-600">{upiError()}</p>}
-            {!touched.upi_id && upis.length > 0 && <p className="mt-1.5 text-xs text-gray-500">Money comes directly to this UPI ID.</p>}
+            {!touched.upi_id && upis.length > 1 && <p className="mt-1.5 text-xs text-gray-500">Money comes directly to the UPI ID you choose.</p>}
           </div>
 
           {mode === 'quick' ? (
             <>
               <fieldset>
-                <legend className="mb-1.5 block text-sm font-semibold text-gray-700">Amount <span className="text-red-400">*</span></legend>
-                <div className="mb-3 inline-flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
+                <legend className="mb-1.5 block text-sm font-semibold text-gray-700">Amount <span className="text-red-600">*</span></legend>
+                <div className="mb-3 grid w-full grid-cols-2 gap-1 rounded-xl border border-gray-200 bg-white p-1">
                   <button type="button" aria-pressed={!form.amount_flexible} onClick={() => setForm({ ...form, amount_flexible: false })}
                     className={choiceClass(!form.amount_flexible)}>Fixed amount</button>
                   <button type="button" aria-pressed={form.amount_flexible} onClick={() => setForm({ ...form, amount_flexible: true })}
-                    className={choiceClass(form.amount_flexible)}>Customer enters amount</button>
+                    className={choiceClass(form.amount_flexible)}>Flexible amount</button>
                 </div>
                 {form.amount_flexible ? (
                   <div>
@@ -413,19 +458,11 @@ export default function NewLinkPage() {
                   </div>
                 )}
               </fieldset>
-
-              <div>
-                <label htmlFor="link-button" className="mb-1.5 block text-sm font-semibold text-gray-700">Button Text</label>
-                <input id="link-button" value={form.button_text} onChange={e => setForm({ ...form, button_text: e.target.value })}
-                  placeholder="e.g. Pay Now, Book, Donate"
-                  className={inputClass} />
-                <p className="mt-1.5 text-xs text-gray-500">Shown on the pay button. Default: &quot;Continue to Pay&quot;.</p>
-              </div>
             </>
           ) : (
             <>
               <div>
-                <label htmlFor="link-unit-price" className="mb-1.5 block text-sm font-semibold text-gray-700">Unit Price (₹) <span className="text-red-400">*</span></label>
+                <label htmlFor="link-unit-price" className="mb-1.5 block text-sm font-semibold text-gray-700">Unit Price (₹) <span className="text-red-600">*</span></label>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-semibold text-gray-500">₹</span>
                   <input id="link-unit-price" type="number" min="1" inputMode="decimal" value={sell.unit_price}
@@ -438,7 +475,7 @@ export default function NewLinkPage() {
               </div>
 
               <div>
-                <label htmlFor="link-quantity" className="mb-1.5 block text-sm font-semibold text-gray-700">{sell.customer_updates_qty ? 'Max Quantity' : 'Quantity'} <span className="text-red-400">*</span></label>
+                <label htmlFor="link-quantity" className="mb-1.5 block text-sm font-semibold text-gray-700">{sell.customer_updates_qty ? 'Max Quantity' : 'Quantity'} <span className="text-red-600">*</span></label>
                 <input id="link-quantity" type="number" min="1" inputMode="numeric" value={sell.quantity}
                   onChange={e => { setSell({ ...sell, quantity: e.target.value }); setTouched({ ...touched, quantity: true }) }}
                   className={inputClass} />
@@ -462,6 +499,9 @@ export default function NewLinkPage() {
                 <div>
                   <p className="text-sm font-semibold text-gray-700">Customer can update quantity</p>
                   <p className="mt-0.5 text-xs text-gray-500">Fixed unit price. Let buyers choose how many items to pay for at checkout (up to {quantity >= 1 ? quantity : '—'}).</p>
+                  {products.length > 0 && sell.customer_updates_qty && (
+                    <p className="mt-1.5 text-xs font-medium text-amber-700">Order items in More options are skipped with this option.</p>
+                  )}
                 </div>
                 <button type="button" role="switch" aria-checked={sell.customer_updates_qty} aria-label="Customer can update quantity"
                   onClick={() => setSell({ ...sell, customer_updates_qty: !sell.customer_updates_qty })}
@@ -472,23 +512,39 @@ export default function NewLinkPage() {
             </>
           )}
 
-          <button type="button" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen}
-            className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm font-semibold text-gray-600 transition-colors hover:bg-white">
-            <span>Advanced options</span>
-            <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
+          <button type="button" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen} aria-controls="more-options-panel"
+            className="flex w-full items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white/70 px-4 py-3 text-sm font-semibold text-gray-600 transition-colors hover:bg-white">
+            <span className="text-left">
+              <span className="block">More options</span>
+              <span className="mt-0.5 block text-xs font-normal text-gray-500">Wording, limits, redirects and developer tools</span>
+            </span>
+            <ChevronDown className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${advancedOpen ? 'rotate-180' : ''}`} aria-hidden />
           </button>
 
           {advancedOpen && (
-            <div className="space-y-5 border-t border-gray-100 pt-5">
-              <div>
-                <label htmlFor="link-description" className="mb-1.5 block text-sm font-semibold text-gray-700">Description</label>
-                <textarea id="link-description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3}
-                  placeholder="Optional short note about this payment."
-                  className={`${inputClass} resize-none`} />
-              </div>
+            <div id="more-options-panel" className="space-y-6 border-t border-gray-100 pt-5">
+              <section className="space-y-4">
+                <div>
+                  <h2 className="text-sm font-bold text-charcoal">Checkout wording</h2>
+                  <p className="mt-0.5 text-xs text-gray-500">Optional. Keep it short so the payment page stays focused.</p>
+                </div>
+                <div>
+                  <label htmlFor="link-description" className="mb-1.5 block text-sm font-semibold text-gray-700">Description</label>
+                  <textarea id="link-description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3}
+                    placeholder="e.g. Includes 2 revisions and final files."
+                    className={`${inputClass} resize-none`} />
+                </div>
+                <div>
+                  <label htmlFor="link-button" className="mb-1.5 block text-sm font-semibold text-gray-700">Pay button text</label>
+                  <input id="link-button" value={form.button_text} onChange={e => setForm({ ...form, button_text: e.target.value })}
+                    placeholder="e.g. Pay now, Book, Donate"
+                    className={inputClass} />
+                  <p className="mt-1.5 text-xs text-gray-500">Default: &quot;Continue to Pay&quot;.</p>
+                </div>
+              </section>
 
-              <fieldset>
-                <legend className="mb-1.5 block text-sm font-semibold text-gray-700">Limits</legend>
+              <fieldset className="border-t border-gray-100 pt-5">
+                <legend className="mb-1.5 block text-sm font-bold text-charcoal">Limits</legend>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label htmlFor="link-max-uses" className="mb-1 block text-xs font-semibold text-gray-600">Stop after (paid payments)</label>
@@ -506,35 +562,44 @@ export default function NewLinkPage() {
                   : <p className="mt-1.5 text-xs text-gray-500">Optional. The link stops taking payments after this many paid payments, or once that day ends.</p>}
               </fieldset>
 
-              <div>
-                <label htmlFor="link-redirect" className="mb-1.5 block text-sm font-semibold text-gray-700">Redirect URL</label>
-                <input id="link-redirect" value={form.redirect_url} onChange={e => setForm({ ...form, redirect_url: e.target.value })}
-                  placeholder="https://yourapp.com/thank-you"
-                  className={inputClass} />
-                <p className="mt-1.5 text-xs text-gray-500">Send the customer here after a successful payment.</p>
+              <div className="border-t border-gray-100 pt-5">
+                <h2 className="text-sm font-bold text-charcoal">After payment</h2>
+                <p className="mt-0.5 text-xs text-gray-500">Where a successful customer should go next.</p>
+                <div className="mt-3">
+                  <label htmlFor="link-redirect" className="mb-1.5 block text-sm font-semibold text-gray-700">Redirect URL</label>
+                  <input id="link-redirect" value={form.redirect_url} onChange={e => setForm({ ...form, redirect_url: e.target.value })}
+                    placeholder="https://yourapp.com/thank-you"
+                    className={inputClass} />
+                  <p className="mt-1.5 text-xs text-gray-500">Optional. Leave blank to show ToroPay&apos;s payment confirmation.</p>
+                </div>
               </div>
 
-              <div>
-                <label htmlFor="link-webhook" className="mb-1.5 block text-sm font-semibold text-gray-700">Webhook URL</label>
-                <input id="link-webhook" value={form.webhook_url} onChange={e => setForm({ ...form, webhook_url: e.target.value })}
-                  placeholder="https://yourapp.com/webhook/toropay"
-                  className={inputClass} />
-                <p className="mt-1.5 text-xs text-gray-500">Receive payment events on your server.</p>
+              <div className="border-t border-gray-100 pt-5">
+                <h2 className="text-sm font-bold text-charcoal">Developer tools</h2>
+                <p className="mt-0.5 text-xs text-gray-500">For automations and server notifications.</p>
+                <div className="mt-3">
+                  <label htmlFor="link-webhook" className="mb-1.5 block text-sm font-semibold text-gray-700">Webhook URL</label>
+                  <input id="link-webhook" value={form.webhook_url} onChange={e => setForm({ ...form, webhook_url: e.target.value })}
+                    placeholder="https://yourapp.com/webhook/toropay"
+                    className={inputClass} />
+                  <p className="mt-1.5 text-xs text-gray-500">Receive payment events on your server.</p>
+                </div>
               </div>
 
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-gray-700">Custom Fields</p>
+              <div className="border-t border-gray-100 pt-5">
+                <div className="mb-1 flex items-center justify-between gap-3">
+                  <h2 className="text-sm font-bold text-charcoal">Customer questions</h2>
                   <button type="button" onClick={addField} className="text-sm font-semibold text-primary-600 hover:underline">+ Add field</button>
                 </div>
+                <p className="mb-3 text-xs text-gray-500">Ask for details like email, phone or a booking date. Answers are saved with the payment.</p>
                 <div className="space-y-3">
                   {fields.map((f, i) => (
                     <div key={i} className="rounded-xl border border-gray-100 bg-white/60 p-4">
                       <div className="flex items-start gap-3">
                         <div className="flex-1 space-y-2">
-                          <input placeholder="Field name" aria-label="Field name" value={f.name} onChange={e => updateField(i, 'name', e.target.value)}
+                          <input placeholder="Internal name (e.g. email)" aria-label="Field name" value={f.name} onChange={e => updateField(i, 'name', e.target.value)}
                             className="w-full rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
-                          <input placeholder="Label" aria-label="Field label" value={f.label} onChange={e => updateField(i, 'label', e.target.value)}
+                          <input placeholder="Question shown to customer" aria-label="Field label" value={f.label} onChange={e => updateField(i, 'label', e.target.value)}
                             className="w-full rounded-lg border border-gray-200 bg-white/80 px-3 py-2.5 text-sm outline-none" />
                           <div className="flex gap-2">
                             <select value={f.type} aria-label="Field type" onChange={e => updateField(i, 'type', e.target.value)}
@@ -561,15 +626,24 @@ export default function NewLinkPage() {
                       </div>
                     </div>
                   ))}
-                  {fields.length === 0 && <p className="text-xs text-gray-500">Collect extra info like email or booking date.</p>}
                 </div>
               </div>
 
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-gray-700">Products / Services</p>
+              <div className="border-t border-gray-100 pt-5">
+                <div className="mb-1 flex items-center justify-between gap-3">
+                  <h2 className="text-sm font-bold text-charcoal">Order items</h2>
                   <button type="button" onClick={addProduct} className="text-sm font-semibold text-primary-600 hover:underline">+ Add item</button>
                 </div>
+                <p className="mb-3 text-xs text-gray-500">
+                  {mode === 'sell'
+                    ? 'Optional. Add a multi-item order form to this link.'
+                    : 'Optional. Add products your customer can pick from at checkout.'}
+                </p>
+                {mode === 'sell' && sell.customer_updates_qty && products.length > 0 && (
+                  <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    Not used while &quot;Customer can update quantity&quot; is on.
+                  </p>
+                )}
                 {catalog.length > 0 && (
                   <div className="mb-3 flex flex-wrap gap-2">
                     {catalog.map(cp => (
@@ -580,7 +654,11 @@ export default function NewLinkPage() {
                   </div>
                 )}
                 {products.length === 0 ? (
-                  <p className="text-xs text-gray-500">Add products to build a multi-item order form (used with the Sell Items mode).</p>
+                  <p className="text-xs text-gray-500">
+                    {catalog.length > 0
+                      ? 'No items yet. Add one or pick from a saved product above.'
+                      : 'No items yet. Add one to show products at checkout.'}
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {products.map((p, i) => (
@@ -640,54 +718,73 @@ export default function NewLinkPage() {
           {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
           <div className="hidden pt-2 md:block">
-            <div className="flex gap-3">
-              <Button type="submit" disabled={saving || !canSubmit} size="lg" className="flex-1">{createLabel}</Button>
-              <Button type="button" variant="secondary" size="lg" onClick={() => router.push('/dashboard/links')}>Cancel</Button>
-            </div>
-            {blocker && <p className="mt-2 text-xs text-gray-500">{blocker}</p>}
+            <Button type="submit" disabled={saving || !canSubmit} size="lg" className="w-full" aria-busy={saving}>
+              {createLabel}
+              {!saving && <ArrowRight className="ml-2 h-4 w-4" aria-hidden />}
+            </Button>
+            {blocker ? (
+              <p className="mt-2 text-center text-xs text-gray-500" role="status">{blocker}</p>
+            ) : (
+              <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-gray-500">
+                <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary-700" aria-hidden />
+                You&apos;ll get a shareable link and QR code. Money goes straight to your UPI ID.
+              </p>
+            )}
           </div>
         </div>
 
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/80 bg-white/90 p-4 backdrop-blur-lg md:hidden">
-          <button type="submit" disabled={saving || !canSubmit}
-            className="flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-bold text-white shadow-lg disabled:opacity-50"
-            style={{ backgroundColor: canSubmit ? primaryColor : '#d1d5db' }}>
+          <button type="submit" disabled={saving || !canSubmit} aria-busy={saving}
+            className="flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-bold shadow-lg disabled:opacity-50"
+            style={{ backgroundColor: canSubmit ? primaryColor : '#d1d5db', color: canSubmit ? primaryTextColor : '#0a0a0a' }}>
             {createLabel}
-            {!saving && <ArrowRight className="h-4 w-4" />}
+            {!saving && <ArrowRight className="h-4 w-4" aria-hidden />}
           </button>
-          {blocker && <p className="mt-2 text-center text-xs text-gray-500">{blocker}</p>}
+          {blocker ? (
+            <p className="mt-2 text-center text-xs text-gray-500" role="status">{blocker}</p>
+          ) : (
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-gray-500">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary-700" aria-hidden />
+              Money goes straight to your UPI ID.
+            </p>
+          )}
         </div>
       </form>
 
-      <aside aria-label="Live preview" className="mt-6 rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm lg:sticky lg:top-8 lg:mt-0">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Live Preview</p>
-          <span className="flex items-center gap-1 text-xs font-semibold text-green-700"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />Updates live</span>
+      <aside aria-label="Live preview" className="mt-6 rounded-2xl border border-primary-100/80 bg-white/70 p-4 shadow-[0_20px_60px_-45px_rgba(37,99,235,0.5)] backdrop-blur-sm sm:p-5 lg:sticky lg:top-8 lg:mt-0">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Live preview</p>
+          <span className="flex items-center gap-1 text-xs font-semibold text-green-700"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" aria-hidden />Updates live</span>
         </div>
-        <div className="rounded-xl border bg-white/80 p-6 text-center shadow-sm">
-          {(merchant?.business_logo_url as string) && (
-            <img src={merchant?.business_logo_url as string} className="mx-auto mb-3 h-10 object-contain" alt="" />
-          )}
-          {(merchant?.business_name as string) && <p className="mb-1 text-xs font-semibold text-gray-500">{merchant?.business_name as string}</p>}
-          <p className="text-lg font-bold" style={{ color: secondaryColor }}>{form.title || 'Your Payment Page'}</p>
-          {form.description && <p className="mt-1 text-xs text-gray-500 line-clamp-1">{form.description}</p>}
-          <div className="my-4">
-            <div className="text-4xl font-extrabold tracking-tight" style={{ color: secondaryColor }}>{preview.main}</div>
-            {preview.sub && <p className="mt-1 text-xs text-gray-500">{preview.sub}</p>}
-          </div>
-          {showPreviewQty && unitPrice > 0 && (
-            <div className="mx-auto mb-3 flex w-fit items-center gap-3 rounded-full border border-gray-200 bg-gray-50 px-2 py-1">
-              <button type="button" aria-label="One less" onClick={() => setPreviewQty(prev => Math.max(1, prev - 1))}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-base font-bold text-charcoal shadow-sm">−</button>
-              <span className="min-w-6 text-center text-sm font-bold">{effectiveQty}</span>
-              <button type="button" aria-label="One more" onClick={() => setPreviewQty(prev => Math.min(Math.max(1, quantity), prev + 1))}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-base font-bold text-charcoal shadow-sm">+</button>
+        <div className="rounded-xl border border-gray-200/80 bg-cover bg-center p-4 sm:p-5" style={previewPageStyle}>
+          <div className={`rounded-xl border p-6 text-center shadow-sm ${previewCard}`}>
+            {(merchant?.business_logo_url as string) && (
+              <img src={merchant?.business_logo_url as string} className="mx-auto mb-3 h-10 object-contain" alt="" />
+            )}
+            {(merchant?.business_name as string) && <p className={`mb-1 text-xs font-semibold ${previewMuted}`}>{merchant?.business_name as string}</p>}
+            <p className="text-lg font-bold" style={{ color: previewHeadingColor }}>{form.title || 'Your payment page'}</p>
+            {form.description && <p className={`mt-1 text-xs line-clamp-1 ${previewMuted}`}>{form.description}</p>}
+            <div className="my-4" aria-live="polite">
+              <div className="text-4xl font-extrabold tracking-tight" style={{ color: previewHeadingColor }}>{preview.main}</div>
+              {preview.sub && <p className={`mt-1 text-xs ${previewMuted}`}>{preview.sub}</p>}
             </div>
-          )}
-          <button type="button" tabIndex={-1} aria-hidden className={`w-full py-3 text-base font-bold text-white ${btnRadius}`} style={{ backgroundColor: primaryColor }}>
-            {buttonText}
-          </button>
-          <p className="mt-3 text-xs text-gray-500">You pay {(merchant?.business_name as string) || 'the seller'} directly with UPI.</p>
+            {showPreviewQty && unitPrice > 0 && (
+              <div className={`mx-auto mb-3 flex w-fit items-center gap-3 rounded-full border px-2 py-1 ${previewIsDark ? 'border-white/15 bg-white/10' : 'border-gray-200 bg-gray-50'}`}>
+                <button type="button" aria-label="Decrease preview quantity" onClick={() => setPreviewQty(prev => Math.max(1, prev - 1))}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-base font-bold shadow-sm ${previewIsDark ? 'bg-white/15 text-white hover:bg-white/20' : 'bg-white text-charcoal'}`}>−</button>
+                <span className="min-w-6 text-center text-sm font-bold">{effectiveQty}</span>
+                <button type="button" aria-label="Increase preview quantity" onClick={() => setPreviewQty(prev => Math.min(Math.max(1, quantity), prev + 1))}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-base font-bold shadow-sm ${previewIsDark ? 'bg-white/15 text-white hover:bg-white/20' : 'bg-white text-charcoal'}`}>+</button>
+              </div>
+            )}
+            <button type="button" tabIndex={-1} aria-hidden className={`w-full py-3 text-base font-bold ${btnRadius}`} style={{ backgroundColor: primaryColor, color: primaryTextColor }}>
+              {buttonText}
+            </button>
+            <p className={`mt-3 flex items-center justify-center gap-1.5 text-xs ${previewMuted}`}>
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              You pay {(merchant?.business_name as string) || 'the seller'} directly with UPI.
+            </p>
+          </div>
         </div>
       </aside>
       </div>

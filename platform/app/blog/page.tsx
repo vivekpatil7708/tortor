@@ -28,7 +28,7 @@ export default function BlogPage() {
   const remaining = BLOG_POSTS.filter(p => p.slug !== featured?.slug)
 
   return (
-    <div className="min-h-screen bg-[#faf8f5]">
+    <div className="min-h-screen bg-paper">
       <BlogNavbar />
 
       <main className="mx-auto max-w-6xl px-6">
@@ -66,7 +66,7 @@ export default function BlogPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
                   <div className="flex items-center gap-2.5 text-xs">
-                    <span className="rounded-full bg-primary-500 px-3 py-0.5 font-semibold text-white">
+                    <span className="rounded-full bg-sunlit-clay px-3 py-0.5 font-semibold text-black-forest">
                       Featured
                     </span>
                     <Link

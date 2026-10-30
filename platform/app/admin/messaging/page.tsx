@@ -206,14 +206,14 @@ export default function AdminMessagingCompose() {
           <button
             type="button"
             onClick={() => setChannel('email')}
-            className={`rounded-lg px-3 py-1.5 ${channel === 'email' ? 'bg-[#7bb86c] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`rounded-lg px-3 py-1.5 ${channel === 'email' ? 'bg-primary-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             Email
           </button>
           <button
             type="button"
             onClick={() => setChannel('whatsapp')}
-            className={`rounded-lg px-3 py-1.5 ${channel === 'whatsapp' ? 'bg-[#7bb86c] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`rounded-lg px-3 py-1.5 ${channel === 'whatsapp' ? 'bg-primary-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             WhatsApp
           </button>
@@ -379,7 +379,7 @@ export default function AdminMessagingCompose() {
               type="button"
               onClick={handleSend}
               disabled={!canSend}
-              className="flex items-center gap-1.5 rounded-xl bg-[#7bb86c] px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-primary-500 px-5 py-2.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
             >
               {sending ? 'Sending...' : `Send ${channel === 'whatsapp' ? 'WhatsApp' : 'email'} to ${recipients} ${channel === 'whatsapp' ? 'recipient' : 'merchant'}${recipients === 1 ? '' : 's'}`}
             </button>

@@ -13,9 +13,9 @@ export const metadata: Metadata = {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-cream px-4 py-12">
-      <div className="w-full max-w-md rounded-3xl border border-white/80 bg-white/80 p-6 shadow-sm backdrop-blur-sm">
-        <p className="text-xl font-extrabold tracking-tight">
+    <main className="auth-shell flex min-h-screen items-center justify-center bg-blue-hero px-4 py-12">
+      <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/95 p-6 shadow-2xl shadow-black/20 backdrop-blur-2xl">
+        <p className="text-xl font-extrabold tracking-tight text-ink">
           Toro<span className="text-primary-500">Pay</span>
         </p>
         {children}
@@ -64,21 +64,21 @@ export default async function CancelSubscriptionPage(props: { params: Promise<{ 
 
       <div className="mt-4 space-y-2 rounded-2xl bg-gray-50 p-4 text-sm">
         <div className="flex justify-between gap-3">
-          <span className="text-gray-500">Customer</span>
+          <span className="text-gray-600">Customer</span>
           <span className="text-right font-semibold">{subscription.customer.fullName}</span>
         </div>
         <div className="flex justify-between gap-3">
-          <span className="text-gray-500">Plan</span>
+          <span className="text-gray-600">Plan</span>
           <span className="text-right font-semibold">{subscription.planName}</span>
         </div>
         <div className="flex justify-between gap-3">
-          <span className="text-gray-500">Amount</span>
+          <span className="text-gray-600">Amount</span>
           <span className="text-right font-semibold">
             {formatMoney(subscription.amount)} / {frequencyLabel(subscription.frequency).toLowerCase()}
           </span>
         </div>
         <div className="flex justify-between gap-3">
-          <span className="text-gray-500">Next billing</span>
+          <span className="text-gray-600">Next billing</span>
           <span className="text-right font-semibold">
             {cancelled ? 'Cancelled' : billingDayLabel(subscription.nextBillingDate)}
           </span>
@@ -86,7 +86,7 @@ export default async function CancelSubscriptionPage(props: { params: Promise<{ 
       </div>
 
       {!cancelled && (
-        <p className="mt-4 text-xs text-gray-500">
+        <p className="mt-4 text-xs text-gray-600">
           Already-made payments are not refunded. If you need a refund, contact the business.
           {subscription.merchant.supportEmail || subscription.merchant.supportPhone ? (
             <>

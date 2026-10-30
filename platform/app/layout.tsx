@@ -1,7 +1,11 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 const baseUrl = 'https://www.toropay.co.in'
+
+export const viewport: Viewport = {
+  themeColor: '#050b1a',
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),

@@ -6,6 +6,7 @@ import { imageFileProblem } from '@/lib/image-input'
 import { Button } from '@/components/ui/button'
 import { LoadError } from '@/components/ui/load-error'
 import { Upload, X } from 'lucide-react'
+import { readableTextColor } from '@/lib/utils'
 
 export default function BrandingPage() {
   const [saving, setSaving] = useState(false)
@@ -15,7 +16,7 @@ export default function BrandingPage() {
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [form, setForm] = useState({
     business_name: '', business_logo_url: '', bg_image_url: '',
-    brand_color_primary: '#7bb86c', brand_color_secondary: '#2c2c2c',
+    brand_color_primary: '#2563eb', brand_color_secondary: '#050b1a',
     brand_font: 'Inter', button_style: 'rounded', page_theme: 'cream',
   })
   const logoInputRef = useRef<HTMLInputElement>(null)
@@ -29,8 +30,8 @@ export default function BrandingPage() {
         business_name: (merchant.business_name as string) || '',
         business_logo_url: (merchant.business_logo_url as string) || '',
         bg_image_url: (merchant.bg_image_url as string) || '',
-        brand_color_primary: (merchant.brand_color_primary as string) || '#7bb86c',
-        brand_color_secondary: (merchant.brand_color_secondary as string) || '#2c2c2c',
+        brand_color_primary: (merchant.brand_color_primary as string) || '#2563eb',
+        brand_color_secondary: (merchant.brand_color_secondary as string) || '#050b1a',
         brand_font: (merchant.brand_font as string) || 'Inter',
         button_style: (merchant.button_style as string) || 'rounded',
         page_theme: (merchant.page_theme as string) || 'cream',
@@ -68,13 +69,14 @@ export default function BrandingPage() {
     reader.readAsDataURL(file)
   }
 
-  const primaryColor = form.brand_color_primary || '#7bb86c'
-  const secondaryColor = form.brand_color_secondary || '#2c2c2c'
+  const primaryColor = form.brand_color_primary || '#2563eb'
+  const secondaryColor = form.brand_color_secondary || '#050b1a'
+  const primaryTextColor = readableTextColor(primaryColor)
   const btnRadius = form.button_style === 'pill' ? 'rounded-full' : form.button_style === 'square' ? 'rounded-lg' : 'rounded-xl'
   const isDark = form.page_theme === 'dark'
   const previewBg = form.bg_image_url
     ? { backgroundImage: `url(${form.bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : { backgroundColor: isDark ? '#1a1a1a' : '#fdf8f0' }
+    : { backgroundColor: isDark ? '#071022' : '#f4f7fe' }
 
   if (loadState !== 'ready') {
     return (
@@ -210,8 +212,8 @@ export default function BrandingPage() {
                     <div className="mb-4 text-3xl font-extrabold tracking-tight" style={{ color: secondaryColor }}>
                       ₹500
                     </div>
-                    <button type="button" className={`w-full py-3 text-sm font-bold text-white ${btnRadius}`}
-                      style={{ backgroundColor: primaryColor }}>
+                    <button type="button" className={`w-full py-3 text-sm font-bold ${btnRadius}`}
+                      style={{ backgroundColor: primaryColor, color: primaryTextColor }}>
                       Continue to Pay
                     </button>
                   </div>

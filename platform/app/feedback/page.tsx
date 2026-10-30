@@ -96,13 +96,13 @@ export default function FeedbackPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[#f5f0eb] px-4 py-10">
+      <div className="min-h-screen bg-paper px-4 py-10">
         <div className="mx-auto w-full max-w-md rounded-2xl border border-white/70 bg-white p-8 text-center shadow-sm">
           <span className="text-lg font-extrabold tracking-tight">
-            Toro<span className="text-[#7bb86c]">Pay</span>
+            Toro<span className="text-[#2563eb]">Pay</span>
           </span>
           <h1 className="mt-4 text-2xl font-bold tracking-tight">Thank you for your feedback.</h1>
-          <p className="mt-3 text-sm leading-relaxed text-gray-500">
+          <p className="mt-3 text-sm leading-relaxed text-gray-600">
             Your response will help us build a better ToroPay experience for your business.
           </p>
         </div>
@@ -111,76 +111,76 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f0eb] px-4 py-10">
+    <div className="min-h-screen bg-paper px-4 py-10">
       <div className="mx-auto w-full max-w-md">
         <span className="text-lg font-extrabold tracking-tight">
-          Toro<span className="text-[#7bb86c]">Pay</span>
+          Toro<span className="text-[#2563eb]">Pay</span>
         </span>
         <div className="mt-4 rounded-2xl border border-white/70 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-xl font-bold tracking-tight">Help Us Improve ToroPay</h1>
-          <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          <p className="mt-2 text-sm leading-relaxed text-gray-600">
             Your feedback helps us make ToroPay faster, simpler, and more useful for your business. This form takes about 2 minutes to complete.
           </p>
 
           <div className="mt-6 space-y-6">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-gray-600">
-                Business/merchant name <span className="text-red-500">*</span>
+                Business/merchant name <span className="text-red-600">*</span>
               </label>
               <input
                 value={merchantName}
                 onChange={e => setMerchantName(e.target.value)}
                 placeholder="e.g. My Store"
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#7bb86c]"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#2563eb]"
               />
             </div>
 
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-gray-600">
-                Email you sign in with <span className="text-gray-400">(optional)</span>
+                Email you sign in with <span className="text-gray-600">(optional)</span>
               </label>
               <input
                 type="email"
                 value={merchantEmail}
                 onChange={e => setMerchantEmail(e.target.value)}
                 placeholder="you@business.com"
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#7bb86c]"
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#2563eb]"
               />
-              <p className="mt-1 text-[11px] text-gray-400">
+              <p className="mt-1 text-[11px] text-gray-600">
                 This lets us link your answer to your account. Leave it out if you would rather not.
               </p>
             </div>
 
             <div>
               <label className="mb-2 block text-xs font-semibold text-gray-600">
-                How satisfied are you with ToroPay overall? <span className="text-red-500">*</span>
+                How satisfied are you with ToroPay overall? <span className="text-red-600">*</span>
               </label>
               <div className="flex items-center justify-between gap-2">
                 {[1, 2, 3, 4, 5].map(n => (
                   <button key={n} onClick={() => setSatisfaction(n)}
-                    className={`flex-1 rounded-xl border px-2 py-3 text-center text-sm font-semibold transition-colors ${satisfaction === n ? 'border-[#7bb86c] bg-[#7bb86c] text-white' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}>
+                    className={`flex-1 rounded-xl border px-2 py-3 text-center text-sm font-semibold transition-colors ${satisfaction === n ? 'border-[#60a5fa] bg-[#60a5fa] text-[#0a0a0a]' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                     {n}
                   </button>
                 ))}
               </div>
-              <div className="mt-1 flex justify-between text-[11px] text-gray-400">
+              <div className="mt-1 flex justify-between text-[11px] text-gray-600">
                 <span>1 · Very dissatisfied</span><span>5 · Very satisfied</span>
               </div>
             </div>
 
             <div>
               <label className="mb-2 block text-xs font-semibold text-gray-600">
-                How easy is ToroPay to use? <span className="text-red-500">*</span>
+                How easy is ToroPay to use? <span className="text-red-600">*</span>
               </label>
               <div className="flex items-center justify-between gap-2">
                 {[1, 2, 3, 4, 5].map(n => (
                   <button key={n} onClick={() => setEaseOfUse(n)}
-                    className={`flex-1 rounded-xl border px-2 py-3 text-center text-sm font-semibold transition-colors ${easeOfUse === n ? 'border-[#7bb86c] bg-[#7bb86c] text-white' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}>
+                    className={`flex-1 rounded-xl border px-2 py-3 text-center text-sm font-semibold transition-colors ${easeOfUse === n ? 'border-[#60a5fa] bg-[#60a5fa] text-[#0a0a0a]' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                     {n}
                   </button>
                 ))}
               </div>
-              <div className="mt-1 flex justify-between text-[11px] text-gray-400">
+              <div className="mt-1 flex justify-between text-[11px] text-gray-600">
                 <span>1 · Very difficult</span><span>5 · Very easy</span>
               </div>
             </div>
@@ -192,9 +192,9 @@ export default function FeedbackPage() {
               <div className="space-y-1.5">
                 {USEFUL_PARTS.map(part => (
                   <button key={part} onClick={() => togglePart(part)}
-                    className={`flex w-full items-center justify-between rounded-xl border px-4 py-2.5 text-left text-sm transition-colors ${usefulParts.includes(part) ? 'border-[#7bb86c] bg-[#7bb86c]/10 font-medium text-gray-800' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}>
+                    className={`flex w-full items-center justify-between rounded-xl border px-4 py-2.5 text-left text-sm transition-colors ${usefulParts.includes(part) ? 'border-[#60a5fa] bg-[#60a5fa]/30 font-medium text-gray-900' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                     <span>{part}</span>
-                    <span className={`flex h-5 w-5 items-center justify-center rounded-md border text-xs ${usefulParts.includes(part) ? 'border-[#7bb86c] bg-[#7bb86c] text-white' : 'border-gray-300 bg-white text-transparent'}`}>✓</span>
+                    <span className={`flex h-5 w-5 items-center justify-center rounded-md border text-xs ${usefulParts.includes(part) ? 'border-[#60a5fa] bg-[#60a5fa] text-[#0a0a0a]' : 'border-gray-300 bg-white text-transparent'}`}>✓</span>
                   </button>
                 ))}
               </div>
@@ -202,12 +202,12 @@ export default function FeedbackPage() {
 
             <div>
               <label className="mb-2 block text-xs font-semibold text-gray-600">
-                Has ToroPay made collecting payments easier for your business? <span className="text-red-500">*</span>
+                Has ToroPay made collecting payments easier for your business? <span className="text-red-600">*</span>
               </label>
               <div className="space-y-1.5">
                 {COLLECTING_OPTIONS.map(opt => (
                   <button key={opt} onClick={() => setEaseCollecting(opt)}
-                    className={`block w-full rounded-xl border px-4 py-2.5 text-left text-sm transition-colors ${easeCollecting === opt ? 'border-[#7bb86c] bg-[#7bb86c]/10 font-medium text-gray-800' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}>
+                    className={`block w-full rounded-xl border px-4 py-2.5 text-left text-sm transition-colors ${easeCollecting === opt ? 'border-[#60a5fa] bg-[#60a5fa]/30 font-medium text-gray-900' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                     {opt}
                   </button>
                 ))}
@@ -217,34 +217,34 @@ export default function FeedbackPage() {
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-gray-600">What do you like most about ToroPay?</label>
               <textarea value={likesMost} onChange={e => setLikesMost(e.target.value)} rows={3}
-                className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#7bb86c]" />
+                className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#2563eb]" />
             </div>
 
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-gray-600">Have you faced any issues or difficulties while using ToroPay?</label>
               <textarea value={issues} onChange={e => setIssues(e.target.value)} rows={3}
-                className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#7bb86c]" />
+                className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#2563eb]" />
             </div>
 
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-gray-600">What is the one improvement or feature you would most like ToroPay to add?</label>
               <textarea value={improvement} onChange={e => setImprovement(e.target.value)} rows={3}
-                className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#7bb86c]" />
+                className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#2563eb]" />
             </div>
 
             <div>
               <label className="mb-2 block text-xs font-semibold text-gray-600">
-                How likely are you to recommend ToroPay to another business owner? <span className="text-red-500">*</span>
+                How likely are you to recommend ToroPay to another business owner? <span className="text-red-600">*</span>
               </label>
               <div className="grid grid-cols-5 gap-1.5">
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
                   <button key={n} onClick={() => setNpsScore(n)}
-                    className={`rounded-lg border px-2 py-2 text-center text-xs font-semibold transition-colors ${npsScore === n ? 'border-[#7bb86c] bg-[#7bb86c] text-white' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}>
+                    className={`rounded-lg border px-2 py-2 text-center text-xs font-semibold transition-colors ${npsScore === n ? 'border-[#60a5fa] bg-[#60a5fa] text-[#0a0a0a]' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                     {n}
                   </button>
                 ))}
               </div>
-              <div className="mt-1 flex justify-between text-[11px] text-gray-400">
+              <div className="mt-1 flex justify-between text-[11px] text-gray-600">
                 <span>0 · Not at all likely</span><span>10 · Extremely likely</span>
               </div>
             </div>
@@ -256,7 +256,7 @@ export default function FeedbackPage() {
               <div className="flex gap-2">
                 {[{ value: true, label: 'Yes' }, { value: false, label: 'No' }].map(opt => (
                   <button key={opt.label} onClick={() => setFollowUp(opt.value)}
-                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${followUp === opt.value ? 'border-[#7bb86c] bg-[#7bb86c] text-white' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}>
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${followUp === opt.value ? 'border-[#60a5fa] bg-[#60a5fa] text-[#0a0a0a]' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
                     {opt.label}
                   </button>
                 ))}
@@ -266,13 +266,13 @@ export default function FeedbackPage() {
             {followUp === true && (
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-gray-600">
-                  Email address or phone number for follow-up <span className="text-red-500">*</span>
+                  Email address or phone number for follow-up <span className="text-red-600">*</span>
                 </label>
                 <input
                   value={contact}
                   onChange={e => setContact(e.target.value)}
                   placeholder="you@business.com or +91..."
-                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#7bb86c]"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-[#2563eb]"
                 />
               </div>
             )}
@@ -282,12 +282,12 @@ export default function FeedbackPage() {
             )}
 
             <button onClick={handleSubmit} disabled={submitting}
-              className="w-full rounded-xl bg-[#7bb86c] px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50">
+              className="w-full rounded-xl bg-primary-500 px-6 py-3 text-sm font-semibold text-white transition-opacity hover:bg-primary-600 disabled:opacity-50">
               {submitting ? 'Submitting...' : 'Submit Feedback'}
             </button>
           </div>
         </div>
-        <p className="mt-6 text-center text-xs text-gray-400">Powered by ToroPay</p>
+        <p className="mt-6 text-center text-xs text-gray-600">Powered by ToroPay</p>
       </div>
     </div>
   )

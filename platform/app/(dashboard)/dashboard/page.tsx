@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { LoadError } from '@/components/ui/load-error'
 import { DonationCard } from '@/components/dashboard/donation-prompt'
+import { SetupChecklist } from '@/components/dashboard/setup-checklist'
 import { NeedsAction } from '@/components/dashboard/needs-action'
 import { useStatusAction } from '@/components/dashboard/status-action'
 import { paymentHref, StatusBadge } from '@/components/dashboard/transaction-row'
@@ -16,14 +17,17 @@ import { paymentHref, StatusBadge } from '@/components/dashboard/transaction-row
 const NEEDS_ACTION_SHOWN = 10
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<{ totalLinks: number; totalTxns: number; totalRevenue: number; successRate: number | null; abandoned: number; paid: number }>(
-    { totalLinks: 0, totalTxns: 0, totalRevenue: 0, successRate: null, abandoned: 0, paid: 0 }
+  const [stats, setStats] = useState<{ totalLinks: number; totalRevenue: number; successRate: number | null; abandoned: number; paid: number }>(
+    { totalLinks: 0, totalRevenue: 0, successRate: null, abandoned: 0, paid: 0 }
   )
   const [recentTxns, setRecentTxns] = useState<Record<string, unknown>[]>([])
   const [recentState, setRecentState] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [totalsFailed, setTotalsFailed] = useState(false)
   const [pendingFailed, setPendingFailed] = useState(false)
   const [merchant, setMerchant] = useState<Record<string, unknown> | null>(null)
+  const [upis, setUpis] = useState<Record<string, unknown>[]>([])
+  const [upisLoaded, setUpisLoaded] = useState(false)
+  const [linksLoaded, setLinksLoaded] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [pendingUpi, setPendingUpi] = useState<Record<string, unknown>[]>([])
   const [claimed, setClaimed] = useState<{ rows: Record<string, unknown>[]; total: number }>({ rows: [], total: 0 })
@@ -118,7 +122,6 @@ export default function DashboardPage() {
     api.getAnalyticsSummary().then(summary => {
       setStats(s => ({
         ...s,
-        totalTxns: Number(summary.total_orders) || 0,
         totalRevenue: Number(summary.gross_payment_volume) || 0,
         // Paid out of paid + rejected: abandoned checkouts don't count as failures.
         successRate: summary.success_rate == null ? null : Math.round(Number(summary.success_rate)),
@@ -129,40 +132,84 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    api.me().then(({ merchant: m }) => setMerchant(m))
-    api.getLinks().then(links => setStats(s => ({ ...s, totalLinks: links.length })))
+    api.me().then(({ merchant: m }) => setMerchant(m)).catch(() => {})
+    api.getLinks()
+      .then(links => {
+        setStats(s => ({ ...s, totalLinks: links.length }))
+        setLinksLoaded(true)
+      })
+      .catch(() => {})
+    api.getUpis()
+      .then(list => {
+        setUpis(list)
+        setUpisLoaded(true)
+      })
+      .catch(() => {})
     loadTotals()
     loadRecent()
     loadPending()
   }, [])
 
+  const actionCount = claimed.total + pendingUpi.length
   const cards = [
-    { label: 'Payment Links', value: stats.totalLinks, icon: Link2, bg: 'bg-blue-50', color: 'text-blue-600' },
-    { label: 'Transactions', value: totalsFailed ? '—' : stats.totalTxns, icon: Banknote, bg: 'bg-green-50', color: 'text-green-600' },
-    { label: 'Revenue', value: totalsFailed ? '—' : formatAmount(stats.totalRevenue), icon: TrendingUp, bg: 'bg-purple-50', color: 'text-purple-600' },
+    { label: 'Revenue', value: totalsFailed ? '—' : formatAmount(stats.totalRevenue), icon: TrendingUp, bg: 'bg-sunlit-clay/30', color: 'text-black-forest' },
+    { label: 'Paid payments', value: totalsFailed ? '—' : stats.paid, icon: CheckCircle2, bg: 'bg-sunlit-clay/30', color: 'text-black-forest' },
     {
-      label: 'Success Rate',
+      label: 'Needs action',
+      value: pendingFailed ? '—' : actionCount,
+      note: pendingFailed ? undefined : actionCount > 0 ? 'Waiting for your confirmation' : 'All caught up',
+      icon: Banknote, bg: 'bg-sunlit-clay/30', color: 'text-black-forest',
+    },
+    {
+      label: 'Success rate',
       value: totalsFailed || stats.successRate === null ? '—' : `${stats.successRate}%`,
       note: !totalsFailed && stats.abandoned > 0 ? `${stats.abandoned} abandoned checkout${stats.abandoned === 1 ? '' : 's'} not counted` : undefined,
-      icon: CheckCircle2, bg: 'bg-amber-50', color: 'text-amber-600',
+      icon: CheckCircle2, bg: 'bg-sunlit-clay/30', color: 'text-black-forest',
+    },
+  ]
+
+  const setupReady = Boolean(merchant) && upisLoaded && linksLoaded
+  const setupSteps = [
+    {
+      title: 'Add the UPI ID customers pay into',
+      body: 'Money goes straight to your bank account, not through ToroPay.',
+      href: '/dashboard/upi',
+      cta: 'Add UPI ID',
+      done: upis.length > 0,
+    },
+    {
+      title: 'Create your first payment link',
+      body: 'Set an amount, share the link, and get paid.',
+      href: '/dashboard/links/new',
+      cta: 'Create link',
+      done: stats.totalLinks > 0,
+    },
+    {
+      title: 'Add your business logo',
+      body: 'A logo helps customers recognise you at checkout.',
+      href: '/dashboard/branding',
+      cta: 'Open branding',
+      done: Boolean(merchant?.business_logo_url),
     },
   ]
 
   return (
     <div>
-      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             Welcome{merchant?.business_name ? `, ${merchant.business_name}` : ''}
           </h1>
-          <p className="text-sm text-gray-500">Here&apos;s what&apos;s happening with your payments today.</p>
+          <p className="text-sm text-gray-500">Here&apos;s what needs your attention today.</p>
         </div>
-        {/* Smaller screens have "+ New link" at the top of every page instead. */}
+        {/* Phones use the create button in the bottom bar instead. */}
         <Link href="/dashboard/links/new"
-          className="hidden items-center gap-1.5 rounded-xl bg-charcoal px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 lg:inline-flex">
+          className="hidden items-center gap-1.5 rounded-xl btn-blue-gradient px-4 py-2.5 text-sm font-semibold text-white lg:inline-flex">
           <Plus className="h-4 w-4" aria-hidden /> New payment link
         </Link>
       </div>
+
+      {setupReady && <SetupChecklist steps={setupSteps} />}
 
       {pendingFailed && <LoadError what="payments waiting for your confirmation" onRetry={loadPending} className="mb-8" />}
       <NeedsAction
@@ -176,7 +223,7 @@ export default function DashboardPage() {
       {/* Two by two on phones, so the totals don't push everything else down (U25). */}
       <div className="mb-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {cards.map(({ label, value, note, icon: Icon, bg, color }: { label: string; value: string | number; note?: string; icon: typeof Link2; bg: string; color: string }) => (
-          <div key={label} className="rounded-2xl border border-white/80 bg-white/60 p-4 backdrop-blur-sm sm:p-6">
+          <div key={label} className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-medium text-gray-500 sm:text-sm">{label}</span>
               <div className={`${bg} ${color} hidden rounded-xl p-2.5 sm:block`}><Icon className="h-4 w-4" /></div>
@@ -189,9 +236,9 @@ export default function DashboardPage() {
 
       {totalsFailed && <LoadError what="your totals" onRetry={loadTotals} className="mb-8" />}
 
-      <div className="rounded-2xl border border-white/80 bg-white/60 p-6 backdrop-blur-sm">
+      <div className="rounded-2xl border border-gray-200 bg-white p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-bold">Recent Transactions</h2>
+          <h2 className="font-bold">Recent transactions</h2>
           <Link href="/dashboard/transactions" className="text-sm font-semibold text-primary-600 hover:underline">View all</Link>
         </div>
         {recentState === 'failed' ? (
@@ -201,7 +248,14 @@ export default function DashboardPage() {
         ) : recentState === 'loading' ? (
           <p className="py-8 text-center text-sm text-gray-500">Loading…</p>
         ) : recentTxns.length === 0 ? (
-          <p className="py-8 text-center text-sm text-gray-500">No transactions yet. Create a payment link to get started.</p>
+          <div className="py-8 text-center">
+            <p className="text-sm font-semibold text-charcoal">No payments yet</p>
+            <p className="mt-1 text-xs text-gray-500">Create a payment link, share it, and your first payment will show up here.</p>
+            <Link href="/dashboard/links/new"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-xl btn-blue-gradient px-4 py-2.5 text-xs font-semibold text-white">
+              <Plus className="h-3.5 w-3.5" aria-hidden /> Create your first link
+            </Link>
+          </div>
         ) : (
           <div className="space-y-3">
             {recentTxns.map((t) => {

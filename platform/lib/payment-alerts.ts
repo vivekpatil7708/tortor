@@ -19,7 +19,7 @@ export function renderPaidClaimEmail(p: { amount: string; linkTitle: string; ref
   return `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#222;max-width:520px">
 <p style="margin:0 0 12px">A customer says they've paid <strong>${escapeHtml(p.amount)}</strong>${onLink}.</p>
 ${reference}<p style="margin:0 0 16px">Check that the money reached your bank or UPI app, then confirm or reject the payment.</p>
-<p style="margin:0 0 24px"><a href="${escapeHtml(p.transactionsUrl)}" style="background:#2c2c2c;color:#ffffff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:bold">Open transactions</a></p>
+<p style="margin:0 0 24px"><a href="${escapeHtml(p.transactionsUrl)}" style="background:#0a0a0a;color:#ffffff;padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:bold">Open transactions</a></p>
 <p style="margin:0;font-size:12px;color:#888">You get this email because payment alerts are on in ToroPay: Settings, Notifications.</p>
 </div>`
 }

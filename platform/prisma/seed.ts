@@ -13,14 +13,14 @@ async function main() {
 
   const merchant = await prisma.merchant.upsert({
     where: { email: 'demo@toropay.in' },
-    update: { passwordHash },
+    update: { passwordHash, brandColorPrimary: '#2563eb', brandColorSecondary: '#050b1a' },
     create: {
       email: 'demo@toropay.in',
       phone: '9876543210',
       passwordHash,
       businessName: 'Demo Store',
-      brandColorPrimary: '#7bb86c',
-      brandColorSecondary: '#2c2c2c',
+      brandColorPrimary: '#2563eb',
+      brandColorSecondary: '#050b1a',
       onboardingComplete: true,
       settings: {
         create: {

@@ -7,7 +7,7 @@ import { amountRangeHint, checkoutFormErrors, customFieldKey } from '@/lib/check
 import { claimPaid, customerView, fetchPaymentStatus, nextCheckDelay } from '@/lib/checkout-status'
 import { UPI_APPS } from '@/lib/constants'
 import { buildAppDeepLink, buildUpiIntentUrl, buildUpiPayUrl } from '@/lib/upi'
-import { buttonRadius, formatAmount, generateTxnId } from '@/lib/utils'
+import { buttonRadius, formatAmount, generateTxnId, readableTextColor } from '@/lib/utils'
 import { isValidRedirectUrl } from '@/lib/validate-url'
 import CopyButton from '@/components/ui/copy-button'
 
@@ -77,8 +77,9 @@ export default function CheckoutClient({ data, resume }: Props) {
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set())
   const [quantities, setQuantities] = useState<Record<number, number>>({})
 
-  const primaryColor = merchant.brand_color_primary || '#7bb86c'
-  const secondaryColor = merchant.brand_color_secondary || '#2c2c2c'
+  const primaryColor = merchant.brand_color_primary || '#2563eb'
+  const secondaryColor = merchant.brand_color_secondary || '#050b1a'
+  const primaryTextColor = readableTextColor(primaryColor)
   const btnRadius = buttonRadius(merchant.button_style || 'rounded')
   const isDark = merchant.page_theme === 'dark'
   const pageBg = merchant.bg_image_url ? 'bg-cover bg-center bg-no-repeat' : isDark ? 'bg-gray-950' : 'bg-cream'
@@ -352,7 +353,7 @@ export default function CheckoutClient({ data, resume }: Props) {
     const qrAlt = `UPI QR code to pay ${formatAmount(amount)} to ${seller}`
 
     return (
-      <div className={`flex min-h-screen items-center justify-center p-4 ${pageBg}`} style={bgStyle}>
+      <div role="main" className={`flex min-h-screen items-center justify-center p-4 ${pageBg}`} style={bgStyle}>
         <div className={`w-full max-w-md rounded-3xl border p-6 shadow-2xl shadow-black/10 sm:p-8 ${theme.card}`}>
           <div className="mb-5 text-center">
             {logo}
@@ -384,8 +385,8 @@ export default function CheckoutClient({ data, resume }: Props) {
               <div className={NOT_ON_COMPUTER}>
                 <p className="mb-2 text-sm font-semibold">1. Pay in your UPI app</p>
                 <button onClick={() => openUpi()}
-                  className={`w-full py-3.5 text-base font-bold text-white ${btnRadius}`}
-                  style={{ backgroundColor: primaryColor }}>
+                  className={`w-full py-3.5 text-base font-bold ${btnRadius}`}
+                  style={{ backgroundColor: primaryColor, color: primaryTextColor }}>
                   Pay {formatAmount(amount)} with any UPI app
                 </button>
                 <p className={`mb-2 mt-3 text-[13px] ${theme.subtle}`}>Or open a specific app</p>
@@ -473,7 +474,7 @@ export default function CheckoutClient({ data, resume }: Props) {
   const describedBy = (key: string, id: string) => (fieldErrors[key] ? `${id}-error` : undefined)
 
   return (
-    <div className={`flex min-h-screen items-center justify-center p-4 ${pageBg}`} style={bgStyle}>
+    <div role="main" className={`flex min-h-screen items-center justify-center p-4 ${pageBg}`} style={bgStyle}>
       <div className={`w-full max-w-md rounded-3xl border p-6 shadow-2xl shadow-black/10 sm:p-8 ${theme.card}`}>
         <div className="mb-5 text-center">
           {logo}
@@ -642,8 +643,8 @@ export default function CheckoutClient({ data, resume }: Props) {
         {/* On phones the pay button stays in reach at the bottom of the screen. */}
         <div className={`sticky bottom-0 -mx-6 mt-6 border-t px-6 pb-4 pt-3 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 ${theme.footer}`}>
           <button onClick={handleProceed} disabled={starting}
-            className={`w-full py-3.5 text-base font-bold text-white disabled:opacity-60 ${btnRadius}`}
-            style={{ backgroundColor: primaryColor }}>
+            className={`w-full py-3.5 text-base font-bold disabled:opacity-60 ${btnRadius}`}
+            style={{ backgroundColor: primaryColor, color: primaryTextColor }}>
             {starting ? 'Please wait…' : displayAmount > 0 ? `${ctaText} · ${formatAmount(displayAmount)}` : ctaText}
           </button>
         </div>

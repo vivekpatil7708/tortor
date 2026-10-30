@@ -184,8 +184,8 @@ export default function AnalyticsPage() {
                     <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={dateTick} />
                     <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
                     <Tooltip />
-                    <Line type="monotone" dataKey="total" stroke="#2c2c2c" strokeWidth={2} dot={false} name="Total" />
-                    <Line type="monotone" dataKey="success" stroke="#22c55e" strokeWidth={2} dot={false} name="Paid" />
+                    <Line type="monotone" dataKey="total" stroke="#0a0a0a" strokeWidth={2} dot={false} name="Total" />
+                    <Line type="monotone" dataKey="success" stroke="#1d4ed8" strokeWidth={2} dot={false} name="Paid" />
                   </LineChart>
                 </ResponsiveContainer>
               )}
@@ -202,7 +202,7 @@ export default function AnalyticsPage() {
                     <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={dateTick} />
                     <YAxis tick={{ fontSize: 10 }} tickFormatter={v => '₹' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v)} />
                     <Tooltip />
-                    <Bar dataKey="amount" fill="#7bb86c" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="amount" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -238,7 +238,7 @@ export default function AnalyticsPage() {
                     <XAxis type="number" tick={{ fontSize: 10 }} />
                     <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
                     <Tooltip />
-                    <Bar dataKey="count" fill="#2c2c2c" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="count" fill="#0a0a0a" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}

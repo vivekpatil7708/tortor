@@ -36,25 +36,25 @@ function VerifyEmail() {
   }, [token])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cream to-beige px-4">
-      <div className="w-full max-w-sm rounded-3xl border border-white/60 bg-white/40 p-8 text-center backdrop-blur-xl">
+    <div className="auth-shell flex min-h-screen items-center justify-center bg-blue-hero px-4">
+      <div className="w-full max-w-sm rounded-3xl border border-white/60 bg-white/95 p-8 text-center shadow-2xl shadow-black/20 backdrop-blur-2xl">
         <span className="text-xl font-extrabold tracking-tight">
           Toro<span className="text-primary-500">Pay</span>
         </span>
-        {state === 'checking' && <p className="mt-6 text-sm text-gray-500">Verifying your email...</p>}
+        {state === 'checking' && <p className="mt-6 text-sm text-gray-600">Verifying your email...</p>}
         {state === 'verified' && (
           <>
             <h1 className="mt-4 text-lg font-bold text-green-600">Email verified</h1>
-            <p className="mt-1 text-sm text-gray-500">You can now create payment links and take payments.</p>
+            <p className="mt-1 text-sm text-gray-600">You can now create payment links and take payments.</p>
           </>
         )}
         {state === 'failed' && (
           <>
             <h1 className="mt-4 text-lg font-bold text-red-600">Could not verify</h1>
-            <p className="mt-1 text-sm text-gray-500">{error} You can request a new link from your dashboard.</p>
+            <p className="mt-1 text-sm text-gray-600">{error} You can request a new link from your dashboard.</p>
           </>
         )}
-        <Link href="/dashboard" className="mt-6 inline-block rounded-xl bg-charcoal px-6 py-3 text-sm font-semibold text-white hover:opacity-90">
+        <Link href="/dashboard" className="mt-6 inline-block rounded-xl btn-blue-gradient px-6 py-3 text-sm font-semibold text-white">
           Go to dashboard
         </Link>
       </div>
@@ -64,7 +64,7 @@ function VerifyEmail() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-cream text-sm text-gray-500">Loading...</div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-ink text-sm text-gray-400">Loading...</div>}>
       <VerifyEmail />
     </Suspense>
   )

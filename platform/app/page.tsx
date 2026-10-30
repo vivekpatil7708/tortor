@@ -1,17 +1,35 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import DonateWidget from '@/components/donate-widget'
-import { VideoEmbed } from '@/components/landing/video-embed'
-import { Link2, QrCode } from 'lucide-react'
+import { LandingMenu } from '@/components/landing/mobile-menu'
+import { ToolShowcase } from '@/components/landing/tool-showcase'
+import {
+  ArrowRight,
+  ArrowUpRight,
+  BarChart3,
+  Briefcase,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Lock,
+  ShieldCheck,
+  ShoppingBag,
+  Store,
+  Wallet,
+} from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: { absolute: 'Create a Payment Link Free in India | ToroPay' },
-  description: 'Create a payment link in seconds with ToroPay — a free UPI payment link generator for India. Share payment links on WhatsApp, SMS, or email and get paid directly to your own UPI ID. No website, no payment gateway, no transaction fees.',
+  title: { absolute: 'Free UPI Payment Links for Indian Businesses | ToroPay' },
+  description:
+    'Create a free UPI payment link or QR code and get paid directly to your own UPI ID. Built for Indian shops, creators and online sellers. No website, no payment gateway, no transaction fees.',
   alternates: { canonical: '/' },
   openGraph: {
     url: 'https://www.toropay.co.in/',
-    title: 'Create a Payment Link Free in India | ToroPay',
-    description: 'Create and share free UPI payment links. Get paid directly to your own UPI ID — no website, no payment gateway, no transaction fees.',
+    title: 'ToroPay — Free UPI Payment Links for Indian Businesses',
+    description:
+      'Create a payment link, share it on WhatsApp, and get paid directly to your UPI ID. Free forever, with no transaction fees.',
+    siteName: 'ToroPay',
+    locale: 'en_IN',
+    type: 'website',
   },
 }
 
@@ -21,33 +39,12 @@ const organizationSchema = {
   name: 'ToroPay',
   url: 'https://www.toropay.co.in/',
   logo: 'https://www.toropay.co.in/favicon.svg',
-  description: 'Free UPI payment link generator for India — create a payment link, share it, and get paid directly to your own UPI ID with branded checkout pages and QR codes. No website and no payment gateway required.',
+  description:
+    'ToroPay is a free UPI payment link and checkout tool for Indian businesses. Merchants share links or QR codes and receive payments directly in their own UPI account.',
   foundingDate: '2024',
   areaServed: 'IN',
-  sameAs: [
-    'https://instagram.com/toropay.co.in',
-  ],
+  sameAs: ['https://instagram.com/toropay.co.in'],
 }
-
-// Single source of truth for the FAQ: the same list renders on the page and
-// feeds the FAQPage structured data, so visible content and markup always match.
-const FAQS: { q: string; a: string }[] = [
-  { q: 'Is ToroPay really free?', a: 'Yes, ToroPay is 100% free. There are no paid plans, no transaction fees, no hidden charges. You get unlimited payment links, pages, and QR codes at no cost.' },
-  { q: 'Is creating a payment link free?', a: 'Yes. Creating payment links, payment pages, and QR codes with ToroPay is free, with no transaction fees and no hidden charges.' },
-  { q: 'How do I create a payment link with ToroPay?', a: 'Sign up free, add your UPI ID, then create a payment link with a fixed or custom amount, a title, and your branding. ToroPay instantly generates a shareable link and a hosted payment page. No coding needed.' },
-  { q: 'How do I share a payment link?', a: 'Copy your ToroPay payment link and share it on WhatsApp, Instagram, email, or SMS — or display a QR code customers can scan. When a customer opens the link, they see a branded page and pay by UPI.' },
-  { q: 'Can a payment link be reused?', a: 'Yes. By default a ToroPay payment link can be used as many times as you like — it is not limited to a single payment. You can deactivate it from your dashboard whenever you no longer need it.' },
-  { q: 'Do I need a payment gateway or a website to accept payments?', a: 'No. ToroPay does not process or hold payments itself, so no payment gateway setup is needed. It hosts a branded payment page for you and your customer pays directly to your own UPI ID — no website, no coding.' },
-  { q: 'How do I get paid?', a: 'Payments go directly to your own UPI ID. ToroPay does not handle, process, or store any payment funds. Your customers pay you directly via any UPI app — Google Pay, PhonePe, Paytm, BHIM, or any other.' },
-  { q: 'What can I create with ToroPay?', a: 'You can create branded hosted checkout pages with your logo and colors, shareable payment links with custom button text, dynamic QR codes with preset amounts, and multi-product order forms with custom fields.' },
-  { q: 'Who is ToroPay for?', a: 'ToroPay is built for Indian businesses, freelancers, creators, solopreneurs, coaches, and anyone who needs to accept UPI payments without building a website or writing any code.' },
-  { q: 'Do I need a website to use ToroPay?', a: 'No. ToroPay generates a hosted checkout page for you. Just share the link or QR code with your customers. No website, no coding required.' },
-  { q: 'Do I need a bank account to accept payments?', a: 'Yes. You need a bank account linked to a UPI ID in India. ToroPay works with any UPI ID from any bank.' },
-  { q: 'Can customers pay by link without an app?', a: 'Customers pay by link using any UPI app on their phone — Google Pay, PhonePe, Paytm, or BHIM. When they tap your payment link, it opens their UPI app with the amount pre-filled.' },
-  { q: 'Can I customize the checkout page?', a: 'Yes. You can upload a logo, set brand colors, add a background image, change button text, and choose a page theme. The checkout page reflects your brand identity.' },
-  { q: 'Which UPI apps are supported?', a: 'All of them. Google Pay, PhonePe, Paytm, BHIM, Amazon Pay, CRED, and any app that supports UPI payments. Your customers can pay using their preferred app.' },
-  { q: 'Does ToroPay support UPI payment links in India?', a: 'Yes. ToroPay is built for India and uses standard upi://pay links, so customers can pay from Google Pay, PhonePe, Paytm, BHIM, or any UPI app. Payments go directly to your own UPI ID.' },
-]
 
 const websiteSchema = {
   '@context': 'https://schema.org',
@@ -64,6 +61,49 @@ const websiteSchema = {
   },
 }
 
+const softwareSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'ToroPay',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  url: 'https://www.toropay.co.in/',
+  description:
+    'Free UPI payment links, QR codes and branded checkout for Indian businesses. Payments go directly to the merchant’s own UPI ID.',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
+}
+
+const FAQS: { q: string; a: string }[] = [
+  {
+    q: 'Is ToroPay really free?',
+    a: 'Yes. There are no paid plans, transaction fees or setup charges. You can create payment links, QR codes and a checkout page without adding a credit card.',
+  },
+  {
+    q: 'How do I get paid?',
+    a: 'Payments go directly to your own UPI ID. ToroPay does not process or hold your funds, so there is no settlement step and no commission on a sale.',
+  },
+  {
+    q: 'Is my money safe?',
+    a: 'ToroPay never holds your money or collects card details. Your customer approves the payment inside their own UPI app, and the money lands in your bank-linked UPI account.',
+  },
+  {
+    q: 'Do I need a website or payment gateway?',
+    a: 'No. ToroPay hosts the payment page for you. You only need a UPI ID linked to your bank account, and you can share the link on WhatsApp, Instagram, SMS or email.',
+  },
+  {
+    q: 'Can I sell products and collect orders?',
+    a: 'Yes. Add physical, digital or service products, then build a payment link or order form with multiple items, coupons, tax and delivery details. Orders and invoices stay in your dashboard.',
+  },
+  {
+    q: 'Can I create subscriptions?',
+    a: 'You can create weekly, monthly or yearly plans and attach a payment link for each billing cycle. ToroPay tracks every billing attempt but does not auto-debit a customer’s UPI account.',
+  },
+  {
+    q: 'Can I try it before creating an account?',
+    a: 'Yes. The checkout preview on this page is interactive, and the live demo opens a real ToroPay checkout with sample data. You only need an account when you are ready to create a link for your own UPI ID.',
+  },
+]
+
 const faqSchema = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
@@ -74,343 +114,393 @@ const faqSchema = {
   })),
 }
 
-const baseUrl = 'https://www.toropay.co.in'
+type FeatureGroup = {
+  icon: typeof Wallet
+  title: string
+  description: string
+  points: string[]
+}
 
-const qrPattern = [
-  '111111001',
-  '100001010',
-  '101111010',
-  '101111011',
-  '100001001',
-  '111111010',
-  '001010001',
-  '010110101',
-  '101001001',
+const FEATURE_GROUPS: FeatureGroup[] = [
+  {
+    icon: Wallet,
+    title: 'Get paid',
+    description: 'Turn a conversation into a checkout.',
+    points: [
+      'Payment links with fixed or custom amounts — save your setup as a template',
+      'QR codes for your counter, invoice or poster',
+      'Branded checkout with your logo and colours',
+      'Every UPI app, paid directly to your UPI ID',
+    ],
+  },
+  {
+    icon: ShoppingBag,
+    title: 'Sell',
+    description: 'Take orders without building a website.',
+    points: [
+      'Physical, digital and service products',
+      'Multi-item order forms and coupons',
+      'Weekly, monthly or yearly subscriptions',
+      'Orders, stock and tax invoices',
+    ],
+  },
+  {
+    icon: BarChart3,
+    title: 'Run the business',
+    description: 'Keep the customer and the record.',
+    points: [
+      'Customer profiles, addresses and loyalty points',
+      'Email and WhatsApp updates (WhatsApp early access)',
+      'Shiprocket and Delhivery tracking, refunds and returns',
+      'Analytics, team roles, API and webhooks',
+    ],
+  },
+]
+
+const TRUST = [
+  {
+    icon: ShieldCheck,
+    title: 'Direct to your UPI ID',
+    body: 'Payments land in your own bank-linked UPI account. ToroPay never holds your money.',
+  },
+  {
+    icon: Lock,
+    title: 'No card details',
+    body: 'Customers approve the payment inside their own UPI app, not on a card form.',
+  },
+  {
+    icon: CheckCircle2,
+    title: 'Free, with no catches',
+    body: 'No transaction fees, no paid tier and no per-order commission.',
+  },
+]
+
+const STEPS = [
+  {
+    title: 'Add your UPI ID',
+    body: 'Enter the UPI ID where you want payments to land. We validate it before you share anything.',
+  },
+  {
+    title: 'Create a link or QR',
+    body: 'Choose an amount, add your business name and branding, or build an order form with products and coupons.',
+  },
+  {
+    title: 'Share it and get paid',
+    body: 'Send the link on WhatsApp, Instagram or SMS. Your customer pays in their UPI app and the money goes straight to you.',
+  },
+]
+
+const AUDIENCES = [
+  {
+    icon: Store,
+    title: 'Local shops',
+    body: 'A QR code at the counter or a link on WhatsApp, with a clear record of every sale.',
+  },
+  {
+    icon: ShoppingBag,
+    title: 'Online sellers',
+    body: 'Products, coupons, orders and delivery tracking without building a full storefront.',
+  },
+  {
+    icon: Briefcase,
+    title: 'Creators and services',
+    body: 'Fixed fees, deposits and recurring plans with invoices that look professional.',
+  },
 ]
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream to-beige">
+    <div className="min-h-screen bg-cornsilk text-black-forest">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <header className="fixed inset-x-0 top-4 z-30 flex justify-center px-4">
-        <div className="flex w-full max-w-3xl items-center justify-between rounded-full border border-white/60 bg-white/70 py-2 pl-6 pr-2 shadow-lg backdrop-blur-xl">
-          <div className="text-xl font-extrabold tracking-tight">Toro<span className="text-primary-500">Pay</span></div>
-          <nav className="hidden items-center gap-1 md:flex">
-            <a href="#how" className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-primary-50 hover:text-primary-600">How it works</a>
-            <a href="#features" className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-primary-50 hover:text-primary-600">Features</a>
-            <a href="#faq" className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-primary-50 hover:text-primary-600">FAQ</a>
-            <Link href="/blog" className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-primary-50 hover:text-primary-600">Blog</Link>
+
+      <header className="sticky top-0 z-40 border-b border-white/10 glass-blue shadow-[0_1px_0_0_rgba(96,165,250,0.12)]">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
+          <Link href="/" className="text-xl font-extrabold tracking-tight text-white">
+            Toro<span className="text-sunlit-clay">Pay</span>
+          </Link>
+
+          <nav className="hidden items-center gap-6 text-sm font-medium text-gray-300 md:flex" aria-label="Landing">
+            <a href="#features" className="hover:text-white">Features</a>
+            <a href="#how" className="hover:text-white">How it works</a>
+            <a href="#who" className="hover:text-white">Who it&apos;s for</a>
+            <a href="#faq" className="hover:text-white">FAQ</a>
+            <Link href="/blog" className="hover:text-white">Blog</Link>
           </nav>
-          <div className="flex items-center gap-1.5">
-            <Link href="/login" className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-charcoal">Log in</Link>
-            <Link href="/signup" className="rounded-full bg-charcoal px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">Get started</Link>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="hidden rounded-lg px-3 py-2 text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white sm:inline-flex"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/signup"
+              className="whitespace-nowrap rounded-full btn-blue-gradient px-4 py-2 text-sm font-semibold text-white transition-colors"
+            >
+              Create free link
+            </Link>
+            <LandingMenu />
           </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-5xl px-6 pt-28 pb-10 text-center">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-1.5 text-sm font-medium text-primary-600">
-          Free UPI payment link generator for India
-        </div>
-        <h1 className="text-5xl font-extrabold leading-tight tracking-tight sm:text-6xl">
-          Your brand, your UPI ID,<br />
-          <span className="text-primary-500">your payment pages</span>
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500">
-          ToroPay is the easiest way to create a payment link in India. Build branded UPI payment links, QR codes,
-          and hosted payment pages with your own UPI ID — no website, no coding, and no payment gateway needed.
-          100% free — unlimited links, zero transaction fees, no hidden charges.
-        </p>
-        <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
-          <Link href="/signup" className="rounded-xl bg-charcoal px-8 py-3.5 text-base font-semibold text-white hover:opacity-90">Create free account</Link>
-          <a href="#how" className="rounded-xl border border-gray-200 bg-white/60 px-8 py-3.5 text-base font-semibold text-charcoal hover:bg-white">See how it works</a>
-        </div>
-      </section>
+      <main>
+        <section className="mx-auto max-w-6xl px-6 pb-16 pt-8 sm:pt-10 lg:pb-20 lg:pt-12">
+          <ToolShowcase
+            hero={
+              <>
+                <h1 className="max-w-xl text-4xl font-extrabold leading-[1.08] tracking-tight text-cornsilk sm:text-5xl lg:text-4xl xl:text-[2.75rem]">
+                  Free UPI payment links.{' '}
+                  <span className="lg:whitespace-nowrap">No payment gateway.</span>
+                </h1>
+                <p className="mt-5 max-w-lg text-base leading-relaxed text-cornsilk">
+                  ToroPay is for Indian shops, creators and online sellers who want to get paid without a website or gateway.
+                  Share a payment link or QR code and the money goes straight to your UPI ID.
+                </p>
 
-      <section className="mx-auto max-w-6xl px-6 pb-24">
-        <div className="relative mx-auto flex max-w-3xl items-center justify-center">
-          <div className="absolute right-full top-28 hidden w-44 sm:block">
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xl">
-              <div className="mb-2 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50">
-                  <QrCode className="h-4 w-4 text-primary-600" />
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <Link
+                    href="/signup"
+                    className="inline-flex items-center justify-center gap-2 rounded-full btn-blue-gradient px-5 py-3 text-base font-semibold text-white transition-colors"
+                  >
+                    Create a free link <ArrowRight className="h-4 w-4" aria-hidden />
+                  </Link>
+                  <Link
+                    href="/pay/demo-booking"
+                    className="inline-flex items-center justify-center gap-1.5 text-base font-semibold text-cornsilk underline decoration-cornsilk/40 underline-offset-4 hover:decoration-cornsilk"
+                  >
+                    Open the live checkout <ArrowUpRight className="h-4 w-4" aria-hidden />
+                  </Link>
                 </div>
-                <p className="text-xs font-bold text-charcoal">Dynamic QR code</p>
-              </div>
-              <div className="rounded-lg border border-gray-200 bg-white p-2.5">
-                <div className="grid h-20 w-20 grid-cols-9 gap-[1px]">
-                  {qrPattern.flatMap((row, r) =>
-                    row.split('').map((c, i) => (
-                      <div key={`${r}-${i}`} className={c === '1' ? 'bg-charcoal' : 'bg-white'} />
-                    ))
-                  )}
+
+                <div className="mt-5 flex w-fit max-w-full flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-xs font-medium text-gray-200 backdrop-blur-md sm:text-sm">
+                  <span className="inline-flex items-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4 text-sunlit-clay" aria-hidden /> No card details
+                  </span>
+                  <span className="hidden h-1 w-1 rounded-full bg-white/30 sm:inline-block" aria-hidden />
+                  <span>No gateway</span>
+                  <span className="hidden h-1 w-1 rounded-full bg-white/30 sm:inline-block" aria-hidden />
+                  <span>Money goes directly to you</span>
                 </div>
-              </div>
-              <p className="mt-2 text-center text-[10px] font-semibold text-gray-400">Scan to pay instantly</p>
+              </>
+            }
+          />
+        </section>
+
+        <section className="relative overflow-hidden bg-blue-hero px-6 py-10 sm:py-12">
+          <div
+            className="pointer-events-none absolute -right-40 -top-48 h-[28rem] w-[28rem] rounded-full border-[2.5rem] border-sunlit-clay/10"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -bottom-32 -left-24 h-64 w-64 rounded-full bg-sunlit-clay/[0.05] blur-3xl"
+            aria-hidden
+          />
+          <div className="relative mx-auto max-w-6xl rounded-[2rem] glass-blue p-6 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.85)] sm:p-8">
+            <div className="grid gap-6 sm:grid-cols-3">
+              {TRUST.map(item => {
+                const Icon = item.icon
+                return (
+                  <div key={item.title} className="flex gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sunlit-clay/20 bg-sunlit-clay/10 text-sunlit-clay">
+                      <Icon className="h-5 w-5" aria-hidden />
+                    </span>
+                    <div>
+                      <p className="text-base font-semibold text-white">{item.title}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-gray-300">{item.body}</p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
+        </section>
 
-          <div className="absolute left-full top-40 hidden w-48 sm:block">
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-xl">
-              <div className="mb-2 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50">
-                  <Link2 className="h-4 w-4 text-primary-600" />
-                </div>
-                <p className="text-xs font-bold text-charcoal">Payment link ready</p>
-              </div>
-              <p className="truncate rounded-lg bg-gray-50 px-2.5 py-2 font-mono text-[10px] text-gray-500">www.toropay.co.in/pay/yourstore</p>
-              <div className="mt-2 rounded-lg bg-[#25D366] px-2.5 py-1.5 text-center text-[10px] font-bold text-white">Share on WhatsApp</div>
-            </div>
-          </div>
-
-          <div className="relative w-72 overflow-hidden rounded-[2.5rem] border-[6px] border-charcoal bg-white shadow-2xl">
-            <div className="absolute left-1/2 top-3 h-1.5 w-16 -translate-x-1/2 rounded-full bg-gray-300" />
-            <div className="px-6 pb-8 pt-14">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ backgroundColor: '#7bb86c' }}>T</div>
-                <div>
-                  <p className="text-sm font-bold text-charcoal">Your Business</p>
-                  <p className="text-[10px] text-gray-400">Branded checkout · Powered by ToroPay</p>
-                </div>
-              </div>
-              <div className="mt-6 text-center">
-                <p className="text-xs font-medium text-gray-400">Amount to pay</p>
-                <p className="mt-1 text-4xl font-extrabold tracking-tight text-charcoal">₹1,299</p>
-              </div>
-              <div className="mt-6">
-                <div className="w-full rounded-2xl py-3.5 text-center text-sm font-bold text-white" style={{ backgroundColor: '#7bb86c' }}>
-                  Continue to Pay
-                </div>
-              </div>
-              <div className="mt-5 flex items-center justify-center gap-2">
-                {['GPay', 'PhonePe', 'Paytm', 'BHIM'].map(a => (
-                  <span key={a} className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-gray-500">{a}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-4xl px-6 pb-24">
-        <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">See ToroPay in action</h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-gray-500">
-            Watch how fast it is to create a branded payment link and get paid straight to your UPI ID.
-          </p>
-        </div>
-        <VideoEmbed />
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 pb-24">
-        <div className="rounded-3xl bg-charcoal px-8 py-12 text-white sm:px-12">
-          <div className="mb-10 text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Free for every business, big or small</h2>
-            <p className="mt-3 text-sm text-gray-300">No plans, no fees, no hidden charges — ever.</p>
-          </div>
-          <div className="grid gap-8 text-center sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { v: '100%', l: 'Free forever' },
-              { v: '₹0', l: 'Transaction fees' },
-              { v: 'Unlimited', l: 'Links, pages & QR codes' },
-              { v: 'All UPI apps', l: 'GPay, PhonePe, Paytm, BHIM' },
-            ].map(({ v, l }) => (
-              <div key={l}>
-                <p className="text-3xl font-extrabold tracking-tight text-primary-500">{v}</p>
-                <p className="mt-1.5 text-sm text-gray-300">{l}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="how" className="mx-auto max-w-6xl scroll-mt-28 px-6 pb-32">
-        <h2 className="mb-16 text-center text-3xl font-bold tracking-tight">How it works</h2>
-        <div className="grid gap-6 sm:grid-cols-3">
-          {[
-            { n: '1', t: 'Add your UPI ID', d: 'Enter your VPA like yourname@bank. We validate it instantly.' },
-            { n: '2', t: 'Create a payment link', d: 'Set a fixed or custom amount, add a title, your logo, and brand colors. ToroPay instantly generates a shareable payment link and page.' },
-            { n: '3', t: 'Share & get paid', d: 'Send your payment link on WhatsApp, Instagram, email, or SMS, or show a QR code. Customers pay by UPI and the money goes directly to you.' },
-          ].map(({ n, t, d }) => (
-            <div key={n} className="rounded-2xl border border-white/80 bg-white/50 p-8 backdrop-blur-sm">
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-charcoal text-sm font-bold text-white">{n}</div>
-              <h3 className="mb-2 text-lg font-bold">{t}</h3>
-              <p className="text-sm leading-relaxed text-gray-500">{d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="features" className="mx-auto max-w-6xl scroll-mt-28 px-6 pb-32">
-        <h2 className="mb-16 text-center text-3xl font-bold tracking-tight">Everything you need in a payment link generator</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            'Branded checkout pages', 'Dynamic QR codes', 'UPI app deep links', 'Transaction tracking',
-            'Custom fields', 'Link expiry & limits', 'Custom button text', 'Color themes & branding',
-            'Dashboard analytics', 'Webhook callbacks', 'Payment templates', 'Unlimited everything',
-          ].map((f) => (
-            <div key={f} className="rounded-xl border border-gray-100 bg-white/40 px-5 py-4 text-sm font-medium backdrop-blur-sm">✓ {f}</div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-6 pb-32">
-        <h2 className="mb-12 text-center text-3xl font-bold tracking-tight">Who is ToroPay for</h2>
-        <div className="grid gap-6 sm:grid-cols-2">
-          {[
-            { t: 'Small business owners', d: 'Restaurants, salons, clinics, and local shops can accept UPI payments via a branded checkout page — no payment gateway, no website, no fees.' },
-            { t: 'Freelancers & creators', d: 'Designers, writers, tutors, and influencers can share a payment link with clients and get paid instantly to their UPI ID.' },
-            { t: 'Solopreneurs & coaches', d: 'Fitness trainers, consultants, and course creators can collect payments with custom fields for bookings and notes.' },
-            { t: 'Indian startups', d: 'Early-stage businesses can set up payment pages for MVPs, event registrations, or pre-orders without any payment gateway integration.' },
-          ].map(({ t, d }) => (
-            <div key={t} className="rounded-2xl border border-white/80 bg-white/50 p-6 backdrop-blur-sm">
-              <h3 className="mb-2 text-lg font-bold">{t}</h3>
-              <p className="text-sm leading-relaxed text-gray-500">{d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-5xl px-6 pb-32">
-        <h2 className="mb-12 text-center text-3xl font-bold tracking-tight">Security & trust</h2>
-        <div className="grid gap-6 sm:grid-cols-2">
-          <div className="rounded-2xl border border-white/80 bg-white/50 p-6 backdrop-blur-sm">
-            <h3 className="mb-2 text-lg font-bold">Your money, your control</h3>
-            <p className="text-sm leading-relaxed text-gray-500">
-              ToroPay never handles your payment funds. Every transaction goes directly from your customer to your UPI ID
-              through the National Payments Corporation of India (<a href="https://www.npci.org.in/" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">NPCI</a>) network.
-              We only facilitate the payment page and link generation.
+        <section id="features" className="relative mx-auto max-w-6xl scroll-mt-24 overflow-hidden px-6 py-20 sm:py-24">
+          <div
+            className="pointer-events-none absolute -right-44 top-4 h-[30rem] w-[30rem] rounded-full border border-sunlit-clay/25"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -right-24 top-20 h-[22rem] w-[22rem] rounded-full border border-gray-300/70"
+            aria-hidden
+          />
+          <div className="relative max-w-2xl">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Everything you need to get paid and keep track.</h2>
+            <p className="mt-3 text-base leading-relaxed text-olive-leaf">
+              One free account gives you the link, the checkout and the records behind it. No add-ons or paid tiers.
             </p>
           </div>
-          <div className="rounded-2xl border border-white/80 bg-white/50 p-6 backdrop-blur-sm">
-            <h3 className="mb-2 text-lg font-bold">Built on UPI standards</h3>
-            <p className="text-sm leading-relaxed text-gray-500">
-              ToroPay follows UPI deep link standards set by the Reserve Bank of India (<a href="https://www.rbi.org.in/Scripts/FAQView.aspx?Id=121" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">RBI UPI guidelines</a>).
-              All payment links use standard <code className="rounded bg-gray-100 px-1 text-xs">upi://pay</code> URIs compatible with Google Pay, PhonePe, Paytm, BHIM, and every UPI app.
+
+          <div className="mt-12 grid gap-10 sm:grid-cols-3">
+            {FEATURE_GROUPS.map(group => {
+              const Icon = group.icon
+              return (
+                <div key={group.title}>
+                  <Icon className="h-6 w-6 text-copperwood" aria-hidden />
+                  <h3 className="mt-4 text-lg font-semibold">{group.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-olive-leaf">{group.description}</p>
+                  <ul className="mt-5 space-y-3">
+                    {group.points.map(point => (
+                      <li key={point} className="flex gap-2.5 text-sm leading-relaxed text-olive-leaf">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-copperwood" aria-hidden />
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        <section id="how" className="relative scroll-mt-24 overflow-hidden border-y border-olive-leaf-800 bg-cornsilk-600">
+          <div
+            className="pointer-events-none absolute -right-28 -top-36 h-96 w-96 rounded-full border-[3rem] border-sunlit-clay/20"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -bottom-48 -left-32 h-80 w-80 rounded-full bg-sunlit-clay/15 blur-3xl"
+            aria-hidden
+          />
+          <div className="relative mx-auto max-w-6xl px-6 py-20 sm:py-24">
+            <div className="max-w-2xl">
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Three steps to your first payment.</h2>
+              <p className="mt-3 text-base leading-relaxed text-olive-leaf">
+                No integration, no merchant approval and no code.
+              </p>
+            </div>
+
+            <div className="mt-12 grid gap-10 sm:grid-cols-3">
+              {STEPS.map((step, index) => (
+                <div key={step.title} className="border-t border-olive-leaf-800 pt-5">
+                  <p className="text-sm font-semibold text-olive-leaf">Step {index + 1}</p>
+                  <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-olive-leaf">{step.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="who" className="mx-auto max-w-6xl scroll-mt-24 px-6 py-20 sm:py-24">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Built for the way you already sell.</h2>
+            <p className="mt-3 text-base leading-relaxed text-olive-leaf">
+              If you take payments on WhatsApp, at a counter or through a link in your bio, ToroPay fits.
             </p>
           </div>
-          <div className="rounded-2xl border border-white/80 bg-white/50 p-6 backdrop-blur-sm">
-            <h3 className="mb-2 text-lg font-bold">Data protection</h3>
-            <p className="text-sm leading-relaxed text-gray-500">
-              Your data is encrypted in transit and at rest. We use <a href="https://vercel.com/security" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Vercel</a> for hosting and <a href="https://neon.tech/security" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Neon PostgreSQL</a> for database — both SOC 2 compliant. Sessions are secured with HTTP-only encrypted cookies.
+
+          <div className="mt-12 grid gap-10 sm:grid-cols-3">
+            {AUDIENCES.map(audience => {
+              const Icon = audience.icon
+              return (
+                <div key={audience.title}>
+                  <Icon className="h-6 w-6 text-copperwood" aria-hidden />
+                  <h3 className="mt-4 text-lg font-semibold">{audience.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-olive-leaf">{audience.body}</p>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        <section id="faq" className="relative scroll-mt-24 overflow-hidden border-t border-olive-leaf-800 bg-cornsilk-700">
+          <div
+            className="pointer-events-none absolute -bottom-48 -left-32 h-80 w-80 rounded-full border-[2rem] border-sunlit-clay/20"
+            aria-hidden
+          />
+          <div className="relative mx-auto max-w-3xl px-6 py-20 sm:py-24">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Questions, answered.</h2>
+            <div className="mt-8 divide-y divide-olive-leaf-800 border-y border-olive-leaf-800">
+              {FAQS.map(({ q, a }) => (
+                <details key={q} className="group py-4">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-black-forest [&::-webkit-details-marker]:hidden">
+                    {q}
+                    <ChevronDown className="h-4 w-4 shrink-0 text-copperwood transition-transform group-open:rotate-180" aria-hidden />
+                  </summary>
+                  <p className="mt-2 pr-8 text-sm leading-relaxed text-olive-leaf">{a}</p>
+                </details>
+              ))}
+            </div>
+            <p className="mt-6 text-sm text-olive-leaf">
+              Want to see it first?{' '}
+              <Link href="/pay/demo-booking" className="font-medium text-olive-leaf underline decoration-olive-leaf-400 underline-offset-4 hover:decoration-copperwood">
+                Open the live demo
+              </Link>
+              .
             </p>
           </div>
-          <div className="rounded-2xl border border-white/80 bg-white/50 p-6 backdrop-blur-sm">
-            <h3 className="mb-2 text-lg font-bold">Rate-limited & monitored</h3>
-            <p className="text-sm leading-relaxed text-gray-500">
-              Login attempts are rate-limited (account locks after 5 failures). All authentication events are logged for audit. We actively monitor for unusual activity to keep the platform safe.
+        </section>
+
+        <section className="px-4 pb-16 pt-16 sm:px-6 sm:pb-20 sm:pt-20">
+          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[2.5rem] bg-blue-cta px-6 py-16 text-center text-white sm:py-20">
+            <div
+              className="pointer-events-none absolute -right-40 -top-44 h-[28rem] w-[28rem] rounded-full border-[3rem] border-white/10"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -bottom-64 -left-40 h-[34rem] w-[34rem] rounded-full border border-white/15"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -left-16 top-0 h-56 w-56 rounded-full bg-blue-300/20 blur-3xl"
+              aria-hidden
+            />
+            <div className="relative mx-auto max-w-3xl">
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Create your first payment link in minutes.</h2>
+              <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-blue-50">
+                Free forever. No credit card required. No payment gateway. Money goes straight to your UPI ID.
+              </p>
+              <Link
+                href="/signup"
+                className="mt-7 inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-base font-semibold text-primary-600 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.6)] transition-colors hover:bg-blue-50"
+              >
+                Create a free payment link <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+              <p className="mt-4 text-sm text-blue-50">
+                Already have an account?{' '}
+                <Link href="/login" className="underline underline-offset-4 hover:text-white">
+                  Log in
+                </Link>
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="relative overflow-hidden border-t border-white/10 bg-blue-hero">
+        <div
+          className="pointer-events-none absolute -right-40 -top-48 h-96 w-96 rounded-full border-[2rem] border-sunlit-clay/10"
+          aria-hidden
+        />
+        <div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10 sm:flex-row sm:items-start sm:justify-between">
+          <div className="max-w-sm">
+            <p className="text-xl font-extrabold tracking-tight text-white">
+              Toro<span className="text-sunlit-clay">Pay</span>
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-gray-300">
+              Free UPI payment links and checkout for Indian businesses. Payments go directly to your UPI ID.
             </p>
           </div>
-        </div>
-      </section>
 
-      <section className="mx-auto max-w-4xl px-6 pb-32">
-        <div className="rounded-3xl bg-charcoal px-8 py-16 text-center text-white">
-          <h2 className="text-3xl font-bold tracking-tight">Start accepting UPI payments in minutes</h2>
-          <p className="mt-3 text-gray-300">Create unlimited payment links, pages, and QR codes. Completely free. No credit card needed.</p>
-          <Link href="/signup" className="mt-6 inline-block rounded-xl bg-primary-500 px-8 py-3.5 text-base font-semibold text-white hover:bg-primary-600">Create free account — it&apos;s free</Link>
+          <nav className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-300 sm:flex sm:flex-wrap" aria-label="Footer">
+            <a href="#features" className="hover:text-sunlit-clay">Features</a>
+            <a href="#how" className="hover:text-sunlit-clay">How it works</a>
+            <a href="#who" className="hover:text-sunlit-clay">Who it&apos;s for</a>
+            <a href="#faq" className="hover:text-sunlit-clay">FAQ</a>
+            <Link href="/blog" className="hover:text-sunlit-clay">Blog</Link>
+            <Link href="/donate" className="hover:text-sunlit-clay">Support ToroPay</Link>
+            <Link href="/terms" className="hover:text-sunlit-clay">Terms</Link>
+            <Link href="/privacy" className="hover:text-sunlit-clay">Privacy</Link>
+          </nav>
         </div>
-      </section>
-
-      <section id="faq" className="mx-auto max-w-4xl scroll-mt-28 px-6 pb-10">
-        <div className="rounded-3xl border border-white/60 bg-white/40 p-8 backdrop-blur-xl sm:p-12">
-          <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">Frequently asked questions</h2>
-          <div className="mt-8 space-y-4">
-            {FAQS.map(({ q, a }) => (
-              <details key={q} className="group rounded-xl border border-gray-200 bg-white/60 p-4 backdrop-blur-sm">
-                <summary className="cursor-pointer text-sm font-semibold text-charcoal">{q}</summary>
-                <p className="mt-2 text-sm leading-relaxed text-gray-500">{a}</p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-4xl px-6 pb-32">
-        <div className="rounded-3xl border border-white/60 bg-white/40 p-8 text-center backdrop-blur-xl sm:p-12">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">About ToroPay</h2>
-          <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-gray-500">
-            ToroPay is a free, India-focused UPI payment page platform. We believe every business — no matter how small — should be able to accept digital payments with a professional, branded experience. Built by developers who understand the Indian payments ecosystem, ToroPay is designed to be simple, secure, and completely free.
-          </p>
-          <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-gray-500">
-            Have feedback or want to partner? Reach us via our <Link href="/donate" className="underline hover:text-charcoal">support page</Link> or follow us on <a href="https://instagram.com/toropay.co.in" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Instagram</a>.
-          </p>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-4xl px-6 pb-10">
-        <div className="rounded-3xl border border-white/60 bg-white/40 p-8 text-center backdrop-blur-xl sm:p-12">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Share ToroPay</h2>
-          <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-gray-500">
-            Know someone who could use free UPI payment pages? Spread the word.
-          </p>
-          <div className="mt-5 flex justify-center gap-3">
-            <a href={`https://wa.me/?text=${encodeURIComponent('ToroPay — Free UPI payment pages for Indian businesses. No fees, no catch. Check it out: ' + baseUrl)}`} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">WhatsApp</a>
-            <a href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(baseUrl)}&title=ToroPay&summary=${encodeURIComponent('Free UPI payment pages for Indian businesses.')}`} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-[#0A66C2] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">LinkedIn</a>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-4xl px-6 pb-32">
-        <div className="rounded-3xl border border-white/60 bg-white/40 p-8 backdrop-blur-xl sm:p-12">
-          <h2 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl text-center">From the Blog</h2>
-          <p className="mx-auto mt-3 max-w-lg text-sm text-center text-gray-500">Guides, comparisons, and tips for Indian businesses on UPI payments.</p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            <Link href="/blog/best-razorpay-alternatives-for-indian-businesses" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
-              <span className="text-xs font-medium text-primary-600">Comparisons</span>
-              <h3 className="mt-1 text-sm font-bold text-charcoal">7 Best Razorpay Alternatives for Indian Businesses in 2026</h3>
-              <p className="mt-1 text-xs text-gray-400">Compare payment gateways and free UPI alternatives.</p>
-            </Link>
-            <Link href="/blog/free-payment-links-india" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
-              <span className="text-xs font-medium text-primary-600">Tutorials</span>
-              <h3 className="mt-1 text-sm font-bold text-charcoal">How to Create Free Payment Links in India</h3>
-              <p className="mt-1 text-xs text-gray-400">Accept payments instantly with zero transaction fees.</p>
-            </Link>
-            <Link href="/blog/how-to-use-toropay-complete-guide" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
-              <span className="text-xs font-medium text-primary-600">Tutorials</span>
-              <h3 className="mt-1 text-sm font-bold text-charcoal">How to Use ToroPay: Complete Guide</h3>
-              <p className="mt-1 text-xs text-gray-400">Step-by-step setup from account to first payment.</p>
-            </Link>
-            <Link href="/blog/toropay-vs-instapay-comparison" className="rounded-xl border border-gray-200 bg-white/60 p-5 hover:bg-white/80 transition-colors">
-              <span className="text-xs font-medium text-primary-600">Comparisons</span>
-              <h3 className="mt-1 text-sm font-bold text-charcoal">ToroPay vs InstaPay: Which Is Better?</h3>
-              <p className="mt-1 text-xs text-gray-400">Feature-by-feature comparison of UPI payment solutions.</p>
-            </Link>
-          </div>
-          <div className="mt-6 text-center">
-            <Link href="/blog" className="text-sm font-semibold text-primary-500 hover:underline">Read all articles →</Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-4xl px-6 pb-32">
-        <div className="rounded-3xl border border-white/60 bg-white/40 p-8 text-center backdrop-blur-xl sm:p-12">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-50 text-2xl">{'❤️'}</div>
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Support ToroPay</h2>
-          <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-gray-500">
-            ToroPay is and will always be <strong>completely free</strong> to use. If this platform helps you,
-            consider donating to help cover hosting, maintenance, and future improvements.
-            Every contribution, no matter how small, makes a difference.
-          </p>
-          <div className="mt-6 rounded-2xl border border-white/60 bg-white/50 p-6 backdrop-blur-sm">
-            <DonateWidget />
-          </div>
-          <p className="mt-3 text-xs text-gray-400">
-            <Link href="/donate" className="underline hover:text-charcoal">Learn more about supporting ToroPay</Link>
-          </p>
-        </div>
-      </section>
-
-      <footer className="border-t border-gray-200 px-6 py-8 text-center text-sm text-gray-400">
-        <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-6">
-          <span>ToroPay — Built for Indian businesses</span>
-          <Link href="/blog" className="underline hover:text-charcoal">Blog</Link>
-          <Link href="/donate" className="underline hover:text-charcoal">Donate</Link>
-          <Link href="/terms" className="underline hover:text-charcoal">Terms</Link>
-          <Link href="/privacy" className="underline hover:text-charcoal">Privacy</Link>
-          <a href="https://instagram.com/toropay.co.in" target="_blank" rel="noopener noreferrer" className="underline hover:text-charcoal">Instagram</a>
+        <div className="mx-auto max-w-6xl border-t border-white/10 px-6 py-5 text-sm text-gray-400">
+          © {new Date().getFullYear()} ToroPay. Free forever. No transaction fees.
         </div>
       </footer>
     </div>
