@@ -157,7 +157,7 @@ export const BLOG_POSTS: BlogPost[] = [
     imageUrl: 'https://images.pexels.com/photos/6994291/pexels-photo-6994291.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
     content: `
 <h2>What is ToroPay?</h2>
-<p>ToroPay is a free UPI payment platform built for Indian businesses, freelancers, and creators. It lets you accept payments through custom payment links, a professional storefront page, and QR codes — all with zero transaction fees.</p>
+<p>ToroPay is a free UPI payment platform built for Indian businesses, freelancers, and creators. It lets you accept payments through custom payment links, a professional storefront page, and QR codes — all with no transaction fees.</p>
 <p>No merchant account. No gateway charges. No hidden costs. Just sign up and start accepting payments.</p>
 
 <h2>Step 1: Create Your Free Account</h2>
@@ -167,7 +167,7 @@ export const BLOG_POSTS: BlogPost[] = [
   <li>Verify your email (check your inbox for the verification link)</li>
   <li>Log in to your dashboard</li>
 </ol>
-<p>The entire process takes less than 2 minutes. No phone number or KYC required to get started.</p>
+<p>The entire process takes less than 2 minutes. No phone number is needed to get started.</p>
 
 <h2>Step 2: Add Your UPI ID</h2>
 <p>Before you can accept payments, you need to connect your UPI ID so ToroPay knows where to route funds.</p>
@@ -234,7 +234,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <h2>Frequently Asked Questions</h2>
 
 <h3>Is ToroPay really free?</h3>
-<p>Yes. There are zero transaction fees, zero setup fees, and zero monthly charges. ToroPay is free forever.</p>
+<p>Yes. There are zero transaction fees, zero setup fees, and zero monthly charges. ToroPay is free to use.</p>
 
 <h3>How do I receive the money?</h3>
 <p>Payments go directly from your customer's UPI app to your UPI ID. ToroPay never holds your money — it goes straight to your bank account via UPI.</p>
@@ -337,7 +337,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <p>Google Pay for Business allows direct UPI collections but has limited features.</p>
 
 <h2>How to Choose</h2>
-<p>For most Indian businesses that primarily use UPI, ToroPay offers the best value — zero fees, branded pages, and instant settlement.</p>
+<p>For most Indian businesses that primarily use UPI, ToroPay offers the best value — no fees, branded pages, and money that goes straight to your UPI ID.</p>
 
 <p><a href="/signup">Create your free ToroPay account →</a></p>`,
   },
@@ -368,7 +368,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <p>Create your ToroPay account at <a href="/signup">toropay.co.in/signup</a>. No credit card required.</p>
 
 <h3>Step 2: Add Your UPI ID</h3>
-<p>Enter your VPA (like yourname@bank). ToroPay validates it instantly.</p>
+<p>Enter your VPA (like yourname@bank). ToroPay checks the format right away.</p>
 
 <h3>Step 3: Create a Payment Link</h3>
 <p>Set your amount (fixed or custom), add a title, choose your brand colors, and add a logo.</p>
@@ -392,7 +392,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <tr><td>Custom Branding</td><td>Yes (free)</td><td>No</td><td>No</td></tr>
 <tr><td>QR Code</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
 <tr><td>Custom Fields</td><td>Yes</td><td>No</td><td>No</td></tr>
-<tr><td>Instant Settlement</td><td>Yes (to UPI)</td><td>No (T+2)</td><td>No</td></tr>
+<tr><td>Money path</td><td>Direct to your UPI ID</td><td>Via gateway (T+2)</td><td>Via gateway</td></tr>
 </table>
 
 <p><a href="/signup">Create free payment links with ToroPay →</a></p>`,
@@ -430,7 +430,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <h2>Why UPI-First Is the Right Strategy</h2>
 <ul>
 <li>Zero transaction fees on UPI</li>
-<li>Instant settlement to your bank/UPI</li>
+<li>Money goes directly to your bank-linked UPI ID</li>
 <li>99% of Indian smartphone users have a UPI app</li>
 <li>No hardware or POS machine needed</li>
 </ul>
@@ -717,7 +717,7 @@ export const BLOG_POSTS: BlogPost[] = [
 <ul>
   <li><strong>TDR:</strong> Rs. 0 on standard UPI.</li>
   <li><strong>AMC:</strong> Rs. 0 \u2014 no annual maintenance charge.</li>
-  <li><strong>Setup fee:</strong> Rs. 0 \u2014 no onboarding charge, no KYC.</li>
+  <li><strong>Setup fee:</strong> Rs. 0 \u2014 no onboarding charge.</li>
   <li><strong>Platform fee:</strong> Rs. 0 \u2014 dashboards, links, QR codes, and reporting are included.</li>
   <li><strong>Settlement:</strong> instant \u2014 money goes directly to your own UPI ID; ToroPay never holds funds.</li>
   <li><strong>No website needed:</strong> hosted payment pages work out of the box.</li>

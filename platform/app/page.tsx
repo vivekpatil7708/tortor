@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     url: 'https://www.toropay.co.in/',
     title: 'ToroPay — Free UPI Payment Links for Indian Businesses',
     description:
-      'Create a payment link, share it on WhatsApp, and get paid directly to your UPI ID. Free forever, with no transaction fees.',
+      'Create a payment link, share it on WhatsApp, and get paid directly to your UPI ID. Free to use, with no transaction fees.',
     siteName: 'ToroPay',
     locale: 'en_IN',
     type: 'website',
@@ -83,7 +83,7 @@ const FAQS: { q: string; a: string }[] = [
     a: 'Payments go directly to your own UPI ID. ToroPay does not process or hold your funds, so there is no settlement step and no commission on a sale.',
   },
   {
-    q: 'Is my money safe?',
+    q: 'Where does the money go?',
     a: 'ToroPay never holds your money or collects card details. Your customer approves the payment inside their own UPI app, and the money lands in your bank-linked UPI account.',
   },
   {
@@ -151,7 +151,7 @@ const FEATURE_GROUPS: FeatureGroup[] = [
     points: [
       'Customer profiles, addresses and loyalty points',
       'Email and WhatsApp updates (WhatsApp early access)',
-      'Shiprocket and Delhivery tracking, refunds and returns',
+      'Shiprocket tracking, refunds and returns',
       'Analytics, team roles, API and webhooks',
     ],
   },
@@ -170,7 +170,7 @@ const TRUST = [
   },
   {
     icon: CheckCircle2,
-    title: 'Free, with no catches',
+    title: 'Free, with no paid tier',
     body: 'No transaction fees, no paid tier and no per-order commission.',
   },
 ]
@@ -178,7 +178,7 @@ const TRUST = [
 const STEPS = [
   {
     title: 'Add your UPI ID',
-    body: 'Enter the UPI ID where you want payments to land. We validate it before you share anything.',
+    body: 'Enter the UPI ID where you want payments to land. We check the format before you share anything.',
   },
   {
     title: 'Create a link or QR',
@@ -225,8 +225,8 @@ export default function LandingPage() {
           <nav className="hidden items-center gap-6 text-sm font-medium text-gray-300 md:flex" aria-label="Landing">
             <a href="#features" className="hover:text-white">Features</a>
             <a href="#how" className="hover:text-white">How it works</a>
-            <a href="#who" className="hover:text-white">Who it&apos;s for</a>
-            <a href="#faq" className="hover:text-white">FAQ</a>
+            <Link href="/pricing" className="hover:text-white">Pricing</Link>
+            <Link href="/docs" className="hover:text-white">Docs</Link>
             <Link href="/blog" className="hover:text-white">Blog</Link>
           </nav>
 
@@ -454,7 +454,7 @@ export default function LandingPage() {
             <div className="relative mx-auto max-w-3xl">
               <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Create your first payment link in minutes.</h2>
               <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-blue-50">
-                Free forever. No credit card required. No payment gateway. Money goes straight to your UPI ID.
+                Free to use. No credit card required. No payment gateway. Money goes straight to your UPI ID.
               </p>
               <Link
                 href="/signup"
@@ -489,10 +489,11 @@ export default function LandingPage() {
           </div>
 
           <nav className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-300 sm:flex sm:flex-wrap" aria-label="Footer">
-            <a href="#features" className="hover:text-sunlit-clay">Features</a>
-            <a href="#how" className="hover:text-sunlit-clay">How it works</a>
-            <a href="#who" className="hover:text-sunlit-clay">Who it&apos;s for</a>
-            <a href="#faq" className="hover:text-sunlit-clay">FAQ</a>
+            <Link href="/features" className="hover:text-sunlit-clay">Features</Link>
+            <Link href="/how-payments-work" className="hover:text-sunlit-clay">How payments work</Link>
+            <Link href="/pricing" className="hover:text-sunlit-clay">Pricing</Link>
+            <Link href="/docs" className="hover:text-sunlit-clay">Docs</Link>
+            <Link href="/about" className="hover:text-sunlit-clay">About</Link>
             <Link href="/blog" className="hover:text-sunlit-clay">Blog</Link>
             <Link href="/donate" className="hover:text-sunlit-clay">Support ToroPay</Link>
             <Link href="/terms" className="hover:text-sunlit-clay">Terms</Link>
@@ -500,7 +501,7 @@ export default function LandingPage() {
           </nav>
         </div>
         <div className="mx-auto max-w-6xl border-t border-white/10 px-6 py-5 text-sm text-gray-400">
-          © {new Date().getFullYear()} ToroPay. Free forever. No transaction fees.
+          © {new Date().getFullYear()} ToroPay. Free to use. No transaction fees.
         </div>
       </footer>
     </div>
