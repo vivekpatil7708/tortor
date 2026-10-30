@@ -80,7 +80,7 @@ export default async function AuthorPage(props: Props) {
         <section className="border-t border-gray-100 py-16">
           <div className="max-w-xl">
             <h2 className="text-2xl font-bold tracking-tight text-gray-900">Free UPI payments for your business</h2>
-            <p className="mt-3 text-gray-500">Zero transaction fees. Branded payment pages. Instant setup.</p>
+            <p className="mt-3 text-gray-500">No transaction fees. Branded payment pages. Set up in minutes.</p>
             <div className="mt-6">
               <Link href="/signup" className="rounded-lg bg-gray-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-800">
                 Create free account

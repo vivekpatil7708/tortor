@@ -52,7 +52,7 @@ export default function LinkPosterPage() {
         <p className="mt-4 text-xl font-bold">Scan with your phone camera to pay</p>
         <p className="mt-1 text-base text-gray-700">Then pay in any UPI app: Google Pay, PhonePe, Paytm, BHIM</p>
         <p className="mt-4 break-all font-mono text-sm text-gray-700">{address}</p>
-        <p className="mt-6 text-sm text-gray-600">Payments go straight to {business || 'the seller'} by UPI. Secured by ToroPay.</p>
+        <p className="mt-6 text-sm text-gray-600">Payments go straight to {business || 'the seller'} by UPI. Powered by ToroPay.</p>
       </div>
     </div>
   )

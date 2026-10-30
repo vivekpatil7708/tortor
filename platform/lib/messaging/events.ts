@@ -312,7 +312,7 @@ Your {{plan_name}} subscription with {{business_name}} is due.
 Amount: {{currency}} {{amount}}
 Billing date: {{next_billing_date}}
 
-Pay securely here: {{payment_link}}
+Pay by UPI here: {{payment_link}}
 
 If you no longer want this subscription, you can cancel it here: {{cancel_link}}
 

@@ -181,7 +181,7 @@ export function ToolShowcase({ hero, className = '' }: { hero: ReactNode; classN
                 ToroPay
               </span>
               <span className="rounded-full bg-sunlit-clay px-2.5 py-1 text-xs font-medium text-black-forest sm:text-sm">
-                Free forever
+                Free to use
               </span>
             </div>
 
