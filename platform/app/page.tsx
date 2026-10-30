@@ -41,9 +41,7 @@ const organizationSchema = {
   logo: 'https://www.toropay.co.in/favicon.svg',
   description:
     'ToroPay is a free UPI payment link and checkout tool for Indian businesses. Merchants share links or QR codes and receive payments directly in their own UPI account.',
-  foundingDate: '2024',
   areaServed: 'IN',
-  sameAs: ['https://instagram.com/toropay.co.in'],
 }
 
 const websiteSchema = {

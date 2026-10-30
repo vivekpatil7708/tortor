@@ -68,7 +68,6 @@ const aboutSchema = {
     description:
       'ToroPay is a free UPI payment link and light checkout tool for Indian businesses. It does not hold funds.',
     areaServed: 'IN',
-    sameAs: ['https://instagram.com/toropay.co.in'],
   },
 }
 
