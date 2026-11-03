@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 interface Stats {
   total_merchants: number
   total_transactions: number
+  total_transaction_amount: number
   total_revenue: number
   signups_today: number
   revenue_today: number
@@ -29,6 +30,7 @@ export default function AdminOverview() {
   const cards = [
     { label: 'Total Merchants', value: stats.total_merchants, color: 'bg-blue-50 text-blue-700' },
     { label: 'Total Transactions', value: stats.total_transactions, color: 'bg-green-50 text-green-700' },
+    { label: 'Total Transaction Amount', value: '\u20B9' + stats.total_transaction_amount.toLocaleString('en-IN'), color: 'bg-fuchsia-50 text-fuchsia-700' },
     { label: 'Total Revenue', value: '\u20B9' + stats.total_revenue.toLocaleString('en-IN'), color: 'bg-purple-50 text-purple-700' },
     { label: 'Signups Today', value: stats.signups_today, color: 'bg-amber-50 text-amber-700' },
     { label: 'Revenue Today', value: '\u20B9' + stats.revenue_today.toLocaleString('en-IN'), color: 'bg-emerald-50 text-emerald-700' },
