@@ -10,9 +10,12 @@ export async function GET() {
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-    const [totalMerchants, totalTransactions, revenueResult, signupsToday, revenueToday, activeMerchants, recentSignups, totalPageviews, pageviewsToday, uniqueVisitorsToday, totalEmails, emailsToday] = await Promise.all([
+    const [totalMerchants, totalTransactions, totalTransactionAmount, revenueResult, signupsToday, revenueToday, activeMerchants, recentSignups, totalPageviews, pageviewsToday, uniqueVisitorsToday, totalEmails, emailsToday] = await Promise.all([
       prisma.merchant.count(),
       prisma.transaction.count(),
+      // Every transaction, regardless of status, so this is the total value
+      // recorded rather than only money that was successfully collected.
+      prisma.transaction.aggregate({ _sum: { amount: true } }),
       prisma.transaction.aggregate({ where: { status: 'success' }, _sum: { amount: true } }),
       prisma.merchant.count({ where: { createdAt: { gte: todayStart } } }),
       prisma.transaction.aggregate({ where: { status: 'success', createdAt: { gte: todayStart } }, _sum: { amount: true } }),
@@ -28,6 +31,7 @@ export async function GET() {
     return NextResponse.json({
       total_merchants: totalMerchants,
       total_transactions: totalTransactions,
+      total_transaction_amount: totalTransactionAmount._sum.amount || 0,
       total_revenue: revenueResult._sum.amount || 0,
       signups_today: signupsToday,
       revenue_today: revenueToday._sum.amount || 0,
