@@ -9,7 +9,7 @@ export default function BlogFooter() {
             <Link href="/" className="text-lg font-bold tracking-tight text-white">
               Toro<span className="text-sunlit-clay">Pay</span>
             </Link>
-            <p className="mt-2 max-w-xs text-sm text-gray-400">Free UPI payment pages for Indian businesses. Zero transaction fees.</p>
+            <p className="mt-2 max-w-xs text-sm text-gray-400">Free UPI payment pages for Indian businesses. No transaction fees.</p>
           </div>
           <div className="flex gap-12">
             <div>

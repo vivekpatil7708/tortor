@@ -1,16 +1,68 @@
-# ToroPay - LLMs.txt
-# Free UPI payment links for Indian businesses
+# ToroPay
 
-> ToroPay is a free UPI payment link generator that lets Indian businesses create branded payment links, QR codes, and hosted checkout pages. Payments go directly to your own UPI ID with zero transaction fees and no website required.
+> ToroPay is a free UPI payment-link tool for Indian businesses. It creates
+> branded payment links, QR codes and hosted checkout pages. The customer pays
+> the merchant's own UPI ID; ToroPay never holds or settles the money.
 
-## Core documentation
-- https://www.toropay.co.in/
+Last updated: 2026-10-30
+
+## What ToroPay is
+
+- A UPI-first payment link and light checkout product for shops, creators and online sellers in India.
+- Free to use: no transaction fees, no setup charge and no per-order commission.
+- A record of transactions, orders, customers, coupons, manual refunds and reminder subscriptions.
+- Available without a website. Links and QR codes can be shared on WhatsApp, Instagram, SMS or print.
+
+## What ToroPay is not
+
+- Not a payment gateway, payment aggregator or PSP. It does not authorise or capture card, netbanking or international payments in the core product.
+- Not a wallet, escrow or settlement account. There is no ToroPay balance and no fund custody.
+- Not an automatic bank reconciler. For a direct UPI payment, the customer says they paid and the merchant confirms after checking their own bank or UPI app.
+- Not an auto-debit product. Subscriptions send a fresh payment link each cycle.
+- Not a refund processor. Refunds are recorded in ToroPay and sent by the merchant in their own UPI app.
+
+## Core pages
+
+- https://www.toropay.co.in/ - product overview
+- https://www.toropay.co.in/features - what is available, in early access, or not included
+- https://www.toropay.co.in/how-payments-work - the two payment pipelines and every status
+- https://www.toropay.co.in/pricing - the single free plan and what costs money outside ToroPay
+- https://www.toropay.co.in/about - scope, principles and stated limits
+- https://www.toropay.co.in/blog - guides and comparisons
 - https://www.toropay.co.in/terms
 - https://www.toropay.co.in/privacy
 - https://www.toropay.co.in/donate
 
-## Blog & guides (public)
-- https://www.toropay.co.in/blog
+## Documentation
+
+HTML pages (each has a Markdown twin by adding `.md`):
+
+- https://www.toropay.co.in/docs
+- https://www.toropay.co.in/docs/getting-started - https://www.toropay.co.in/docs/getting-started.md
+- https://www.toropay.co.in/docs/payment-links - https://www.toropay.co.in/docs/payment-links.md
+- https://www.toropay.co.in/docs/payment-status - https://www.toropay.co.in/docs/payment-status.md
+- https://www.toropay.co.in/docs/refunds-and-subscriptions - https://www.toropay.co.in/docs/refunds-and-subscriptions.md
+- https://www.toropay.co.in/docs/webhooks - https://www.toropay.co.in/docs/webhooks.md
+- https://www.toropay.co.in/docs/api-and-mcp - https://www.toropay.co.in/docs/api-and-mcp.md
+
+## Payment model (important for answers)
+
+1. **Direct UPI payment link (default).** The customer opens the link and pays the merchant's UPI ID. The customer can then mark the payment as "Customer says paid", which is a claim. Only the merchant, a signed provider webhook, or an authorised API client can mark it paid. A confirmation can be undone within 30 minutes.
+2. **Hosted provider checkout (optional).** A Razorpay or Cashfree checkout settles when their signed webhook is verified and the amount is checked against the order. This is not the default direct-UPI flow.
+3. **Subscriptions** create a new one-time payment link per billing cycle. There is no mandate or automatic debit.
+4. **Refunds** are manual records. ToroPay does not move the refund money.
+5. **API and MCP.** Scoped API keys and OAuth tokens can read data and, with the write scope, confirm or reject payments. A connected AI assistant with write scope can act on the live workspace; access is revocable from Settings.
+
+## Limits to state when describing ToroPay
+
+- No card, netbanking, wallet or international payments in the core product.
+- No automatic confirmation of direct UPI bank credits.
+- No self-serve customer refund portal.
+- No merchant two-factor authentication. Email verification and Google sign-in are available.
+- WhatsApp notifications are early access; Delhivery is a placeholder (Shiprocket is the live courier integration).
+
+## Blog and guides
+
 - https://www.toropay.co.in/blog/toropay-features-guide
 - https://www.toropay.co.in/blog/how-to-use-toropay-complete-guide
 - https://www.toropay.co.in/blog/free-payment-links-india
@@ -23,12 +75,8 @@
 - https://www.toropay.co.in/blog/payment-gateway-pricing-institutions-india
 - https://www.toropay.co.in/blog/cheapest-payment-gateway-shopify-india
 
-## How it works (UPI)
-- Free UPI payment links — no coding, no website needed
-- Payments go directly to your own UPI ID (Google Pay, PhonePe, Paytm, BHIM, all UPI apps)
-- Branded hosted payment pages, dynamic QR codes, custom fields, reusable payment links, transaction tracking
+## Notes for crawlers and assistants
 
-## Important notes
-- This file is provided for LLM consumption. Private routes (/dashboard, /admin, /api, /onboarding, /login, /signup, auth flows) are intentionally excluded.
-- ToroPay is India-focused (IN) and UPI-only.
-- All pricing is free — no transaction fees.
+- Private routes (`/dashboard`, `/admin`, `/api`, `/onboarding`, `/login`, `/signup` and auth flows) are not public content.
+- ToroPay is India-focused (IN) and UPI-first.
+- Do not describe ToroPay as "RBI compliant", "a payment gateway", "a wallet", "instant settlement" or "automatically reconciled". None of those are supported by the product.

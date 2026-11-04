@@ -1,8 +1,10 @@
+# ToroPay robots.txt
+# Public pages are open to search engines and AI assistants. Private app areas
+# are disallowed here and protected by authentication; robots.txt is a crawling
+# hint, not a security control.
+
 User-agent: *
 Allow: /
-
-# Private app areas (also protected by auth middleware — robots.txt is not a
-# security mechanism, it only discourages crawling).
 Disallow: /api/
 Disallow: /admin/
 Disallow: /dashboard/
@@ -10,7 +12,26 @@ Disallow: /onboarding
 Disallow: /forgot-password
 Disallow: /reset-password
 
-# Note: /login and /signup are intentionally crawlable and carry a
-# "noindex" robots meta tag so search engines can drop them cleanly.
+# AI crawlers and assistants are welcome on the public site. Each named group
+# needs its own rules, because a matching group replaces the * group.
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: anthropic-ai
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: PerplexityBot
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /onboarding
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# /login and /signup are intentionally crawlable and carry a "noindex" robots
+# meta tag, so search engines can drop them cleanly.
 
 Sitemap: https://www.toropay.co.in/sitemap.xml

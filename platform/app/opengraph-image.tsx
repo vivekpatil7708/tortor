@@ -78,7 +78,7 @@ export default function Image() {
             Free UPI payment links. No payment gateway needed.
           </div>
           <div style={{ fontSize: 30, color: '#d4d4d4', maxWidth: 940 }}>
-            Share a link or QR code and get paid directly to your own UPI ID. Free forever, with no transaction fees.
+            Share a link or QR code and get paid directly to your own UPI ID. Free to use, with no transaction fees.
           </div>
         </div>
 

@@ -16,7 +16,7 @@ export default function CTABanner() {
         Start accepting free UPI payments
       </h3>
       <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-gray-500">
-        Create your free account in 2 minutes. Zero transaction fees, branded payment pages, instant settlement — no KYC required.
+        Create your free account in a few minutes. No transaction fees, branded payment pages, and money that goes straight to your own UPI ID.
       </p>
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Link href="/signup" className="inline-flex items-center gap-1.5 rounded-lg btn-blue-gradient px-5 py-2.5 text-sm font-semibold text-white transition-all">

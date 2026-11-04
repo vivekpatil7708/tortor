@@ -10,6 +10,13 @@ const nextConfig = {
       { protocol: 'https', hostname: 'pexels.com' },
     ],
   },
+  async rewrites() {
+    // The human-readable docs live at /docs/<slug>; the Markdown twins at
+    // /docs/<slug>.md. Both render the same lib/docs-content.ts source.
+    return [
+      { source: '/docs/:slug.md', destination: '/docs/:slug/md' },
+    ]
+  },
   headers() {
     // Only local development needs eval (fast refresh); the live site's code never uses it.
     const devEval = process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''

@@ -99,7 +99,7 @@ export default async function CategoryPage(props: Props) {
               ToroPay
             </span>
             <h2 className="mt-4 font-serif text-3xl font-bold tracking-tight text-gray-900">Free UPI payments for your business</h2>
-            <p className="mt-3 text-[15px] leading-relaxed text-gray-500">Zero transaction fees. Branded payment pages. Instant settlement.</p>
+            <p className="mt-3 text-[15px] leading-relaxed text-gray-500">No transaction fees. Branded payment pages. Money goes to your UPI ID.</p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <Link href="/signup" className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-gray-800">
                 Create free account
