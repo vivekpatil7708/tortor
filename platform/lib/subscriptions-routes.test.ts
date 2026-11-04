@@ -15,6 +15,13 @@ import { GET, POST } from '@/app/api/subscriptions/route'
 
 const customer = { id: 'c1', fullName: 'Asha Rao', phone: '9876543210', email: 'asha@example.com' }
 
+// Keep the test date in the future so it doesn't start failing as time passes.
+const FUTURE_BILLING_DATE = (() => {
+  const date = new Date()
+  date.setDate(date.getDate() + 30)
+  return date.toISOString().slice(0, 10)
+})()
+
 function subscriptionRow(over: Partial<Record<string, unknown>> = {}) {
   return {
     id: 's1',
@@ -23,7 +30,7 @@ function subscriptionRow(over: Partial<Record<string, unknown>> = {}) {
     planName: 'Care plan',
     amount: 499,
     frequency: 'monthly',
-    nextBillingDate: istDayStart('2026-11-03')!,
+    nextBillingDate: istDayStart(FUTURE_BILLING_DATE)!,
     status: 'active',
     cancelToken: 'cancel-token',
     lastReminderAt: null,
@@ -79,7 +86,7 @@ describe('subscription dashboard API', () => {
       plan_name: '  Care plan  ',
       amount: '499',
       frequency: 'monthly',
-      next_billing_date: '2026-11-03',
+      next_billing_date: FUTURE_BILLING_DATE,
     }))
     const body = await res.json()
 
@@ -94,7 +101,7 @@ describe('subscription dashboard API', () => {
         planName: 'Care plan',
         amount: 499,
         frequency: 'monthly',
-        nextBillingDate: istDayStart('2026-11-03'),
+        nextBillingDate: istDayStart(FUTURE_BILLING_DATE),
         status: 'active',
       }),
     }))
@@ -122,7 +129,7 @@ describe('subscription dashboard API', () => {
       plan_name: 'Care plan',
       amount: 499,
       frequency: 'daily',
-      next_billing_date: '2026-11-03',
+      next_billing_date: FUTURE_BILLING_DATE,
     }))
 
     expect(res.status).toBe(400)
@@ -137,7 +144,7 @@ describe('subscription dashboard API', () => {
       plan_name: 'Care plan',
       amount: 499,
       frequency: 'monthly',
-      next_billing_date: '2026-11-03',
+      next_billing_date: FUTURE_BILLING_DATE,
     }))
 
     expect(res.status).toBe(403)
